@@ -60,6 +60,14 @@
 <script type="module">
 export function initModal0() {
   const root = document.getElementById('modal0-container');
+  const companyIdElem = root.querySelector('#company-id');
+  const companyNameInput = root.querySelector('#company-name');
+  if (companyIdElem && window.companyId) {
+    companyIdElem.textContent = window.companyId;
+  }
+  if (companyNameInput && window.companyName) {
+    companyNameInput.value = window.companyName;
+  }
   root.querySelector('#add-user-btn').addEventListener('click', function() {
     const tbody = root.querySelector('#users-table tbody');
     const row = document.createElement('tr');
