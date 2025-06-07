@@ -694,9 +694,13 @@
         };
 
         try {
-          await registerUser(data);
+          const companyInfo = await registerUser(data);
+          const companyId = crypto.randomUUID();
+          const companyName = 'Company NAME';
+          window.registeredCompany = companyInfo;
           alert('Регистрация успешна!');
           toggleOverlay(false);
+          showRightModal('modal0');
         } catch (error) {
           alert('Ошибка регистрации: ' + error.message);
         } finally {
@@ -715,8 +719,12 @@
           middle_name: userData.middlename,
           phone:       userData.phone,
           email:       userData.email,
-          pass:        userData.password
-        }]);
+          pass:        userData.password,
+          company_id:  companyId,
+          company_name: companyName
+        }])
+        .select('*')
+        .single();
       if (error) {
         throw error;
       }
