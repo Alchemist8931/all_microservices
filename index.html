@@ -694,9 +694,11 @@
         };
 
         try {
-          const companyInfo = await registerUser(data);
           const companyId = crypto.randomUUID();
           const companyName = 'Company NAME';
+          const companyInfo = await registerUser(data, companyId, companyName);
+          window.companyId = companyId;
+          window.companyName = companyName;
           window.registeredCompany = companyInfo;
           alert('Регистрация успешна!');
           toggleOverlay(false);
@@ -710,7 +712,7 @@
       });
     }
 
-    async function registerUser(userData) {
+    async function registerUser(userData, companyId, companyName) {
       const { data, error } = await supabase
         .from('administrators')
         .insert([{
