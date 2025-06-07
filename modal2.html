@@ -1,13 +1,19 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>страница 2</title>
+<!-- ========= modal2.html (Проект 2) ========= -->
+<div id="modal2-container">
   <style>
-    body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    #modal2-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
   </style>
-</head>
-<body>
   страница 2
-</body>
-</html>
+  </div>
+<script type="module">
+export function initModal2() {
+  console.log('initModal2', window.supabase, window.USER_KEY);
+}
+initModal2();
+</script>
