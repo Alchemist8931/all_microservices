@@ -638,10 +638,10 @@
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
           window.USER_KEY = user.user_key;
       window.IS_ADMIN = user.is_admin;
+      window.USER_LEVELS = user.menu_levels || '';
       // ▼ 2. Ограничиваем меню доступными уровнями
-      if (user.menu_levels) {
-        filterMenuByUserLevels(user.menu_levels);
-      }
+     // Вызываем фильтр меню даже при пустых правах
+      filterMenuByUserLevels(user.menu_levels || '');
       const settingsItem = document.getElementById('settingsMenuItem');
       if (settingsItem) {
         settingsItem.style.display = user.is_admin ? '' : 'none';
@@ -791,6 +791,22 @@
 
     // Функция showRightModal, которая показывает правое окно
     window.showRightModal = async function(pageId) {
+      // Страница настроек доступна только администраторам
+      if (pageId === 'modal0' && !window.IS_ADMIN) {
+        alert('Доступ разрешен только администраторам');
+        return;
+      }
+      // Проверяем уровни доступа для остальных страниц
+      const navItem = document.querySelector(`.navbar__item[data-modal="${pageId}"]`);
+      if (navItem && navItem.dataset.levels) {
+        const userLevels = (window.USER_LEVELS || '').split(',').map(l => l.trim().toUpperCase());
+        const required = navItem.dataset.levels.split(',').map(l => l.trim().toUpperCase());
+        const hasAccess = required.every(l => userLevels.includes(l));
+        if (!hasAccess) {
+          alert('Недостаточно прав для доступа');
+          return;
+        }
+      }
       rightModal.style.display = 'flex'; // или 'block'
 
       // Сбрасываем контейнер и показываем прелоадер
