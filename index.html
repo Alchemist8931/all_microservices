@@ -426,7 +426,7 @@
     <div class="line"></div>
   </div>
 
-  <!-- Меню (скрыто до логина) -->
+   <!-- Меню (скрыто до логина) -->
   <div id="side-menu">
     <div class="navigation">
       <ul>
@@ -446,6 +446,12 @@
           <a href="#">
             <span class="icon"><i class="material-symbols-outlined">data_table</i></span>
             <span class="title">TASKS</span>
+          </a>
+        </li>
+        <li class="navbar__item" id="settingsMenuItem" data-modal="modal0" style="display:none;">
+          <a href="#">
+            <span class="icon"><i class="material-symbols-outlined">settings</i></span>
+            <span class="title">настройки</span>
           </a>
         </li>
         <div class="indicator"></div>
@@ -630,10 +636,15 @@
         return;
       }
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
-    window.USER_KEY = user.user_key;
+          window.USER_KEY = user.user_key;
+      window.IS_ADMIN = user.is_admin;
       // ▼ 2. Ограничиваем меню доступными уровнями
       if (user.menu_levels) {
         filterMenuByUserLevels(user.menu_levels);
+      }
+      const settingsItem = document.getElementById('settingsMenuItem');
+      if (settingsItem) {
+        settingsItem.style.display = user.is_admin ? '' : 'none';
       }
       // ▼ 3. Переходим из формы логина в основное приложение
       loginWrapper.classList.remove('show');
@@ -723,7 +734,7 @@
           .eq('pass', password)
           .single();
         if (adminData) {
-          user = adminData;
+          user = { ...adminData, is_admin: true };
         } else {
           let { data: empData } = await supabase
             .from('employees')
@@ -732,7 +743,7 @@
             .eq('pass', password)
             .single();
           if (empData) {
-            user = empData;
+            user = { ...empData, is_admin: false };
           }
         }
         return user;
