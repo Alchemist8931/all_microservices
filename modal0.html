@@ -58,40 +58,114 @@
   </div>
 </div>
 <script type="module">
-export function initModal0() {
+export async function initModal0() {
   const root = document.getElementById('modal0-container');
-  const companyIdElem = root.querySelector('#company-id');
+  const companyIdEl = root.querySelector('#company-id');
   const companyNameInput = root.querySelector('#company-name');
-  if (companyIdElem && window.companyId) {
-    companyIdElem.textContent = window.companyId;
+  const usersTableBody = root.querySelector('#users-table tbody');
+
+  async function loadCompany() {
+    if (!window.USER_KEY) return;
+    const { data } = await window.supabase
+      .from('administrators')
+      .select('company_id, company_name')
+      .eq('user_key', window.USER_KEY)
+      .single();
+    if (data) {
+      window.companyId = data.company_id;
+      window.companyName = data.company_name;
+      if (companyIdEl) companyIdEl.textContent = data.company_id || '';
+      if (companyNameInput) companyNameInput.value = data.company_name || '';
+      await loadEmployees();
+    }
   }
-  if (companyNameInput && window.companyName) {
-    companyNameInput.value = window.companyName;
+
+  async function saveCompanyName() {
+    const newName = companyNameInput.value.trim();
+    if (!window.companyId) return;
+    await window.supabase
+      .from('administrators')
+      .update({ company_name: newName })
+      .eq('company_id', window.companyId);
+    window.companyName = newName;
   }
-  root.querySelector('#add-user-btn').addEventListener('click', function() {
-    const tbody = root.querySelector('#users-table tbody');
+  companyNameInput.addEventListener('change', saveCompanyName);
+
+  function getLevelsFromRow(row) {
+    return Array.from(row.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(cb => cb.value)
+      .join(',');
+  }
+
+  function setLevelsToRow(row, levels) {
+    const arr = (levels || '')
+      .split(',')
+      .map(v => v.trim().toUpperCase());
+    row.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.checked = arr.includes(cb.value);
+    });
+  }
+  
+  function createRow(emp = {}) {
     const row = document.createElement('tr');
+    row.dataset.id = emp.id || '';
     row.innerHTML = `
-      <td><input type="text"></td>
-      <td><input type="email"></td>
+      <td><input type="text" class="emp-login" value="${emp.login || ''}"></td>
+      <td><input type="email" class="emp-email" value="${emp.email || ''}"></td>
       <td>
-        <label><input type="checkbox">PAGE 1</label>
-        <label><input type="checkbox">PAGE 2</label>
-        <label><input type="checkbox">TASKS</label>
+        <label><input type="checkbox" value="PAGE1">PAGE 1</label>
+        <label><input type="checkbox" value="PAGE2">PAGE 2</label>
+        <label><input type="checkbox" value="TASKS">TASKS</label>
       </td>
       <td>
-        <button class="edit-user">Edit</button>
+        <button class="save-user">Save</button>
         <button class="delete-user">Delete</button>
       </td>`;
-    tbody.appendChild(row);
-  });
+   setLevelsToRow(row, emp.menu_levels);
+    usersTableBody.appendChild(row);
+  }
 
-  root.querySelector('#users-table').addEventListener('click', function(e) {
+  async function loadEmployees() {
+    if (!window.companyId) return;
+    usersTableBody.innerHTML = '';
+    const { data } = await window.supabase
+      .from('employees')
+      .select('*')
+      .eq('company_id', window.companyId);
+    if (Array.isArray(data)) data.forEach(createRow);
+  }
+
+  root.querySelector('#add-user-btn').addEventListener('click', () => createRow());
+
+  usersTableBody.addEventListener('click', async e => {
+    const row = e.target.closest('tr');
+    if (!row) return;
     if (e.target.classList.contains('delete-user')) {
-      e.target.closest('tr').remove();
+      const id = row.dataset.id;
+      if (id) await window.supabase.from('employees').delete().eq('id', id);
+      row.remove();
+    } else if (e.target.classList.contains('save-user')) {
+      const id = row.dataset.id;
+      const login = row.querySelector('.emp-login').value.trim();
+      const email = row.querySelector('.emp-email').value.trim();
+      const levels = getLevelsFromRow(row);
+      if (id) {
+        await window.supabase
+          .from('employees')
+          .update({ login, email, menu_levels: levels })
+          .eq('id', id);
+      } else {
+        const { data } = await window.supabase
+          .from('employees')
+          .insert({ login, email, menu_levels: levels, company_id: window.companyId })
+          .select('*')
+          .single();
+        if (data) row.dataset.id = data.id;
+      }
     }
   });
-  console.log('initModal0', window.supabase, window.USER_KEY);
+  
+  await loadCompany();
 }
 initModal0();
 </script>
