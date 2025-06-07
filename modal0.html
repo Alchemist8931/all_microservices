@@ -65,6 +65,27 @@ export async function initModal0() {
   const companyNameInput = root.querySelector('#company-name');
   const usersTableBody = root.querySelector('#users-table tbody');
 
+  // Получаем список уровней доступа администратора
+  const adminLevels = (window.USER_LEVELS || '')
+    .split(',')
+    .map(l => l.trim().toUpperCase())
+    .filter(Boolean);
+
+  // Формируем массив страниц меню, доступных администратору
+  const adminPages = Array.from(document.querySelectorAll('.navbar__item'))
+    .filter(item => item.id !== 'settingsMenuItem')
+    .filter(item => {
+      const req = (item.dataset.levels || '')
+        .split(',')
+        .map(l => l.trim().toUpperCase())
+        .filter(Boolean);
+      return req.every(l => adminLevels.includes(l));
+    })
+    .map(item => ({
+      code: item.dataset.levels,
+      title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
+    }));
+  
   async function loadCompany() {
     if (!window.USER_KEY) return;
     const { data } = await window.supabase
@@ -93,7 +114,7 @@ export async function initModal0() {
   companyNameInput.addEventListener('change', saveCompanyName);
 
   function getLevelsFromRow(row) {
-    return Array.from(row.querySelectorAll('input[type="checkbox"]:checked'))
+    return Array.from(row.querySelectorAll('.levels-cell input[type="checkbox"]:checked'))
       .map(cb => cb.value)
       .join(',');
   }
@@ -102,8 +123,8 @@ export async function initModal0() {
     const arr = (levels || '')
       .split(',')
       .map(v => v.trim().toUpperCase());
-    row.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.checked = arr.includes(cb.value);
+    row.querySelectorAll('.levels-cell input[type="checkbox"]').forEach(cb => {
+      cb.checked = arr.includes(cb.value.toUpperCase());
     });
   }
   
@@ -113,15 +134,17 @@ export async function initModal0() {
     row.innerHTML = `
       <td><input type="text" class="emp-login" value="${emp.login || ''}"></td>
       <td><input type="email" class="emp-email" value="${emp.email || ''}"></td>
-      <td>
-        <label><input type="checkbox" value="PAGE1">PAGE 1</label>
-        <label><input type="checkbox" value="PAGE2">PAGE 2</label>
-        <label><input type="checkbox" value="TASKS">TASKS</label>
-      </td>
+      <td class="levels-cell"></td>
       <td>
         <button class="save-user">Save</button>
         <button class="delete-user">Delete</button>
       </td>`;
+    const cell = row.querySelector('.levels-cell');
+    adminPages.forEach(p => {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" value="${p.code}">${p.title}`;
+      cell.appendChild(label);
+    });
    setLevelsToRow(row, emp.menu_levels);
     usersTableBody.appendChild(row);
   }
