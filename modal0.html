@@ -72,19 +72,22 @@ export async function initModal0() {
     .filter(Boolean);
 
   // Формируем массив страниц меню, доступных администратору
-  const adminPages = Array.from(document.querySelectorAll('.navbar__item'))
+  let adminPages = Array.from(document.querySelectorAll('.navbar__item'))
     .filter(item => item.id !== 'settingsMenuItem')
-    .filter(item => {
-      const req = (item.dataset.levels || '')
-        .split(',')
-        .map(l => l.trim().toUpperCase())
-        .filter(Boolean);
-      return req.every(l => adminLevels.includes(l));
-    })
     .map(item => ({
       code: item.dataset.levels,
       title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
     }));
+
+  if (adminLevels.length) {
+    adminPages = adminPages.filter(item => {
+      const req = (item.code || '')
+        .split(',')
+        .map(l => l.trim().toUpperCase())
+        .filter(Boolean);
+      return req.every(l => adminLevels.includes(l));
+    });
+  }
   
   async function loadCompany() {
     if (!window.USER_KEY) return;
