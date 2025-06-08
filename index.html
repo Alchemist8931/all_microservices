@@ -871,6 +871,14 @@
       });
     });
 
+    // После загрузки меню формируем массив доступных страниц
+    window.ADMIN_PAGES = Array.from(document.querySelectorAll('.navbar__item'))
+      .filter(item => item.id !== 'settingsMenuItem')
+      .map(item => ({
+        code: item.dataset.levels,
+        title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
+      }));
+
     // Дополнительные эффекты при наведении
     const navList = document.querySelectorAll('.navigation ul li');
     for (let i = 0; i < navList.length; i++) {
