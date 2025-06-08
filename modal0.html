@@ -73,6 +73,7 @@ export async function initModal0() {
     .split(',')
     .map(l => l.trim().toUpperCase())
     .filter(Boolean);
+  console.log('[modal0] USER_LEVELS:', window.USER_LEVELS, '=> adminLevels', adminLevels);
 
   // Формируем массив страниц меню, доступных администратору
   let adminPages = Array.from(document.querySelectorAll('.navbar__item'))
@@ -81,6 +82,7 @@ export async function initModal0() {
       code: item.dataset.levels,
       title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
     }));
+  console.log('[modal0] adminPages BEFORE filter:', adminPages);
 
   if (adminLevels.length) {
     adminPages = adminPages.filter(item => {
@@ -91,6 +93,7 @@ export async function initModal0() {
       return req.every(l => adminLevels.includes(l));
     });
   }
+  console.log('[modal0] adminPages AFTER filter:', adminPages);
   
   async function loadCompany() {
     if (!window.USER_KEY) return;
@@ -135,6 +138,7 @@ export async function initModal0() {
   }
   
   function createRow(emp = {}) {
+    console.log('[modal0] createRow emp:', emp);
     const row = document.createElement('tr');
     row.dataset.id = emp.id || '';
     row.innerHTML = `
@@ -162,6 +166,7 @@ export async function initModal0() {
       .from('employees')
       .select('*')
       .eq('company_id', window.companyId);
+    console.log('[modal0] loadEmployees data:', data);
     if (Array.isArray(data)) data.forEach(createRow);
   }
 
