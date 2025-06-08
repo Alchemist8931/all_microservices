@@ -76,12 +76,13 @@ export async function initModal0() {
   console.log('[modal0] USER_LEVELS:', window.USER_LEVELS, '=> adminLevels', adminLevels);
 
   // Формируем массив страниц меню, доступных администратору
-  let adminPages = Array.from(document.querySelectorAll('.navbar__item'))
-    .filter(item => item.id !== 'settingsMenuItem')
-    .map(item => ({
-      code: item.dataset.levels,
-      title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
-    }));
+  let adminPages = window.ADMIN_PAGES ||
+    Array.from(document.querySelectorAll('.navbar__item'))
+      .filter(item => item.id !== 'settingsMenuItem')
+      .map(item => ({
+        code: item.dataset.levels,
+        title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
+      }));
   console.log('[modal0] adminPages BEFORE filter:', adminPages);
 
   if (adminLevels.length) {
