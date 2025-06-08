@@ -703,6 +703,17 @@
           window.companyId = companyId;
           window.companyName = companyName;
           window.registeredCompany = companyInfo;
+
+          const user = await checkLoginSupabase(data.email, data.password);
+          if (user) {
+            window.USER_KEY = user.user_key;
+            window.IS_ADMIN = user.is_admin;
+            window.USER_LEVELS = user.menu_levels || '';
+            filterMenuByUserLevels(user.menu_levels || '');
+            const settingsItem = document.getElementById('settingsMenuItem');
+            if (settingsItem) settingsItem.style.display = user.is_admin ? '' : 'none';
+          }
+
           alert('Регистрация успешна!');
           toggleOverlay(false);
           showRightModal('modal0');
@@ -726,7 +737,8 @@
           email:       userData.email,
           pass:        userData.password,
           company_id:  companyId,
-          company_name: companyName
+          company_name: companyName,
+          menu_levels: 'PAGE1,PAGE2,PAGE3'
         }])
         .select('*')
         .single();
