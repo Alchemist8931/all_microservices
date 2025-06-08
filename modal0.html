@@ -202,5 +202,10 @@ export async function initModal0() {
   
   await loadCompany();
 }
-document.addEventListener('DOMContentLoaded', initModal0);
+// Инициализация для динамически загружаемой страницы
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initModal0);
+} else {
+  initModal0();
+}
 </script>
