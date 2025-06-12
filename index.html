@@ -158,11 +158,11 @@
     .navigation ul .indicator {
       position: absolute;
       left: 50%;
-      top: 4%;
+      top: 0%;
       width: 60px;
       height: 60px;
-      transform: translate(-50%, 0);
-      transition: transform 0.5s ease;
+      transform: translateX(-50%);
+      transition: top 0.3s;
     }
     .navigation ul .indicator::before {
       content: "";
@@ -177,39 +177,6 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
       border: 1px solid #212121;
       transition: background 0.5s ease;
-    }
-    .navigation ul li:nth-child(1).active ~ .indicator {
-      transform: translate(-50%, -20px);
-    }
-    .navigation ul li:nth-child(2).active ~ .indicator {
-      transform: translate(-50%, 40px);
-    }
-    .navigation ul li:nth-child(3).active ~ .indicator {
-      transform: translate(-50%, 100px);
-    }
-    .navigation ul li:nth-child(4).active ~ .indicator {
-      transform: translate(-50%, 160px);
-    }
-    .navigation ul li:nth-child(5).active ~ .indicator {
-      transform: translate(-50%, 220px);
-    }
-    .navigation ul li:nth-child(6).active ~ .indicator {
-      transform: translate(-50%, 280px);
-    }
-    .navigation ul li:nth-child(7).active ~ .indicator {
-      transform: translate(-50%, 340px);
-    }
-    .navigation ul li:nth-child(8).active ~ .indicator {
-      transform: translate(-50%, 400px);
-    }
-    .navigation ul li:nth-child(9).active ~ .indicator {
-      transform: translate(-50%, 460px);
-    }
-    .navigation ul li:nth-child(10).active ~ .indicator {
-      transform: translate(-50%, 520px);
-    }
-    .navigation ul li:nth-child(11).active ~ .indicator {
-      transform: translate(-50%, 580px);
     }
 
     /* Логин/регистрация */
@@ -726,6 +693,7 @@
         setTimeout(() => {
           preloader.style.display = 'none';
           sideMenu.style.display = 'block';
+          initIndicator();
         }, 500);
       }, 1500);
     });
@@ -741,6 +709,7 @@
           item.style.display = hasAccess ? '' : 'none';
         }
       });
+      initIndicator();
     }
 
     // Кнопка регистрации "Отправить заявку"
@@ -927,11 +896,32 @@
       rightModal.style.display = 'none';
     };
 
+    const indicator = document.querySelector('.indicator');
+
+    function moveIndicatorTo(item) {
+      indicator.style.top = item.offsetTop + 'px';
+    }
+
+    function setActive(item) {
+      document.querySelectorAll('.navbar__item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      moveIndicatorTo(item);
+    }
+
+    function initIndicator() {
+      const first = Array.from(document.querySelectorAll('.navbar__item')).find(el => el.style.display !== 'none');
+      if (first) setActive(first);
+    }
+
     // Вешаем обработчик на пункты меню
     const navItems = document.querySelectorAll('.navbar__item');
     navItems.forEach(item => {
+      item.addEventListener('mouseenter', function() {
+        moveIndicatorTo(this);
+      });
       item.addEventListener('click', function(e) {
         e.preventDefault();
+        setActive(this);
         const pageId = this.getAttribute('data-modal');
         showRightModal(pageId);
       });
@@ -944,24 +934,6 @@
         code: item.dataset.levels,
         title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
       }));
-
-    // Дополнительные эффекты при наведении
-    const navList = document.querySelectorAll('.navigation ul li');
-    for (let i = 0; i < navList.length; i++) {
-      navList[i].onmouseover = function() {
-        let j = 0;
-        while (j < navList.length) { navList[j++].className = 'list'; }
-        navList[i].className = 'list active';
-      };
-    }
-    let list = document.querySelectorAll("li");
-    for (let i = 0; i < list.length; i++) {
-      list[i].onmouseover = function () {
-        let j = 0;
-        while (j < list.length) { list[j++].className = "list"; }
-        list[i].className = "list active";
-      };
-    }
 
   </script>
 </body>
