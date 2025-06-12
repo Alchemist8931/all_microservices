@@ -118,8 +118,18 @@
       color: #212121;
     }
     .navigation ul li.active {
-      background-color: rgba(0,0,0,0.1);
+      background: linear-gradient(#fff2, transparent);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      box-shadow: -2px -2px -2px -2px rgba(0,0,0,0.3);
+      
       border-radius: 8px;
+      left: 50%;
+      top: 4%;
+      width: 60px;
+      height: 60px;
+      transform: translateX(-50%);
+      transition: top 0.3s;      
     }
     .navigation ul li a .icon i {
       font-size: 32px;
@@ -162,7 +172,7 @@
     .navigation ul .indicator {
       position: absolute;
       left: 50%;
-      top: 0%;
+      top: 4%;
       width: 60px;
       height: 60px;
       transform: translateX(-50%);
