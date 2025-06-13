@@ -1,17 +1,221 @@
 <!-- ========= modal1.html  (Проект 2) ========= -->
 <div id="modal1-container">
   <style>
-    #modal1-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+    @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+    :root {
+      --fon:#f5f5f5;
+      --card-bg:#ffffff;
+      --accent:#212121;
+      --radius:10px;
     }
+    * {
+      box-sizing:border-box;
+      font-family:'Comfortaa', sans-serif;
+    }
+    #modal1-container { height:100%; padding:10px; background:var(--fon); }
+    .board { display:flex; gap:15px; height:100%; }
+    .column { flex:1; background:var(--fon); border:1px solid rgba(0,0,0,0.1); border-radius:var(--radius); padding:10px; display:flex; flex-direction:column; }
+    .column h3 { margin:0 0 10px 0; font-size:18px; }
+    .task-list { flex:1; overflow-y:auto; list-style:none; padding:0; margin:0; }
+    .task { background:var(--card-bg); border-radius:var(--radius); padding:8px; margin-bottom:8px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); }
+    .task.expanded .full-view { display:block; }
+    .task.expanded .short-view { display:none; }
+    .full-view { display:none; }
+    .add-task { margin-top:5px; }
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,0.5); }
+    .modal.show { display:flex; }
+    .modal-content { background:var(--card-bg); border-radius:var(--radius); padding:20px; width:300px; max-height:80%; overflow-y:auto; }
+    .textarea-scroll { max-height:150px; overflow-y:auto; resize:vertical; }
+    .textarea-scroll::-webkit-scrollbar { width:6px; }
+    .textarea-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
+    .textarea-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
   </style>
-  страница 1
+  <div class="board">
+    <div class="column" data-status="created">
+      <h3>created</h3>
+      <ul class="task-list"></ul>
+      <button class="add-task" onclick="openTaskModal('created')">Add Task</button>
+    </div>
+    <div class="column" data-status="at work">
+      <h3>at work</h3>
+      <ul class="task-list"></ul>
+      <button class="add-task" onclick="openTaskModal('at work')">Add Task</button>
+    </div>
+    <div class="column" data-status="completed">
+      <h3>completed</h3>
+      <ul class="task-list"></ul>
+      <button class="add-task" onclick="openTaskModal('completed')">Add Task</button>
+    </div>
+    <div class="column" data-status="canceled">
+      <h3>canceled</h3>
+      <ul class="task-list"></ul>
+      <button class="add-task" onclick="openTaskModal('canceled')">Add Task</button>
+    </div>
   </div>
+</div>
+<div id="task-modal" class="modal">
+  <div class="modal-content">
+    <h3 id="modal-title">Task</h3>
+    <form id="task-form">
+      <input type="hidden" id="task-id" />
+      <input type="text" id="task-title" placeholder="Title" required /><br/>
+      <textarea id="task-description" class="textarea-scroll" placeholder="Description"></textarea><br/>
+      <input type="text" id="task-author" placeholder="Author" /><br/>
+      <input type="text" id="task-executor" placeholder="Executor" /><br/>
+      <input type="text" id="task-observer" placeholder="Observer" /><br/>
+      <textarea id="task-subtasks" class="textarea-scroll" placeholder="Subtasks (one per line)"></textarea><br/>
+      <button type="submit">Save</button>
+      <button type="button" onclick="closeTaskModal()">Cancel</button>
+    </form>
+  </div>
+</div>
 <script type="module">
+  let tasks = [];
+
+function loadTasks() {
+  tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+  redraw();
+}
+
+function saveTasks() {
+  localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+}
+
+function openTaskModal(status, id) {
+  const modal = document.getElementById('task-modal');
+  const form = document.getElementById('task-form');
+  form.reset();
+  form.dataset.status = status || 'created';
+  document.getElementById('task-id').value = '';
+  if (id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      document.getElementById('task-id').value = task.id;
+      document.getElementById('task-title').value = task.title;
+      document.getElementById('task-description').value = task.description;
+      document.getElementById('task-author').value = task.author;
+      document.getElementById('task-executor').value = task.executor;
+      document.getElementById('task-observer').value = task.observer;
+      document.getElementById('task-subtasks').value = task.subtasks.join('\n');
+      form.dataset.status = task.status;
+    }
+  }
+  modal.classList.add('show');
+}
+
+function closeTaskModal() { document.getElementById('task-modal').classList.remove('show'); }
+
+document.getElementById('task-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('task-id').value;
+  const status = e.target.dataset.status || 'created';
+  const data = {
+    id: id || Date.now().toString(),
+    title: document.getElementById('task-title').value,
+    description: document.getElementById('task-description').value,
+    author: document.getElementById('task-author').value,
+    executor: document.getElementById('task-executor').value,
+    observer: document.getElementById('task-observer').value,
+    subtasks: document.getElementById('task-subtasks').value.split(/\n+/).filter(Boolean),
+    chat: [],
+    createdAt: id ? tasks.find(t=>t.id===id).createdAt : Date.now(),
+    status: status,
+    statusHistory: id ? tasks.find(t=>t.id===id).statusHistory : { [status]: { date: Date.now(), duration: 0 } },
+    expanded: false
+  };
+  const existingIndex = tasks.findIndex(t => t.id === data.id);
+  if (existingIndex >= 0) tasks[existingIndex] = data; else tasks.push(data);
+  saveTasks();
+  closeTaskModal();
+  redraw();
+});
+
+function renderShort(task) {
+  const created = new Date(task.createdAt).toLocaleDateString();
+  const timeData = task.statusHistory[task.status];
+  let dur = 0;
+  if (timeData) dur = Math.floor((Date.now() - timeData.date) / 1000);
+  const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  return `<div><strong>${task.title}</strong></div>
+          <div class="meta">A: ${task.author || ''} E: ${task.executor || ''}</div>
+          <div class="meta">${created}</div>
+          <ul>${sub}</ul>
+          <div class="meta">${dur}s</div>`;
+}
+
+function renderFull(task) {
+  const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
+  const chat = task.chat.map(c => `<div>${c}</div>`).join('');
+  const subtasks = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  return `<div><strong>${task.title}</strong></div>
+          <textarea class="textarea-scroll" readonly>${task.description || ''}</textarea>
+          <div>Author: ${task.author || ''}</div>
+          <div>Executor: ${task.executor || ''}</div>
+          <div>Observer: ${task.observer || ''}</div>
+          <ul>${subtasks}</ul>
+          <div class="textarea-scroll" style="border:1px solid #ccc;">${chat}</div>
+          ${history}`;
+}
+
+function addTaskToColumn(task) {
+  const list = document.querySelector(`.column[data-status="${task.status}"] .task-list`);
+  if (!list) return;
+  const li = document.createElement('li');
+  li.className = 'task';
+  li.dataset.id = task.id;
+  li.innerHTML = `<div class="short-view">${renderShort(task)}</div><div class="full-view">${renderFull(task)}</div>`;
+  li.draggable = true;
+  li.addEventListener('click', () => toggleView(task.id));
+  li.addEventListener('dragstart', dragStart);
+  li.addEventListener('dragend', dragEnd);
+  list.appendChild(li);
+}
+
+function redraw() {
+  document.querySelectorAll('.task-list').forEach(l => l.innerHTML = '');
+  tasks.forEach(addTaskToColumn);
+}
+
+function toggleView(id) {
+  const task = tasks.find(t=>t.id===id);
+  if (!task) return;
+  task.expanded = !task.expanded;
+  saveTasks();
+  redraw();
+  const li = document.querySelector(`.task[data-id="${id}"]`);
+  if (li) li.classList.toggle('expanded', task.expanded);
+}
+
+function dragStart(e) {
+  e.dataTransfer.setData('text/plain', e.target.dataset.id);
+}
+function dragEnd(e) { e.dataTransfer.clearData(); }
+function allowDrop(e) { e.preventDefault(); }
+function drop(e) {
+  e.preventDefault();
+  const id = e.dataTransfer.getData('text/plain');
+  const task = tasks.find(t=>t.id===id);
+  const newStatus = e.currentTarget.closest('.column').dataset.status;
+  if (task && task.status !== newStatus) {
+    const now = Date.now();
+    const prevStatus = task.status;
+    if (!task.statusHistory[prevStatus]) task.statusHistory[prevStatus] = {date:now,duration:0};
+    task.statusHistory[prevStatus].duration += now - (task.statusHistory[prevStatus].date || now);
+    task.status = newStatus;
+    task.statusHistory[newStatus] = {date: now, duration: 0};
+    saveTasks();
+    redraw();
+  }
+}
+
+window.addEventListener('load', () => {
+  loadTasks();
+  document.querySelectorAll('.column').forEach(col => {
+    col.addEventListener('dragover', allowDrop);
+    col.addEventListener('drop', drop);
+  });
+});
 export function initModal1() {
   console.log('[modal1.html] PAGE 1 активирован');
 }
