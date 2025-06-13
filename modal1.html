@@ -59,7 +59,8 @@
       <input type="text" id="task-title" placeholder="Title" required /><br/>
       <textarea id="task-description" class="textarea-scroll" placeholder="Description"></textarea><br/>
       <input type="text" id="task-author" placeholder="Author" /><br/>
-      <input type="text" id="task-executor" placeholder="Executor" /><br/>
+      <select id="task-executor"></select><br/>
+      <input type="date" id="task-due" /><br/>
       <input type="text" id="task-observer" placeholder="Observer" /><br/>
       <textarea id="task-subtasks" class="textarea-scroll" placeholder="Subtasks (one per line)"></textarea><br/>
       <button type="submit">Save</button>
@@ -79,9 +80,29 @@ function saveTasks() {
   localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
 }
 
-function openTaskModal(status, id) {
+async function loadExecutors() {
+  const select = document.getElementById('task-executor');
+  if (!select) return;
+  select.innerHTML = '<option value=""></option>';
+  if (!window.supabase || !window.companyId) return;
+  const { data } = await window.supabase
+    .from('employees')
+    .select('id, login')
+    .eq('company_id', window.companyId);
+  if (Array.isArray(data)) {
+    data.forEach(emp => {
+      const opt = document.createElement('option');
+      opt.value = emp.id;
+      opt.textContent = emp.login || emp.id;
+      select.appendChild(opt);
+    });
+  }
+}
+
+async function openTaskModal(status, id) {
   const modal = document.getElementById('task-modal');
   const form = document.getElementById('task-form');
+  await loadExecutors();
   form.reset();
   form.dataset.status = status || 'created';
   document.getElementById('task-id').value = '';
@@ -93,6 +114,7 @@ function openTaskModal(status, id) {
       document.getElementById('task-description').value = task.description;
       document.getElementById('task-author').value = task.author;
       document.getElementById('task-executor').value = task.executor;
+      document.getElementById('task-due').value = task.dueDate || '';
       document.getElementById('task-observer').value = task.observer;
       document.getElementById('task-subtasks').value = task.subtasks.join('\n');
       form.dataset.status = task.status;
@@ -116,6 +138,7 @@ document.getElementById('task-form').addEventListener('submit', e => {
     description: document.getElementById('task-description').value,
     author: document.getElementById('task-author').value,
     executor: document.getElementById('task-executor').value,
+    dueDate: document.getElementById('task-due').value,
     observer: document.getElementById('task-observer').value,
     subtasks: document.getElementById('task-subtasks').value.split(/\n+/).filter(Boolean),
     chat: [],
@@ -139,6 +162,7 @@ function renderShort(task) {
   const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
   return `<div><strong>${task.title}</strong></div>
           <div class="meta">A: ${task.author || ''} E: ${task.executor || ''}</div>
+          <div class="meta">Due: ${task.dueDate || ''}</div>
           <div class="meta">${created}</div>
           <ul>${sub}</ul>
           <div class="meta">${dur}s</div>`;
@@ -152,6 +176,7 @@ function renderFull(task) {
           <textarea class="textarea-scroll" readonly>${task.description || ''}</textarea>
           <div>Author: ${task.author || ''}</div>
           <div>Executor: ${task.executor || ''}</div>
+          <div>Due: ${task.dueDate || ''}</div>
           <div>Observer: ${task.observer || ''}</div>
           <ul>${subtasks}</ul>
           <div class="textarea-scroll" style="border:1px solid #ccc;">${chat}</div>
