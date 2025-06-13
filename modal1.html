@@ -106,6 +106,9 @@ function openTaskModal(status, id) {
 
 function closeTaskModal() { document.getElementById('task-modal').classList.remove('show'); }
 
+  window.openTaskModal = openTaskModal;
+window.closeTaskModal = closeTaskModal;
+
 document.getElementById('task-form').addEventListener('submit', e => {
   e.preventDefault();
   const id = document.getElementById('task-id').value;
