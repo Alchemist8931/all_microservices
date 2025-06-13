@@ -160,9 +160,10 @@ function renderShort(task) {
   let dur = 0;
   if (timeData) dur = Math.floor((Date.now() - timeData.date) / 1000);
   const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
           <div class="meta">A: ${task.author || ''} E: ${task.executor || ''}</div>
-          <div class="meta">Due: ${task.dueDate || ''}</div>
+          <div class="meta">Due: ${due}</div>
           <div class="meta">${created}</div>
           <ul>${sub}</ul>
           <div class="meta">${dur}s</div>`;
@@ -172,11 +173,12 @@ function renderFull(task) {
   const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
   const chat = task.chat.map(c => `<div>${c}</div>`).join('');
   const subtasks = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
           <textarea class="textarea-scroll" readonly>${task.description || ''}</textarea>
           <div>Author: ${task.author || ''}</div>
           <div>Executor: ${task.executor || ''}</div>
-          <div>Due: ${task.dueDate || ''}</div>
+          <div>Due: ${due}</div>
           <div>Observer: ${task.observer || ''}</div>
           <ul>${subtasks}</ul>
           <div class="textarea-scroll" style="border:1px solid #ccc;">${chat}</div>
