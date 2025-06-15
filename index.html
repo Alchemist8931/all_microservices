@@ -682,8 +682,11 @@
         loginBtn.innerHTML = originalLoginText;
         return;
       }
+      // Сохраняем данные компании глобально
+      window.companyId = user.company_id;
+      window.companyName = user.company_name;
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
-          window.USER_KEY = user.user_key;
+      window.USER_KEY = user.user_key;
       window.IS_ADMIN = user.is_admin;
       window.USER_LEVELS = user.menu_levels || '';
       // ▼ 2. Ограничиваем меню доступными уровнями
@@ -752,6 +755,8 @@
 
           const user = await checkLoginSupabase(data.email, data.password);
           if (user) {
+            window.companyId = user.company_id;
+            window.companyName = user.company_name;
             window.USER_KEY = user.user_key;
             window.IS_ADMIN = user.is_admin;
             window.USER_LEVELS = user.menu_levels || '';
