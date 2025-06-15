@@ -292,8 +292,18 @@
   let tasks = [];
   let currentViewId = null;
 
-function loadTasks() {
-  tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+let realtimeSub = null;
+
+async function loadTasks() {
+  if (window.supabase && window.companyId) {
+    const { data } = await window.supabase
+      .from('tasks')
+      .select('*')
+      .eq('company_id', window.companyId);
+    tasks = Array.isArray(data) ? data : [];
+  } else {
+    tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+  }
   tasks.forEach(t => {
     if (Array.isArray(t.subtasks) && typeof t.subtasks[0] === 'string') {
       t.subtasks = t.subtasks.map(s => ({ text: s, done: false }));
@@ -304,8 +314,38 @@ function loadTasks() {
   redraw();
 }
 
-function saveTasks() {
+async function saveTasks() {
   localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+  if (!window.supabase || !window.companyId) return;
+  for (const task of tasks) {
+    await window.supabase
+      .from('tasks')
+      .upsert({ ...task, company_id: window.companyId });
+  }
+}
+
+function setupRealtime() {
+  if (!window.supabase || !window.companyId) return;
+  realtimeSub = window.supabase
+    .channel('tasks-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tasks', filter: `company_id=eq.${window.companyId}` },
+      payload => handleRealtime(payload)
+    )
+    .subscribe();
+}
+
+function handleRealtime(payload) {
+  const rec = payload.new || payload.old;
+  if (!rec) return;
+  if (payload.eventType === 'DELETE') {
+    tasks = tasks.filter(t => t.id !== rec.id);
+  } else {
+    const idx = tasks.findIndex(t => t.id === rec.id);
+    if (idx >= 0) tasks[idx] = rec; else tasks.push(rec);
+  }
+  redraw();
 }
 
   function clearSubtaskList() {
@@ -398,7 +438,7 @@ function closeViewModal() {
   currentViewId = null;
 }
 
-document.getElementById('task-form').addEventListener('submit', e => {
+document.getElementById('task-form').addEventListener('submit', async e => {
   e.preventDefault();
   const id = document.getElementById('task-id').value;
   const status = e.target.dataset.status || 'created';
@@ -413,6 +453,7 @@ document.getElementById('task-form').addEventListener('submit', e => {
 
   const data = {
     id: id || Date.now().toString(),
+    company_id: window.companyId,
     title: document.getElementById('task-title').value,
     description: document.getElementById('task-description').value,
     author: document.getElementById('task-author').value,
@@ -428,7 +469,7 @@ document.getElementById('task-form').addEventListener('submit', e => {
   };
   const existingIndex = tasks.findIndex(t => t.id === data.id);
   if (existingIndex >= 0) tasks[existingIndex] = data; else tasks.push(data);
-  saveTasks();
+  await saveTasks();
   closeTaskModal();
   redraw();
 });
@@ -502,11 +543,11 @@ function redraw() {
   tasks.forEach(addTaskToColumn);
 }
 
-function toggleView(id) {
+async function toggleView(id) {
   const task = tasks.find(t=>t.id===id);
   if (!task) return;
   task.expanded = !task.expanded;
-  saveTasks();
+  await saveTasks();
   redraw();
   if (task.expanded) openViewModal(id); else closeViewModal();
 }
@@ -516,7 +557,7 @@ function dragStart(e) {
 }
 function dragEnd(e) { e.dataTransfer.clearData(); }
 function allowDrop(e) { e.preventDefault(); }
-function drop(e) {
+async function drop(e) {
   e.preventDefault();
   const id = e.dataTransfer.getData('text/plain');
   const task = tasks.find(t=>t.id===id);
@@ -528,30 +569,31 @@ function drop(e) {
     task.statusHistory[prevStatus].duration += now - (task.statusHistory[prevStatus].date || now);
     task.status = newStatus;
     task.statusHistory[newStatus] = {date: now, duration: 0};
-    saveTasks();
+    await saveTasks();
     redraw();
   }
 }
 
-window.addEventListener('load', () => {
-  loadTasks();
+window.addEventListener('load', async () => {
+  await loadTasks();
+  setupRealtime();
   document.querySelectorAll('.column').forEach(col => {
     col.addEventListener('dragover', allowDrop);
     col.addEventListener('drop', drop);
   });
-  document.querySelector('.board').addEventListener('change', e => {
+ document.querySelector('.board').addEventListener('change', async e => {
     if (e.target.classList.contains('checklist-checkbox')) {
       const id = e.target.dataset.id;
       const idx = parseInt(e.target.dataset.index, 10);
       const task = tasks.find(t=>t.id===id);
       if (task && task.subtasks[idx]) {
         task.subtasks[idx].done = e.target.checked;
-        saveTasks();
+        await saveTasks();
       }
     }
   });
 
-  document.querySelector('.board').addEventListener('submit', e => {
+  document.querySelector('.board').addEventListener('submit', async e => {
     if (e.target.classList.contains('message-form')) {
       e.preventDefault();
       const id = e.target.dataset.id;
@@ -562,7 +604,7 @@ window.addEventListener('load', () => {
         if (task) {
           task.chat.push(text);
           task.expanded = true;
-          saveTasks();
+          await saveTasks();
           redraw();
           openViewModal(id);
         }
@@ -572,30 +614,30 @@ window.addEventListener('load', () => {
   });
 
   const viewModal = document.getElementById('view-modal');
-  viewModal.addEventListener('click', e => {
+  viewModal.addEventListener('click', async e => {
     if (e.target === viewModal) {
       const task = tasks.find(t => t.id === currentViewId);
       if (task) task.expanded = false;
-      saveTasks();
+      await saveTasks();
       redraw();
       closeViewModal();
     }
   });
 
-  viewModal.addEventListener('change', e => {
+  viewModal.addEventListener('change', async e => {
     if (e.target.classList.contains('checklist-checkbox')) {
       const id = e.target.dataset.id;
       const idx = parseInt(e.target.dataset.index, 10);
       const task = tasks.find(t=>t.id===id);
       if (task && task.subtasks[idx]) {
         task.subtasks[idx].done = e.target.checked;
-        saveTasks();
+        await saveTasks();
         redraw();
       }
     }
   });
 
-  viewModal.addEventListener('submit', e => {
+  viewModal.addEventListener('submit', async e => {
     if (e.target.classList.contains('message-form')) {
       e.preventDefault();
       const id = e.target.dataset.id;
@@ -606,7 +648,7 @@ window.addEventListener('load', () => {
         if (task) {
           task.chat.push(text);
           task.expanded = true;
-          saveTasks();
+          await saveTasks();
           redraw();
           openViewModal(id);
         }
