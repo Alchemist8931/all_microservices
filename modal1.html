@@ -358,6 +358,16 @@ function setupRealtime() {
     .subscribe();
 }
 
+function cleanupRealtime() {
+  if (realtimeSub) {
+    realtimeSub.unsubscribe();
+    realtimeSub = null;
+  }
+}
+
+// expose cleanup so index.html can call it when closing a modal
+window.cleanupRealtime = cleanupRealtime;
+  
 function handleRealtime(payload) {
   const raw = payload.new || payload.old;
   if (!raw) return;
@@ -690,4 +700,7 @@ export function initModal1() {
   console.log('[modal1.html] PAGE 1 активирован');
 }
 initModal1();
+  
+// clean up realtime on page unload
+window.addEventListener('beforeunload', cleanupRealtime);
 </script>
