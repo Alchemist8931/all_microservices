@@ -907,6 +907,9 @@
 
     // Пример функции закрытия правого окна
     window.closeRightModal = function() {
+      if (window.cleanupRealtime) {
+        window.cleanupRealtime();
+      }
       modalContentArea.innerHTML = '';
       modalContentArea.classList.remove('visible');
       rightModal.style.display = 'none';
