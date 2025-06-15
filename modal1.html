@@ -324,10 +324,11 @@ async function loadTasks() {
   redraw();
 }
 
-async function saveTasks() {
+async function saveTasks(taskOrTasks = tasks) {
   localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
   if (!window.supabase || !window.companyId) return;
-  for (const task of tasks) {
+  const items = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks];
+  for (const task of items) {
     const dbTask = {
       ...task,
       due_date: task.dueDate,
@@ -508,7 +509,7 @@ document.getElementById('task-form').addEventListener('submit', async e => {
   };
   const existingIndex = tasks.findIndex(t => t.id === data.id);
   if (existingIndex >= 0) tasks[existingIndex] = data; else tasks.push(data);
-  await saveTasks();
+  await saveTasks(data);
   closeTaskModal();
   redraw();
 });
@@ -586,7 +587,7 @@ async function toggleView(id) {
   const task = tasks.find(t=>t.id===id);
   if (!task) return;
   task.expanded = !task.expanded;
-  await saveTasks();
+  await saveTasks(task);
   redraw();
   if (task.expanded) openViewModal(id); else closeViewModal();
 }
@@ -608,7 +609,7 @@ async function drop(e) {
     task.statusHistory[prevStatus].duration += now - (task.statusHistory[prevStatus].date || now);
     task.status = newStatus;
     task.statusHistory[newStatus] = {date: now, duration: 0};
-    await saveTasks();
+    await saveTasks(task);
     redraw();
   }
 }
@@ -627,7 +628,7 @@ window.addEventListener('load', async () => {
       const task = tasks.find(t=>t.id===id);
       if (task && task.subtasks[idx]) {
         task.subtasks[idx].done = e.target.checked;
-        await saveTasks();
+        await saveTasks(task);
       }
     }
   });
@@ -643,7 +644,7 @@ window.addEventListener('load', async () => {
         if (task) {
           task.chat.push(text);
           task.expanded = true;
-          await saveTasks();
+          await saveTasks(task);
           redraw();
           openViewModal(id);
         }
@@ -656,8 +657,10 @@ window.addEventListener('load', async () => {
   viewModal.addEventListener('click', async e => {
     if (e.target === viewModal) {
       const task = tasks.find(t => t.id === currentViewId);
-      if (task) task.expanded = false;
-      await saveTasks();
+      if (task) {
+        task.expanded = false;
+        await saveTasks(task);
+      }
       redraw();
       closeViewModal();
     }
@@ -670,7 +673,7 @@ window.addEventListener('load', async () => {
       const task = tasks.find(t=>t.id===id);
       if (task && task.subtasks[idx]) {
         task.subtasks[idx].done = e.target.checked;
-        await saveTasks();
+        await saveTasks(task);
         redraw();
       }
     }
@@ -687,7 +690,7 @@ window.addEventListener('load', async () => {
         if (task) {
           task.chat.push(text);
           task.expanded = true;
-          await saveTasks();
+          await saveTasks(task);
           redraw();
           openViewModal(id);
         }
