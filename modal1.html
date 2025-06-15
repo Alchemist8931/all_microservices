@@ -8,6 +8,9 @@
       --card-bg:#ffffff;
       --accent:#212121;
       --radius:10px;
+      --black-color:#000;
+      --white-color2:#ffffff;
+      --scrollbar-color:#e0e0e0;
     }
     * {
       box-sizing:border-box;
@@ -30,6 +33,159 @@
     .textarea-scroll::-webkit-scrollbar { width:6px; }
     .textarea-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
     .textarea-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
+
+    .textareaZADACH-content {
+      width: auto;
+      padding: 0.5vw;
+      margin: 0.3vw;
+      resize: none;
+      color: var(--black-color);
+      height: auto;
+      border: none;
+      border-top: 2px solid var(--black-color);
+      border-bottom: 2px solid var(--black-color);
+      outline: none;
+      background-color: var(--white-color2);
+      font-size: 0.7vw;
+      overflow: hidden;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .textareaZADACH-content::-webkit-scrollbar {
+      width: 4px;
+      background-color: var(--scrollbar-color);
+      height: 90%;
+    }
+
+    .textareaZADACH-content::-webkit-scrollbar-thumb {
+      background-color: var(--black-color);
+      border-radius: 10px;
+    }
+
+    .textareaZADACH-content::-webkit-scrollbar-track {
+      background-color: var(--scrollbar-color);
+    }
+
+    .checklist-container {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f4f7f6;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .checklist-title {
+      text-align: center;
+      color: #333;
+      margin-bottom: 25px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e0e0e0;
+      position: relative;
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .checklist-checkbox {
+      margin-right: 12px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transform: scale(1.2);
+      accent-color: #2ecc71;
+    }
+
+    .checklist-label {
+      color: #444;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.4s ease-in-out;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .checklist-label::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #e74c3c;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease-out;
+    }
+
+    .checklist-checkbox:checked + .checklist-label {
+      color: #aaa;
+    }
+
+    .checklist-checkbox:checked + .checklist-label::after {
+      transform: scaleX(1);
+    }
+
+    .card-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin: 10px 0;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background:#f4f7f6;
+    }
+
+    .img-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background:#ccc;
+      margin-right: 10px;
+    }
+
+    .text-chat { font-weight: bold; }
+
+    .card-body { padding: 10px; }
+
+    .messages-container {
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .message-box {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      color: #fff;
+    }
+
+    .message-box.left { background: #7f8c8d; align-self: flex-start; }
+    .message-box.right { background: #2ecc71; align-self: flex-end; }
+
+    .message-input { display: flex; gap: 5px; margin-top: 10px; }
+
+    .message-send { flex: 1; resize: none; }
+
+    .button-send { padding: 4px 10px; }
+    
   </style>
   <div class="board">
     <div class="column" data-status="created">
@@ -57,12 +213,18 @@
     <form id="task-form">
       <input type="hidden" id="task-id" />
       <input type="text" id="task-title" placeholder="Title" required /><br/>
-      <textarea id="task-description" class="textarea-scroll" placeholder="Description"></textarea><br/>
+      <textarea id="task-description" class="textareaZADACH-content" placeholder="Description" cols="50" rows="10" name="textarea"></textarea><br/>
       <input type="text" id="task-author" placeholder="Author" /><br/>
       <select id="task-executor"></select><br/>
       <input type="date" id="task-due" /><br/>
       <input type="text" id="task-observer" placeholder="Observer" /><br/>
-      <textarea id="task-subtasks" class="textarea-scroll" placeholder="Subtasks (one per line)"></textarea><br/>
+      <div id="subtask-input">
+        <input type="text" id="new-subtask-text" placeholder="Add subtask" />
+        <button type="button" id="add-subtask-btn">Add</button>
+      </div>
+      <div id="task-subtasks" class="checklist-container">
+        <div class="checklist-title">Subtasks</div>
+      </div><br/>
       <button type="submit">Save</button>
       <button type="button" onclick="closeTaskModal()">Cancel</button>
     </form>
@@ -73,12 +235,38 @@
 
 function loadTasks() {
   tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+  tasks.forEach(t => {
+    if (Array.isArray(t.subtasks) && typeof t.subtasks[0] === 'string') {
+      t.subtasks = t.subtasks.map(s => ({ text: s, done: false }));
+    }
+    if (!Array.isArray(t.subtasks)) t.subtasks = [];
+    if (!Array.isArray(t.chat)) t.chat = [];
+  });
   redraw();
 }
 
 function saveTasks() {
   localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
 }
+
+  function clearSubtaskList() {
+  const cont = document.getElementById('task-subtasks');
+  if (cont) cont.innerHTML = '<div class="checklist-title">Subtasks</div>';
+}
+
+function addSubtaskRow(text = '', done = false) {
+  const cont = document.getElementById('task-subtasks');
+  if (!cont) return;
+  const idx = cont.querySelectorAll('.checklist-item').length;
+  const id = `subtask-${Date.now()}-${idx}`;
+  const div = document.createElement('div');
+  div.className = 'checklist-item';
+  div.innerHTML =
+    `<input type="checkbox" id="${id}" class="checklist-checkbox" ${done ? 'checked' : ''}>` +
+    `<label for="${id}" class="checklist-label" contenteditable="true">${text}</label>`;
+  cont.appendChild(div);
+}
+
 
 async function loadExecutors() {
   const select = document.getElementById('task-executor');
@@ -106,6 +294,8 @@ async function openTaskModal(status, id) {
   form.reset();
   form.dataset.status = status || 'created';
   document.getElementById('task-id').value = '';
+  clearSubtaskList();
+  addSubtaskRow();
   if (id) {
     const task = tasks.find(t => t.id === id);
     if (task) {
@@ -116,7 +306,12 @@ async function openTaskModal(status, id) {
       document.getElementById('task-executor').value = task.executor;
       document.getElementById('task-due').value = task.dueDate || '';
       document.getElementById('task-observer').value = task.observer;
-      document.getElementById('task-subtasks').value = task.subtasks.join('\n');
+      clearSubtaskList();
+      if (Array.isArray(task.subtasks) && task.subtasks.length) {
+        task.subtasks.forEach(st => addSubtaskRow(st.text, st.done));
+      } else {
+        addSubtaskRow();
+      }
       form.dataset.status = task.status;
     }
   }
@@ -132,6 +327,15 @@ document.getElementById('task-form').addEventListener('submit', e => {
   e.preventDefault();
   const id = document.getElementById('task-id').value;
   const status = e.target.dataset.status || 'created';
+  const cont = document.getElementById('task-subtasks');
+  const subtasks = [];
+  cont.querySelectorAll('.checklist-item').forEach(item => {
+    const cb = item.querySelector('.checklist-checkbox');
+    const label = item.querySelector('.checklist-label');
+    const text = label ? label.textContent.trim() : '';
+    if (text) subtasks.push({ text, done: cb.checked });
+  });
+
   const data = {
     id: id || Date.now().toString(),
     title: document.getElementById('task-title').value,
@@ -140,7 +344,7 @@ document.getElementById('task-form').addEventListener('submit', e => {
     executor: document.getElementById('task-executor').value,
     dueDate: document.getElementById('task-due').value,
     observer: document.getElementById('task-observer').value,
-    subtasks: document.getElementById('task-subtasks').value.split(/\n+/).filter(Boolean),
+    subtasks,
     chat: [],
     createdAt: id ? tasks.find(t=>t.id===id).createdAt : Date.now(),
     status: status,
@@ -154,34 +358,51 @@ document.getElementById('task-form').addEventListener('submit', e => {
   redraw();
 });
 
+  document.getElementById('add-subtask-btn').addEventListener('click', () => {
+  addSubtaskRow();
+});
+
 function renderShort(task) {
   const created = new Date(task.createdAt).toLocaleDateString();
-  const timeData = task.statusHistory[task.status];
-  let dur = 0;
-  if (timeData) dur = Math.floor((Date.now() - timeData.date) / 1000);
+  const subtasks = task.subtasks.map((s,i) =>
+    `<div class="checklist-item"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><label class="checklist-label">${s.text}</label></div>`
+  ).join('');
   const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
-          <div class="meta">A: ${task.author || ''} E: ${task.executor || ''}</div>
+          <div class="meta">Author: ${task.author || ''}</div>
+          <div class="meta">Executor: ${task.executor || ''}</div>
+          <div class="meta">Created: ${created}</div>
           <div class="meta">Due: ${due}</div>
-          <div class="meta">${created}</div>
-          <ul>${sub}</ul>
-          <div class="meta">${dur}s</div>`;
+          <div class="checklist-container">${subtasks}</div>`;
 }
 
 function renderFull(task) {
   const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
-  const chat = task.chat.map(c => `<div>${c}</div>`).join('');
-  const subtasks = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  const chat = task.chat.map((c,i) => `<div class="message-box ${i%2?'right':'left'}"><p>${c}</p></div>`).join('');
+  const subtasks = task.subtasks.map((s,i) =>
+      `<div class="checklist-item"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><label class="checklist-label">${s.text}</label></div>`
+  ).join('');
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
-          <textarea class="textarea-scroll" readonly>${task.description || ''}</textarea>
+          <textarea class="textareaZADACH-content" readonly>${task.description || ''}</textarea>
           <div>Author: ${task.author || ''}</div>
           <div>Executor: ${task.executor || ''}</div>
           <div>Due: ${due}</div>
           <div>Observer: ${task.observer || ''}</div>
-          <ul>${subtasks}</ul>
-          <div class="textarea-scroll" style="border:1px solid #ccc;">${chat}</div>
+          <div class="checklist-container">${subtasks}</div>
+          <div class="card-container">
+            <div class="card-header"><div class="img-avatar"></div><div class="text-chat">Chat</div></div>
+            <div class="card-body">
+              <div class="messages-container">${chat}</div>
+              <div class="message-input">
+                <form class="message-form" data-id="${task.id}">
+                  <textarea placeholder="Type your message here" class="message-send"></textarea>
+                  <button type="submit" class="button-send">Send</button>
+                </form>
+              </div>
+            </div>
+          </div>
           ${history}`;
 }
 
@@ -241,6 +462,38 @@ window.addEventListener('load', () => {
   document.querySelectorAll('.column').forEach(col => {
     col.addEventListener('dragover', allowDrop);
     col.addEventListener('drop', drop);
+  });
+  document.querySelector('.board').addEventListener('change', e => {
+    if (e.target.classList.contains('checklist-checkbox')) {
+      const id = e.target.dataset.id;
+      const idx = parseInt(e.target.dataset.index, 10);
+      const task = tasks.find(t=>t.id===id);
+      if (task && task.subtasks[idx]) {
+        task.subtasks[idx].done = e.target.checked;
+        saveTasks();
+      }
+    }
+  });
+
+  document.querySelector('.board').addEventListener('submit', e => {
+    if (e.target.classList.contains('message-form')) {
+      e.preventDefault();
+      const id = e.target.dataset.id;
+      const textEl = e.target.querySelector('.message-send');
+      const text = textEl.value.trim();
+      if (text) {
+        const task = tasks.find(t=>t.id===id);
+        if (task) {
+          task.chat.push(text);
+          task.expanded = true;
+          saveTasks();
+          redraw();
+          const li = document.querySelector(`.task[data-id="${id}"]`);
+          if (li) li.classList.add('expanded');
+        }
+      }
+      textEl.value = '';
+    }
   });
 });
 export function initModal1() {
