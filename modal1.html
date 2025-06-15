@@ -338,7 +338,11 @@ async function saveTasks() {
     delete dbTask.dueDate;
     delete dbTask.createdAt;
     delete dbTask.statusHistory;
-    await window.supabase.from('tasks').upsert(dbTask);
+    const { error } = await window.supabase.from('tasks').upsert(dbTask);
+    if (error) {
+      console.error('[saveTasks] upsert error:', error);
+      return;
+    }
   }
 }
 
