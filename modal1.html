@@ -300,7 +300,17 @@ async function loadTasks() {
       .from('tasks')
       .select('*')
       .eq('company_id', window.companyId);
-    tasks = Array.isArray(data) ? data : [];
+    tasks = Array.isArray(data)
+      ? data.map(r => {
+          const { due_date, created_at, status_history, ...rest } = r;
+          return {
+            ...rest,
+            dueDate: due_date,
+            createdAt: created_at,
+            statusHistory: status_history,
+          };
+        })
+      : [];
   } else {
     tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
   }
@@ -318,9 +328,17 @@ async function saveTasks() {
   localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
   if (!window.supabase || !window.companyId) return;
   for (const task of tasks) {
-    await window.supabase
-      .from('tasks')
-      .upsert({ ...task, company_id: window.companyId });
+    const dbTask = {
+      ...task,
+      due_date: task.dueDate,
+      created_at: task.createdAt,
+      status_history: task.statusHistory,
+      company_id: window.companyId,
+    };
+    delete dbTask.dueDate;
+    delete dbTask.createdAt;
+    delete dbTask.statusHistory;
+    await window.supabase.from('tasks').upsert(dbTask);
   }
 }
 
@@ -337,8 +355,15 @@ function setupRealtime() {
 }
 
 function handleRealtime(payload) {
-  const rec = payload.new || payload.old;
-  if (!rec) return;
+  const raw = payload.new || payload.old;
+  if (!raw) return;
+  const { due_date, created_at, status_history, ...rest } = raw;
+  const rec = {
+    ...rest,
+    dueDate: due_date,
+    createdAt: created_at,
+    statusHistory: status_history,
+  };
   if (payload.eventType === 'DELETE') {
     tasks = tasks.filter(t => t.id !== rec.id);
   } else {
