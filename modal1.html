@@ -269,8 +269,11 @@
       <textarea id="task-description" class="textareaZADACH-content" placeholder="добавьте описание задачи" style="margin-top: 20px" cols="52" rows="10" name="textarea"></textarea><br/>
       <input type="text" id="task-executor" class="input" style="margin: 16px 12px 0px 0px;" placeholder="исполнитель задачи" /><br/>
       <input type="text" id="task-observer" class="input" style="margin: 12px 12px 0px 0px;" placeholder="наблюдатели" /><br/>
-      <input type="date" id="task-due" style="margin: 12px 12px 0px 0px;"/><br/>
-      <h3 style="font-size: 13px; font-weight: 500;">срок выполнения</h3>
+      <div style="display: flex; align-items: center; margin: 12px 0px 0px 0px;">
+        <h3 style="font-size: 13px; font-weight: 500; margin: 0 10px 0 0;">срок выполнения</h3>
+        <input type="date" id="task-due" class="input" style="width: auto;"/>
+      </div>
+        <br/>
       <div id="subtask-input">
         <input type="text" id="new-subtask-text" class="input" style="margin: 52px 12px 0px 0px; width: 370px;" placeholder="добавить подзадачу" />
         <button type="button" id="add-subtask-btn" class="button" style="padding: 8px 10px;">Add</button>
@@ -351,7 +354,7 @@ async function openTaskModal(status, id) {
   form.dataset.status = status || 'created';
   document.getElementById('task-id').value = '';
   clearSubtaskList();
-  addSubtaskRow();
+  document.getElementById("new-subtask-text").value = "";
   if (id) {
     const task = tasks.find(t => t.id === id);
     if (task) {
@@ -430,9 +433,11 @@ document.getElementById('task-form').addEventListener('submit', e => {
   redraw();
 });
 
-  document.getElementById('add-subtask-btn').addEventListener('click', () => {
-  addSubtaskRow();
-});
+  document.getElementById("add-subtask-btn").addEventListener("click", () => {
+    const input = document.getElementById("new-subtask-text");
+    const text = input.value.trim();
+    if (text) { addSubtaskRow(text); input.value = ""; }
+  });
 
 function renderShort(task) {
   const created = new Date(task.createdAt).toLocaleDateString();
