@@ -295,25 +295,30 @@
 let realtimeSub = null;
 
 async function loadTasks() {
-  if (window.supabase && window.companyId) {
-    const { data } = await window.supabase
-      .from('tasks')
-      .select('*')
-      .eq('company_id', window.companyId);
-    tasks = Array.isArray(data)
-      ? data.map(r => {
-          const { due_date, created_at, status_history, ...rest } = r;
-          return {
-            ...rest,
-            dueDate: due_date,
-            createdAt: created_at,
-            statusHistory: status_history,
-          };
-        })
-      : [];
-  } else {
-    tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
-  }
+    if (window.supabase && window.companyId) {
+      const { data } = await window.supabase
+        .from('tasks')
+        .select('*')
+        .eq('company_id', window.companyId);
+
+      tasks = (Array.isArray(data) ? data : []).map(row => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        author: row.author,
+        executor: row.executor,
+        observer: row.observer,
+        dueDate: row.due_date,
+        subtasks: row.subtasks || [],
+        chat: row.chat || [],
+        status: row.status,
+        statusHistory: row.status_history || {},
+        createdAt: row.created_at,
+        expanded: false
+      }));
+    } else {
+      tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+    }
   tasks.forEach(t => {
     if (Array.isArray(t.subtasks) && typeof t.subtasks[0] === 'string') {
       t.subtasks = t.subtasks.map(s => ({ text: s, done: false }));
@@ -325,27 +330,32 @@ async function loadTasks() {
 }
 
 async function saveTasks(taskOrTasks = tasks) {
-  localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
-  if (!window.supabase || !window.companyId) return;
-  const items = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks];
-  for (const task of items) {
-    const dbTask = {
-      ...task,
-      due_date: task.dueDate,
-      created_at: task.createdAt,
-      status_history: task.statusHistory,
-      company_id: window.companyId,
-    };
-    delete dbTask.dueDate;
-    delete dbTask.createdAt;
-    delete dbTask.statusHistory;
-    const { error } = await window.supabase.from('tasks').upsert(dbTask);
-    if (error) {
-      console.error('[saveTasks] upsert error:', error);
-      return;
+    localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+    if (!window.supabase || !window.companyId) return;
+    const items = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks];
+    for (const task of items) {
+      const payload = {
+        id: task.id,
+        company_id: window.companyId,
+        title: task.title,
+        description: task.description,
+        author: task.author,
+        executor: task.executor,
+        observer: task.observer,
+        due_date: task.dueDate,
+        subtasks: task.subtasks,
+        chat: task.chat,
+        status: task.status,
+        status_history: task.statusHistory,
+        created_at: task.createdAt
+      };
+      const { error } = await window.supabase.from('tasks').upsert(payload);
+      if (error) {
+        console.error('[saveTasks] upsert error:', error);
+        return;
+      }
     }
   }
-}
 
 function setupRealtime() {
   if (!window.supabase || !window.companyId) return;
