@@ -22,13 +22,36 @@
     .column h3 { margin:0 0 10px 0; font-size:18px; }
     .task-list { flex:1; overflow-y:auto; list-style:none; padding:0; margin:0; }
     .task { background:var(--card-bg); border-radius:var(--radius); padding:8px; margin-bottom:8px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); }
-    .task.expanded .full-view { display:block; }
-    .task.expanded .short-view { display:none; }
     .full-view { display:none; }
     .add-task { margin-top:5px; }
     .modal { position:fixed; top:0; left:0; width:100%; height:100%; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,0.5); }
     .modal.show { display:flex; }
     .modal-content { background:var(--card-bg); border-radius:var(--radius); padding:20px; width:300px; max-height:80%; overflow-y:auto; }
+    #view-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s;
+      z-index: 1000;
+    }
+    #view-modal.show { opacity: 1; pointer-events: auto; }
+    #view-modal .view-content {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 70%;
+      max-height: 90%;
+      overflow-y: auto;
+    }
     .textarea-scroll { max-height:150px; overflow-y:auto; resize:vertical; }
     .textarea-scroll::-webkit-scrollbar { width:6px; }
     .textarea-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
@@ -230,8 +253,12 @@
     </form>
   </div>
 </div>
+<div id="view-modal">
+  <div class="view-content"></div>
+</div>
 <script type="module">
   let tasks = [];
+  let currentViewId = null;
 
 function loadTasks() {
   tasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
@@ -322,6 +349,22 @@ function closeTaskModal() { document.getElementById('task-modal').classList.remo
 
   window.openTaskModal = openTaskModal;
 window.closeTaskModal = closeTaskModal;
+
+  function openViewModal(id) {
+  currentViewId = id;
+  const modal = document.getElementById('view-modal');
+  const content = modal.querySelector('.view-content');
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  content.innerHTML = renderFull(task);
+  modal.classList.add('show');
+}
+
+function closeViewModal() {
+  const modal = document.getElementById('view-modal');
+  modal.classList.remove('show');
+  currentViewId = null;
+}
 
 document.getElementById('task-form').addEventListener('submit', e => {
   e.preventDefault();
@@ -431,8 +474,7 @@ function toggleView(id) {
   task.expanded = !task.expanded;
   saveTasks();
   redraw();
-  const li = document.querySelector(`.task[data-id="${id}"]`);
-  if (li) li.classList.toggle('expanded', task.expanded);
+  if (task.expanded) openViewModal(id); else closeViewModal();
 }
 
 function dragStart(e) {
@@ -488,8 +530,51 @@ window.addEventListener('load', () => {
           task.expanded = true;
           saveTasks();
           redraw();
-          const li = document.querySelector(`.task[data-id="${id}"]`);
-          if (li) li.classList.add('expanded');
+          openViewModal(id);
+        }
+      }
+      textEl.value = '';
+    }
+  });
+
+  const viewModal = document.getElementById('view-modal');
+  viewModal.addEventListener('click', e => {
+    if (e.target === viewModal) {
+      const task = tasks.find(t => t.id === currentViewId);
+      if (task) task.expanded = false;
+      saveTasks();
+      redraw();
+      closeViewModal();
+    }
+  });
+
+  viewModal.addEventListener('change', e => {
+    if (e.target.classList.contains('checklist-checkbox')) {
+      const id = e.target.dataset.id;
+      const idx = parseInt(e.target.dataset.index, 10);
+      const task = tasks.find(t=>t.id===id);
+      if (task && task.subtasks[idx]) {
+        task.subtasks[idx].done = e.target.checked;
+        saveTasks();
+        redraw();
+      }
+    }
+  });
+
+  viewModal.addEventListener('submit', e => {
+    if (e.target.classList.contains('message-form')) {
+      e.preventDefault();
+      const id = e.target.dataset.id;
+      const textEl = e.target.querySelector('.message-send');
+      const text = textEl.value.trim();
+      if (text) {
+        const task = tasks.find(t=>t.id===id);
+        if (task) {
+          task.chat.push(text);
+          task.expanded = true;
+          saveTasks();
+          redraw();
+          openViewModal(id);
         }
       }
       textEl.value = '';
