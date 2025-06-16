@@ -624,7 +624,7 @@ async function drop(e) {
   }
 }
 
-window.addEventListener('load', async () => {
+async function initBoard() {
   await loadTasks();
   setupRealtime();
   document.querySelectorAll('.column').forEach(col => {
@@ -708,7 +708,13 @@ window.addEventListener('load', async () => {
       textEl.value = '';
     }
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('load', initBoard);
+} else {
+  initBoard();
+}
 export function initModal1() {
   console.log('[modal1.html] PAGE 1 активирован');
 }
