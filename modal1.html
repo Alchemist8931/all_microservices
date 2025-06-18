@@ -107,114 +107,170 @@
       background-color: var(--scrollbar-color);
     }
 
+    /* ---------- контейнер чек-листа ---------- */
     .checklist-container {
-      font-family: sans-serif;
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: none;
+      width: 100%;
+      margin: 10px;
+      padding: 1px;
+      border: 1px solid #1c1c1b;
       border-radius: 8px;
-      border: 1px solid rgba(0, 0, 0, 0.10);
     }
 
-    .checklist-item {
+    /* ---------- пункт списка ---------- */
+    .material-checkbox {
       display: flex;
       align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #e0e0e0;
+      font-size: 16px;
+      color: #1c1c1b;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-bottom: none;
       position: relative;
     }
+    .material-checkbox:last-child { border-bottom:none; }
 
     .checklist-item:last-child {
       border-bottom: none;
     }
 
-    .checklist-checkbox {
-      margin-right: 12px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transform: scale(1.2);
-      accent-color: #2ecc71;
+    /* ---------- чекбокс (скрытый input) ---------- */
+    .material-checkbox input[type="checkbox"]{
+      position:absolute;
+      opacity:0;
+      width:0;height:0;
     }
 
-    .checklist-label {
-      color: #444;
-      cursor: pointer;
+    /* ---------- стилизованный чекбокс ---------- */
+    .checkmark{
       position: relative;
-      transition: color 0.4s ease-in-out;
       display: inline-block;
-      width: fit-content;
+      width: 20px;height: 20px;
+      margin-right: 4px;
+      border: 2px solid #3c5665;
+      border-radius: 4px;
+      transition: all .3s;
+      flex-shrink: 0;
     }
 
-    .checklist-label::after {
+    /* отмеченное состояние */
+    .material-checkbox input[type="checkbox"]:checked ~ .checkmark{
+      background: #1c1c1b;
+      border-color: #3c5665;
+    }
+      .material-checkbox input[type="checkbox"]:checked ~ .checkmark:after{
       content: "";
       position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background-color: #e74c3c;
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.4s ease-out;
+      top: 2px; left: 5px;
+      width: 4px; height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
     }
 
-    .checklist-checkbox:checked + .checklist-label {
+    /* hover-эффект на чекбоксе */
+    .material-checkbox:hover input[type="checkbox"] ~ .checkmark{
+      border-color: #005aff;
+      box-shadow: 0 0 25px #2aa9e9;
+    }
+
+    /* disabled */
+    .material-checkbox input[type="checkbox"]:disabled ~ .checkmark{
+      opacity: .5;cursor: not-allowed;
+    }
+    .material-checkbox input[type="checkbox"]:disabled ~ .checkmark:hover{
+      border-color: #4d4d4d;
+    }
+
+    /* ---------- текст задачи ---------- */
+    .task-text{
+      transition: color .4s ease;
+    }
+    /* перечёркивание и смена цвета при отметке */
+    .material-checkbox input[type="checkbox"]:checked ~ .task-text{
       color: #aaa;
     }
-
-    .checklist-checkbox:checked + .checklist-label::after {
-      transform: scaleX(1);
+    .material-checkbox input[type="checkbox"]:checked ~ .task-text::after{
+      content: "";
+      position: absolute;
+      top: 54%; left: calc(20px + 10px);
+      width: calc(100% - 40px);
+      height: 1px; background: #005aff;
+      box-shadow: 0 0 20px #2aa9e9;
+      transform: translateY(-50%);
     }
 
     .card-container {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      margin: 10px 0;
-      overflow: hidden;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      background:#f4f7f6;
-    }
-
-    .img-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background:#ccc;
-      margin-right: 10px;
-    }
-
-    .text-chat { font-weight: bold; }
-
-    .card-body { padding: 10px; }
-
-    .messages-container {
-      max-height: 200px;
-      overflow-y: auto;
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 0px;
+      margin: 10px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      width: auto;
+      height: auto;
+    }
+
+    .card-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .messages-container {
+      padding: 10px;
     }
 
     .message-box {
-      max-width: 80%;
-      padding: 8px 12px;
-      border-radius: 10px;
-      color: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
     }
 
-    .message-box.left { background: #7f8c8d; align-self: flex-start; }
-    .message-box.right { background: #2ecc71; align-self: flex-end; }
+    .message-box.left {
+      background-color: #f1f1f1;
+      color: #1c1c1b;
+      font-size: 14px;
+      left: 0;
+    }
 
-    .message-input { display: flex; gap: 5px; margin-top: 10px; }
+    .message-box.right {
+      background-color: #1c1c1b;
+      color: #f1f1f1;
+      font-size: 14px;
+      right: 0;
+    }
 
-    .message-send { flex: 1; resize: none; }
+    .message-input {
+      padding: 0px 10px 10px 10px;
+    }
+
+    .message-input .message-send {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #212121;
+      border-radius: 8px;
+      resize: none;
+    }
+
+    .message-input .button-send {
+      width: 100%;
+      padding: 8px 40px;
+      background-color: #212121;
+      border: 1px solid #212121;
+      color: var(--fon);
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 8px;
+      height: auto;
+      cursor: pointer;
+      transition: all 0.4s;
+      text-transform: uppercase;
+    }
+
+    .message-input .button-send:hover {
+      color: #212121;
+      background-color: var(--fon);
+    }
     
     .button {
       width: auto;
@@ -406,14 +462,15 @@ function handleRealtime(payload) {
 function addSubtaskRow(text = '', done = false) {
   const cont = document.getElementById('task-subtasks');
   if (!cont) return;
-  const idx = cont.querySelectorAll('.checklist-item').length;
-  const id = `subtask-${Date.now()}-${idx}`;
-  const div = document.createElement('div');
+  const label = document.createElement('label');
+  label.className = 'material-checkbox';
+  label.innerHTML =
   div.className = 'checklist-item';
   div.innerHTML =
     `<input type="checkbox" id="${id}" class="checklist-checkbox" ${done ? 'checked' : ''}>` +
-    `<label for="${id}" class="checklist-label" contenteditable="true">${text}</label>`;
-  cont.appendChild(div);
+      `<span class="checkmark"></span>` +
+    `<span class="task-text" contenteditable="true">${text}</span>`;
+  cont.appendChild(label);
 }
 
 
@@ -494,10 +551,10 @@ document.getElementById('task-form').addEventListener('submit', async e => {
   const status = e.target.dataset.status || 'created';
   const cont = document.getElementById('task-subtasks');
   const subtasks = [];
-  cont.querySelectorAll('.checklist-item').forEach(item => {
+  cont.querySelectorAll('.material-checkbox').forEach(item => {
     const cb = item.querySelector('.checklist-checkbox');
-    const label = item.querySelector('.checklist-label');
-    const text = label ? label.textContent.trim() : '';
+    const textEl = item.querySelector('.task-text');
+    const text = textEl ? textEl.textContent.trim() : '';
     if (text) subtasks.push({ text, done: cb.checked });
   });
 
@@ -533,8 +590,7 @@ document.getElementById('task-form').addEventListener('submit', async e => {
 function renderShort(task) {
   const created = new Date(task.createdAt).toLocaleDateString();
   const subtasks = task.subtasks.map((s,i) =>
-    `<div class="checklist-item"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><label class="checklist-label">${s.text}</label></div>`
-  ).join('');
+   `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
   const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
@@ -549,7 +605,7 @@ function renderFull(task) {
   const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
   const chat = task.chat.map((c,i) => `<div class="message-box ${i%2?'right':'left'}"><p>${c}</p></div>`).join('');
   const subtasks = task.subtasks.map((s,i) =>
-      `<div class="checklist-item"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><label class="checklist-label">${s.text}</label></div>`
+     `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
   ).join('');
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
