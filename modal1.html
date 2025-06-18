@@ -453,6 +453,14 @@ function handleRealtime(payload) {
     statusHistory: raw.status_history,
     createdAt: raw.created_at,
   };
+  if (payload.eventType === 'DELETE') {
+    tasks = tasks.filter(t => t.id !== rec.id);
+  } else {
+    const idx = tasks.findIndex(t => t.id === rec.id);
+    if (idx >= 0) tasks[idx] = rec; else tasks.push(rec);
+  }
+  redraw();
+}
 
   function clearSubtaskList() {
   const cont = document.getElementById('task-subtasks');
