@@ -689,6 +689,7 @@
       window.USER_KEY = user.user_key;
       window.IS_ADMIN = user.is_admin;
       window.USER_LEVELS = user.menu_levels || '';
+      window.USER_LOGIN  = user.login || user.email || user.last_name || '';
       // ▼ 2. Ограничиваем меню доступными уровнями
      // Вызываем фильтр меню даже при пустых правах
       filterMenuByUserLevels(user.menu_levels || '');
@@ -760,6 +761,7 @@
             window.USER_KEY = user.user_key;
             window.IS_ADMIN = user.is_admin;
             window.USER_LEVELS = user.menu_levels || '';
+            window.USER_LOGIN = user.login || user.email || user.last_name || '';
             filterMenuByUserLevels(user.menu_levels || '');
             const settingsItem = document.getElementById('settingsMenuItem');
             if (settingsItem) settingsItem.style.display = user.is_admin ? '' : 'none';
