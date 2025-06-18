@@ -470,15 +470,15 @@ function handleRealtime(payload) {
 function addSubtaskRow(text = '', done = false) {
   const cont = document.getElementById('task-subtasks');
   if (!cont) return;
-  const label = document.createElement('label');
-  label.className = 'material-checkbox';
-  label.innerHTML =
+  const id = `subtask_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const div = document.createElement('div');
   div.className = 'checklist-item';
-  div.innerHTML =
+  const label = document.createElement('label');
     `<input type="checkbox" id="${id}" class="checklist-checkbox" ${done ? 'checked' : ''}>` +
       `<span class="checkmark"></span>` +
     `<span class="task-text" contenteditable="true">${text}</span>`;
-  cont.appendChild(label);
+  div.appendChild(label);
+  cont.appendChild(div);
 }
 
 
@@ -597,9 +597,11 @@ document.getElementById('task-form').addEventListener('submit', async e => {
 
 function renderShort(task) {
   const created = new Date(task.createdAt).toLocaleDateString();
-  const subtasks = task.subtasks.map((s,i) =>
-   `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
-  const sub = task.subtasks.map(s => `<li>${s}</li>`).join('');
+  const subtasks = task.subtasks
+    .map((s, i) =>
+      `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
+    )
+    .join('');
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return `<div><strong>${task.title}</strong></div>
           <div class="meta">Author: ${task.author || ''}</div>
