@@ -438,21 +438,21 @@ window.cleanupRealtime = cleanupRealtime;
 function handleRealtime(payload) {
   const raw = payload.new || payload.old;
   if (!raw) return;
-  const { due_date, created_at, status_history, ...rest } = raw;
   const rec = {
-    ...rest,
-    dueDate: due_date,
-    createdAt: created_at,
-    statusHistory: status_history,
+    id: raw.id,
+    company_id: raw.company_id,
+    title: raw.title,
+    description: raw.description,
+    author: raw.author,
+    executor: raw.executor,
+    observer: raw.observer,
+    dueDate: raw.due_date,
+    subtasks: raw.subtasks,
+    chat: raw.chat,
+    status: raw.status,
+    statusHistory: raw.status_history,
+    createdAt: raw.created_at,
   };
-  if (payload.eventType === 'DELETE') {
-    tasks = tasks.filter(t => t.id !== rec.id);
-  } else {
-    const idx = tasks.findIndex(t => t.id === rec.id);
-    if (idx >= 0) tasks[idx] = rec; else tasks.push(rec);
-  }
-  redraw();
-}
 
   function clearSubtaskList() {
   const cont = document.getElementById('task-subtasks');
