@@ -225,6 +225,12 @@
       margin-bottom: 10px;
       border-radius: 8px;
     }
+    
+    .user-login {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
 
     .message-box.left {
       background-color: #f1f1f1;
@@ -380,6 +386,9 @@ async function loadTasks() {
       t.subtasks = t.subtasks.map(s => ({ text: s, done: false }));
     }
     if (!Array.isArray(t.subtasks)) t.subtasks = [];
+     if (Array.isArray(t.chat) && typeof t.chat[0] === 'string') {
+      t.chat = t.chat.map(c => ({ user: '', text: c }));
+    }
     if (!Array.isArray(t.chat)) t.chat = [];
   });
   redraw();
@@ -613,7 +622,13 @@ function renderShort(task) {
 
 function renderFull(task) {
   const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
-  const chat = task.chat.map((c,i) => `<div class="message-box ${i%2?'right':'left'}"><p>${c}</p></div>`).join('');
+  const chat = task.chat.map(msg => {
+    if (typeof msg === 'string') msg = { user: '', text: msg };
+    const mine = msg.user === (window.USER_LOGIN || '');
+    const cls = mine ? 'right' : 'left';
+    const userInfo = mine ? '' : `<div class="user-login">${msg.user || ''}</div>`;
+    return `<div class="message-box ${cls}">${userInfo}<p>${msg.text}</p></div>`;
+  }).join('');
   const subtasks = task.subtasks.map((s,i) =>
      `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
   ).join('');
@@ -718,7 +733,7 @@ async function initBoard() {
       if (text) {
         const task = tasks.find(t=>t.id===id);
         if (task) {
-          task.chat.push(text);
+          task.chat.push({ user: window.USER_LOGIN || '', text });
           task.expanded = true;
           await saveTasks(task);
           redraw();
@@ -764,7 +779,7 @@ async function initBoard() {
       if (text) {
         const task = tasks.find(t=>t.id===id);
         if (task) {
-          task.chat.push(text);
+          task.chat.push({ user: window.USER_LOGIN || '', text });
           task.expanded = true;
           await saveTasks(task);
           redraw();
