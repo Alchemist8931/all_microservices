@@ -360,26 +360,41 @@
 </template>
 
 <template id="task-full-template">
-  <div><strong>{{title}}</strong></div>
-  <textarea class="textareaZADACH-content" readonly>{{description}}</textarea>
-  <div>Author: {{author}}</div>
-  <div>Executor: {{executor}}</div>
-  <div>Due: {{due}}</div>
-  <div>Observer: {{observer}}</div>
-  <div class="checklist-container">{{subtasks}}</div>
-  <div class="card-container">
-    <div class="card-header"><div class="img-avatar"></div><div class="text-chat">Chat</div></div>
-    <div class="card-body">
-      <div class="messages-container">{{chat}}</div>
-      <div class="message-input">
-        <form class="message-form" data-id="{{id}}">
-          <textarea placeholder="Type your message here" class="message-send"></textarea>
-          <button type="submit" class="button-send" style="width: 90px;">Send</button>
-        </form>
+ <div class="task-full-card">
+    <h3 class="task-title">{{title}}</h3>
+    <textarea class="textareaZADACH-content" readonly>{{description}}</textarea>
+    <div class="task-meta">
+      <div>Author: {{author}}</div>
+      <div>Executor: {{executor}}</div>
+      <div>Due: {{due}}</div>
+      <div>Observer: {{observer}}</div>
+    </div>
+    <div class="areaTODO-content">
+      <div class="subtask-input-block">
+        <input type="text" class="input subtask-text" placeholder="Add subtask" />
+        <button type="button" class="button add-subtask">Add</button>
+      </div>
+      <div class="checklist-container">{{subtasks}}</div>
+    </div>
+    <div class="messages_container-content">
+      <div class="card-container">
+        <div class="card-header">
+          <div class="img-avatar"></div>
+          <div class="text-chat">Chat</div>
+        </div>
+        <div class="card-body">
+          <div class="messages-container">{{chat}}</div>
+          <div class="message-input">
+            <form class="message-form" data-id="{{id}}">
+              <textarea placeholder="Type your message here" class="message-send"></textarea>
+              <button type="submit" class="button-send" style="width: 90px;">Send</button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
+   <div class="history-content">{{history}}</div>
   </div>
-  {{history}}
 </template>
 <script type="module">
   let tasks = [];
