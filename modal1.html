@@ -69,10 +69,6 @@
       max-height: 90%;
       overflow-y: auto;
     }
-    .textarea-scroll { max-height:150px; overflow-y:auto; resize:vertical; }
-    .textarea-scroll::-webkit-scrollbar { width:6px; }
-    .textarea-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
-    .textarea-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
 
     .textareaZADACH-content {
       width: 440px;
@@ -105,6 +101,36 @@
 
     .textareaZADACH-content::-webkit-scrollbar-track {
       background-color: var(--scrollbar-color);
+    }
+
+    .areaTODO-scroll {
+      max-height: 150px;
+      overflow-y: auto;
+      resize: vertical;
+    }
+    .areaTODO-content {
+      width: 440px;
+      padding: 6px 6px 6px 0px;
+      margin: 0px;
+      resize: none;
+      color: var(--black-color);
+      height: auto;
+      border: none;
+      border-top: 1px solid var(--black-color);
+      border-bottom: 1px solid var(--black-color);
+      outline: none;
+      background: none;
+      font-size: 12px;
+      overflow: hidden;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .messages_container-scroll {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .messages_container-content {
+      padding: 10px;
     }
 
     /* ---------- контейнер чек-листа ---------- */
@@ -146,7 +172,7 @@
       display: inline-block;
       width: 20px;height: 20px;
       margin-right: 4px;
-      border: 2px solid #3c5665;
+      border: 2px solid #1c1c1b;
       border-radius: 4px;
       transition: all .3s;
       flex-shrink: 0;
@@ -155,7 +181,8 @@
     /* отмеченное состояние */
     .material-checkbox input[type="checkbox"]:checked ~ .checkmark{
       background: #1c1c1b;
-      border-color: #3c5665;
+      border-color: #1c1c1b;
+      box-shadow: 0 0 15px #1c1c1b;
     }
       .material-checkbox input[type="checkbox"]:checked ~ .checkmark:after{
       content: "";
@@ -170,7 +197,8 @@
     /* hover-эффект на чекбоксе */
     .material-checkbox:hover input[type="checkbox"] ~ .checkmark{
       border-color: #005aff;
-      box-shadow: 0 0 25px #2aa9e9;
+      border-color: #1c1c1b;
+      box-shadow: 0 0 15px #1c1c1b;
     }
 
     /* disabled */
@@ -194,8 +222,8 @@
       position: absolute;
       top: 54%; left: calc(20px + 10px);
       width: calc(100% - 40px);
-      height: 1px; background: #005aff;
-      box-shadow: 0 0 20px #2aa9e9;
+      height: 1px; background: #1c1c1b;
+      box-shadow: 0 0 15px #1c1c1b;
       transform: translateY(-50%);
     }
 
