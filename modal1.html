@@ -438,39 +438,34 @@
 
 <template id="task-full-template">
  <div class="task-full-card">
-    <h3 class="task-title">{{title}}</h3>
-    <textarea class="textareaZADACH-content" readonly>{{description}}</textarea>
-    <div class="task-meta">
-      <div>Author: {{author}}</div>
-      <div>Executor: {{executor}}</div>
-      <div>Due: {{due}}</div>
-      <div>Observer: {{observer}}</div>
+    <div><strong style="text-transform: uppercase;">{{title}}</strong></div>
+    <textarea class="textareaZADACH-content" style="margin-top: 10px; width: 100%; height: 120px; max-height: 220px;" readonly>{{description}}</textarea>
+    <div style="margin-top: 10px; text-transform: uppercase;">Author: {{author}}</div>
+    <div style="text-transform: uppercase;">Executor: {{executor}}</div>
+    <div style="text-transform: uppercase;">Due: {{due}}</div>
+    <div style="margin-bottom: 10px; text-transform: uppercase;">Observer: {{observer}}</div>
+    <div id="subtask-input" style="margin: 10px 0px 10px 4px;">
+      <input type="text" id="new-subtask-text" class="input subtask-text" style="margin: 0px 10px 0px 0px; width: 770px;" placeholder="добавить подзадачу" />
+      <button type="button" id="add-subtask-btn" class="button add-subtask" style="padding: 8px 10px; width: 86px;">Add</button>
     </div>
-    <div class="areaTODO-content">
-      <div class="subtask-input-block">
-        <input type="text" class="input subtask-text" placeholder="Add subtask" />
-        <button type="button" class="button add-subtask">Add</button>
+    <div class="areaTODO-content" style="margin: 0px; max-height: 200px;">{{subtasks}}</div>
+    <div class="card-container" style="margin: 10px 0px 0px 0px;">
+      <div class="card-body">
+        <div class="messages_container-content" style="max-height: 400px;">{{chat}}</div>
       </div>
-      <div class="checklist-container">{{subtasks}}</div>
-    </div>
-    <div class="messages_container-content">
-      <div class="card-container">
-        <div class="card-header">
-          <div class="img-avatar"></div>
-          <div class="text-chat">Chat</div>
-        </div>
-        <div class="card-body">
-          <div class="messages-container">{{chat}}</div>
-          <div class="message-input">
-            <form class="message-form" data-id="{{id}}">
-              <textarea placeholder="Type your message here" class="message-send"></textarea>
-              <button type="submit" class="button-send" style="width: 90px;">Send</button>
-            </form>
-          </div>
-        </div>
+      <div class="message-input">
+        <form class="message-form" data-id="{{id}}">
+          <textarea placeholder="Type your message here" class="message-send"></textarea>
+          <button type="submit" class="button-send" style="width: 120px; margin-top: 3px">Send</button>
+        </form>
       </div>
     </div>
-   <div class="history-content">{{history}}</div>
+   <div style="margin: 10px 0px;">
+      <details open>
+        <summary style="cursor: pointer; font-weight: bold;">История изменений</summary>
+        <ul style="font-size: 12px; padding: 0px 0px 0px 20px; list-style: disc; margin: 10px 0px 0px 0px;">{{history}}</ul>
+      </details>
+    </div>
   </div>
 </template>
 <script type="module">
@@ -753,7 +748,9 @@ function renderShort(task) {
 }
 
 function renderFull(task) {
-  const history = Object.entries(task.statusHistory || {}).map(([st, d]) => `<div>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</div>`).join('');
+  const history = Object.entries(task.statusHistory || {}).map(([st, d]) =>
+    `<li>${st}: ${new Date(d.date).toLocaleString()} (${Math.floor(d.duration/1000)}s)</li>`
+  ).join('');
   const chat = task.chat.map(msg => {
     if (typeof msg === 'string') msg = { user: '', text: msg };
     const mine = msg.user === (window.USER_LOGIN || '');
