@@ -1,329 +1,378 @@
 <!-- ========= modal1.html  (Проект 2) ========= -->
 <div id="modal1-container">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
-    :root {
-      --fon:#f5f5f5;
-      --card-bg:#ffffff;
-      --accent:#212121;
-      --radius:10px;
-      --black-color:#000;
-      --white-color2:#ffffff;
-      --scrollbar-color:#e0e0e0;
-    }
-    * {
-      box-sizing:border-box;
-      font-family:'Comfortaa', sans-serif;
-    }
-    
-    #modal1-container { height:100%; background:var(--fon); }
-    .board { display:flex; gap:1px; height:100%; }
-    .column { flex:1; background:var(--fon); border:1px solid rgba(0,0,0,0.1); border-radius:var(--radius); padding:10px; display:flex; flex-direction:column; }
-    .column h3 { font-size:18px; }
-    .task-list { flex:1; overflow-y:auto; list-style:none; padding:0; margin:0; }
-    .task { background:var(--card-bg); border-radius:var(--radius); padding:8px; margin-bottom:8px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); }
-    .full-view { display:none; }
-    .add-task { margin-top:5px; }
-    .modal { position:fixed; top:0; left:0; width:100%; height:100%; display:none; justify-content:center; align-items:center; background:rgba(255,255,255,0.6); backdrop-filter: blur(4px); z-index:1000; }
-    .modal.show { display:flex; }
-    .modal-content { background:var(--card-bg); border-radius:var(--radius); padding:20px; width:300px; max-height:80%; overflow-y:auto; }
-   
-    .input {
-      width: 99%;
-      padding: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      border-radius: 4px;
-      outline: 1px solid #212121;
-      border: 0;
-      text-transform: uppercase;
-      background-color: var(--fon);
-      outline-offset: 3px;
-      transition: 0.25s;
-    }
-    .input:focus { outline-offset: 5px; }
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+:root {
+  --fon:#f5f5f5;
+  --card-bg:#ffffff;
+  --accent:#212121;
+  --radius:10px;
+  --black-color:#000;
+  --white-color2:#ffffff;
+  --scrollbar-color:#e0e0e0;
+}
+* {
+  box-sizing:border-box;
+  font-family:'Comfortaa', sans-serif;
+}
 
-    #view-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 1s;
-      z-index: 1000;
-    }
-    #view-modal.show { opacity: 1; pointer-events: auto; }
-    #view-modal .view-content {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      padding: 20px;
-      width: 70%;
-      max-height: 90%;
-      overflow-y: auto;
-    }
+#modal1-container { height:100%; background:var(--fon); }
+.board { display:flex; gap:1px; height:100%; }
+.column { flex:1; background:var(--fon); border:1px solid rgba(0,0,0,0.1); border-radius:var(--radius); padding:10px; display:flex; flex-direction:column; }
+.column h3 { font-size:18px; }
+.task-list { flex:1; overflow-y:auto; list-style:none; padding:0; margin:0; }
+.task { background:var(--card-bg); border-radius:var(--radius); padding:8px; margin-bottom:8px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1); }
+.full-view { display:none; }
+.add-task { margin-top:5px; }
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; display:none; justify-content:center; align-items:center; background:rgba(255,255,255,0.6); backdrop-filter: blur(4px); z-index:1000; }
+.modal.show { display:flex; }
+.modal-content { background:var(--card-bg); border-radius:var(--radius); padding:20px; width:300px; max-height:80%; overflow-y:auto; }
 
-    .textareaZADACH-content {
-      width: 440px;
-      padding: 6px 6px 6px 0px;
-      margin: 0px;
-      resize: none;
-      color: var(--black-color);
-      height: auto;
-      border: none;
-      border-top: 1px solid var(--black-color);
-      border-bottom: 1px solid var(--black-color);
-      outline: none;
-      background: none;
-      font-size: 12px;
-      overflow: hidden;
-      box-sizing: border-box;
-      overflow-y: auto;
-    }
+.input {
+  width: 99%;
+  padding: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  outline: 1px solid #212121;
+  border: 0;
+  text-transform: uppercase;
+  background-color: var(--fon);
+  outline-offset: 3px;
+  transition: 0.25s;
+}
+.input:focus { outline-offset: 5px; }
 
-    .textareaZADACH-content::-webkit-scrollbar {
-      width: 2px;
-      background-color: var(--scrollbar-color);
-      height: 90%;
-    }
+#view-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s;
+  z-index: 1000;
+}
+#view-modal.show { opacity: 1; pointer-events: auto; }
+#view-modal .view-content {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: 70%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+.textarea-scroll { max-height:150px; overflow-y:auto; resize:vertical; }
+.textarea-scroll::-webkit-scrollbar { width:6px; }
+.textarea-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
+.textarea-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
 
-    .textareaZADACH-content::-webkit-scrollbar-thumb {
-      background-color: var(--black-color);
-      border-radius: 10px;
-    }
+.textareaZADACH-content {
+  width: 440px;
+  padding: 6px 6px 6px 0px;
+  margin: 0px;
+  resize: none;
+  color: var(--black-color);
+  height: auto;
+  border: none;
+  border-top: 1px solid var(--black-color);
+  border-bottom: 1px solid var(--black-color);
+  outline: none;
+  background: none;
+  font-size: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
 
-    .textareaZADACH-content::-webkit-scrollbar-track {
-      background-color: var(--scrollbar-color);
-    }
+.textareaZADACH-content::-webkit-scrollbar {
+  width: 2px;
+  background-color: var(--scrollbar-color);
+  height: 90%;
+}
 
-    .areaTODO-scroll {
-      max-height: 150px;
-      overflow-y: auto;
-      resize: vertical;
-    }
-    .areaTODO-content {
-      width: 440px;
-      padding: 6px 6px 6px 0px;
-      margin: 0px;
-      resize: none;
-      color: var(--black-color);
-      height: auto;
-      border: none;
-      border-top: 1px solid var(--black-color);
-      border-bottom: 1px solid var(--black-color);
-      outline: none;
-      background: none;
-      font-size: 12px;
-      overflow: hidden;
-      box-sizing: border-box;
-      overflow-y: auto;
-    }
-    .messages_container-scroll {
-      max-height: 150px;
-      overflow-y: auto;
-    }
-    .messages_container-content {
-      padding: 10px;
-    }
+.textareaZADACH-content::-webkit-scrollbar-thumb {
+  background-color: var(--black-color);
+  border-radius: 10px;
+}
 
-    /* ---------- контейнер чек-листа ---------- */
-    .checklist-container {
-      width: 100%;
-      margin: 10px;
-      padding: 1px;
-      border: 1px solid #1c1c1b;
-      border-radius: 8px;
-    }
+.textareaZADACH-content::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-color);
+}
 
-    /* ---------- пункт списка ---------- */
-    .material-checkbox {
-      display: flex;
-      align-items: center;
-      font-size: 16px;
-      color: #1c1c1b;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-bottom: none;
-      position: relative;
-    }
-    .material-checkbox:last-child { border-bottom:none; }
+/* ---------- контейнер чек-листа ---------- */
+.checklist-container {
+  width: 100%;
+  margin: 10px;
+  padding: 1px;
+  border: 1px solid #1c1c1b;
+  border-radius: 8px;
+}
 
-    .checklist-item:last-child {
-      border-bottom: none;
-    }
+/* ---------- пункт списка ---------- */
+.material-checkbox {
+  display: flex;
+  width: 98%;
+  align-items: center;
+  font-size: 16px;
+  color: #1c1c1b;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-bottom: none;
+  position: relative;
+}
+.material-checkbox:last-child { border-bottom:none; }
+.checklist-item:last-child {
+  border-bottom: none;
+}
 
-    /* ---------- чекбокс (скрытый input) ---------- */
-    .material-checkbox input[type="checkbox"]{
-      position:absolute;
-      opacity:0;
-      width:0;height:0;
-    }
+/* ---------- чекбокс (скрытый input) ---------- */
+.material-checkbox input[type="checkbox"]{
+  position:absolute;
+  opacity:0;
+  width:0;height:0;
+}
 
-    /* ---------- стилизованный чекбокс ---------- */
-    .checkmark{
-      position: relative;
-      display: inline-block;
-      width: 20px;height: 20px;
-      margin-right: 4px;
-      border: 2px solid #1c1c1b;
-      border-radius: 4px;
-      transition: all .3s;
-      flex-shrink: 0;
-    }
+/* ---------- стилизованный чекбокс ---------- */
+.checkmark{
+  position: relative;
+  display: inline-block;
+  width: 20px; height: 20px;
+  margin-right: 4px;
+  border: 2px solid #1c1c1b;
+  border-radius: 4px;
+  transition: all .3s;
+  flex-shrink: 0;
+}
 
-    /* отмеченное состояние */
-    .material-checkbox input[type="checkbox"]:checked ~ .checkmark{
-      background: #1c1c1b;
-      border-color: #1c1c1b;
-      box-shadow: 0 0 15px #1c1c1b;
-    }
-      .material-checkbox input[type="checkbox"]:checked ~ .checkmark:after{
-      content: "";
-      position: absolute;
-      top: 2px; left: 5px;
-      width: 4px; height: 8px;
-      border: solid #fff;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
+/* отмеченное состояние */
+.material-checkbox input[type="checkbox"]:checked ~ .checkmark{
+  background: #1c1c1b;
+  border-color: #1c1c1b;
+}
+  .material-checkbox input[type="checkbox"]:checked ~ .checkmark:after{
+  content: "";
+  position: absolute;
+  top: 2px; left: 5px;
+  width: 4px; height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 
-    /* hover-эффект на чекбоксе */
-    .material-checkbox:hover input[type="checkbox"] ~ .checkmark{
-      border-color: #005aff;
-      border-color: #1c1c1b;
-      box-shadow: 0 0 15px #1c1c1b;
-    }
+/* hover-эффект на чекбоксе */
+.material-checkbox:hover input[type="checkbox"] ~ .checkmark{
+  box-shadow: 0 0 15px #1c1c1b;
+}
 
-    /* disabled */
-    .material-checkbox input[type="checkbox"]:disabled ~ .checkmark{
-      opacity: .5;cursor: not-allowed;
-    }
-    .material-checkbox input[type="checkbox"]:disabled ~ .checkmark:hover{
-      border-color: #4d4d4d;
-    }
+/* disabled */
+.material-checkbox input[type="checkbox"]:disabled ~ .checkmark{
+  opacity: .5;cursor: not-allowed;
+}
+.material-checkbox input[type="checkbox"]:disabled ~ .checkmark:hover{
+  border-color: #4d4d4d;
+}
 
-    /* ---------- текст задачи ---------- */
-    .task-text{
-      transition: color .4s ease;
-    }
-    /* перечёркивание и смена цвета при отметке */
-    .material-checkbox input[type="checkbox"]:checked ~ .task-text{
-      color: #aaa;
-    }
-    .material-checkbox input[type="checkbox"]:checked ~ .task-text::after{
-      content: "";
-      position: absolute;
-      top: 54%; left: calc(20px + 10px);
-      width: calc(100% - 40px);
-      height: 1px; background: #1c1c1b;
-      box-shadow: 0 0 15px #1c1c1b;
-      transform: translateY(-50%);
-    }
+/* ---------- текст задачи ---------- */
+.task-text{
+  transition: color .4s ease;
+}
+/* перечёркивание и смена цвета при отметке */
+.material-checkbox input[type="checkbox"]:checked ~ .task-text{
+  color: #aaa;
+}
+.material-checkbox input[type="checkbox"]:checked ~ .task-text::after{
+  content: "";
+  position: absolute;
+  top: 54%; left: calc(20px + 10px);
+  width: calc(100% - 40px);
+  height: 1px; background: #2aa9e9;
+  box-shadow: 0 0 20px #2aa9e9;
+  transform: translateY(-50%);
+}
 
-    .card-container {
-      background-color: #fff;
-      border-radius: 10px;
-      padding: 0px;
-      margin: 10px;
-      display: flex;
-      flex-direction: column;
-      width: auto;
-      height: auto;
-    }
+.card-container {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 0px;
+  margin: 10px;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  height: auto;
+}
 
-    .card-body {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
+.card-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
-    .messages-container {
-      padding: 10px;
-    }
+.message-box {
+  padding: 10px;
+  margin-bottom: 10px;
+  margin-right: 10px;
+  border-radius: 8px;
+}
 
-    .message-box {
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-    }
-    
-    .user-login {
-      font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
+.user-login {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+  width: 200px;
+  border-bottom: 1px solid;
+}
 
-    .message-box.left {
-      background-color: #f1f1f1;
-      color: #1c1c1b;
-      font-size: 14px;
-      left: 0;
-    }
+.message-box.left {
+  background-color: #f1f1f1;
+  color: #1c1c1b;
+  font-size: 14px;
+  left: 0;
+}
+.message-box .left .user-login {
+  border: 1px solid #f1f1f1;
+}
 
-    .message-box.right {
-      background-color: #1c1c1b;
-      color: #f1f1f1;
-      font-size: 14px;
-      right: 0;
-    }
+.message-box.right {
+  background-color: #1c1c1b;
+  color: #f1f1f1;
+  font-size: 14px;
+  right: 0;
+}
 
-    .message-input {
-      padding: 0px 10px 10px 10px;
-    }
+.message-input {
+  padding: 20px 0px 10px 0px;
+}
 
-    .message-input .message-send {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #212121;
-      border-radius: 8px;
-      resize: none;
-    }
+.message-input .message-send {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #212121;
+  border-radius: 8px;
+  resize: none;
+}
 
-    .message-input .button-send {
-      width: 100%;
-      padding: 8px 40px;
-      background-color: #212121;
-      border: 1px solid #212121;
-      color: var(--fon);
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 8px;
-      height: auto;
-      cursor: pointer;
-      transition: all 0.4s;
-      text-transform: uppercase;
-    }
+.message-input .button-send {
+  width: 100%;
+  padding: 8px 40px;
+  background-color: #212121;
+  border: 1px solid #212121;
+  color: var(--fon);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  height: auto;
+  cursor: pointer;
+  transition: all 0.4s;
+  text-transform: uppercase;
+}
 
-    .message-input .button-send:hover {
-      color: #212121;
-      background-color: var(--fon);
-    }
-    
-    .button {
-      width: auto;
-      padding: 8px 40px;
-      background-color: #212121;
-      border: 1px solid #212121;
-      color: var(--fon);
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 10px;
-      height: auto;
-      cursor: pointer;
-      transition: all 0.4s;
-      text-transform: uppercase;
-    }
-    .button:hover {
-      color: #212121;
-      background-color: var(--fon);
-    }
+.message-input .button-send:hover {
+  color: #212121;
+  background-color: var(--fon);
+}
+
+.button {
+  width: auto;
+  padding: 8px 40px;
+  background-color: #212121;
+  border: 1px solid #212121;
+  color: var(--fon);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  height: auto;
+  cursor: pointer;
+  transition: all 0.4s;
+  text-transform: uppercase;
+}
+.button:hover {
+  color: #212121;
+  background-color: var(--fon);
+}
+
+.areaTODO-scroll { max-height: 20px; overflow-y: auto; resize: vertical; }
+.areaTODO-scroll::-webkit-scrollbar { width: 14px; }
+.areaTODO-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
+.areaTODO-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
+
+.areaTODO-content {
+  margin: 0px;
+  resize: none;
+  color: var(--black-color);
+  height: auto;
+  outline: none;
+  background: none;
+  font-size: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  overflow-y: auto;
+  width: 100%;
+  margin: 10px;
+  padding: 1px;
+  border: 1px solid #1c1c1b;
+  border-radius: 8px;
+}
+
+.areaTODO-content::-webkit-scrollbar {
+  width: 2.5px;
+  background-color: var(--scrollbar-color);
+  height: 90%;
+}
+
+.areaTODO-content::-webkit-scrollbar-thumb {
+  background-color: var(--black-color);
+  border-radius: 30px;
+}
+
+.areaTODO-content::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-color);
+}
+
+.messages_container-scroll { max-height: 20px; overflow-y: auto; resize: vertical; }
+.messages_container-scroll::-webkit-scrollbar { width: 14px; }
+.messages_container-scroll::-webkit-scrollbar-track { background:var(--fon); border-radius:var(--radius); }
+.messages_container-scroll::-webkit-scrollbar-thumb { background:var(--accent); border-radius:var(--radius); }
+
+.messages_container-content {
+  margin: 0px;
+  resize: none;
+  color: var(--black-color);
+  height: auto;
+  outline: none;
+  background: none;
+  font-size: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  overflow-y: auto;
+  width: 100%;
+  margin: 0px;
+  padding: 1px;
+  border: none;
+}
+
+.messages_container-content::-webkit-scrollbar {
+  width: 2.5px;
+  background-color: var(--scrollbar-color);
+  height: 90%;
+}
+
+.messages_container-content::-webkit-scrollbar-thumb {
+  background-color: var(--black-color);
+  border-radius: 30px;
+}
+
+.messages_container-content::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-color);
+}
     
   </style>
   <div class="board">
