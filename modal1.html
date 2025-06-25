@@ -437,18 +437,18 @@
 </template>
 
 <template id="task-full-template">
- <div class="task-full-card">
+ <div class="task-full-card" data-id="{{id}}">
     <div><strong style="text-transform: uppercase;">{{title}}</strong></div>
     <textarea class="textareaZADACH-content" style="margin-top: 10px; width: 100%; height: 120px; max-height: 220px;" readonly>{{description}}</textarea>
     <div style="margin-top: 10px; text-transform: uppercase;">Author: {{author}}</div>
     <div style="text-transform: uppercase;">Executor: {{executor}}</div>
     <div style="text-transform: uppercase;">Due: {{due}}</div>
     <div style="margin-bottom: 10px; text-transform: uppercase;">Observer: {{observer}}</div>
-     <div id="subtask-input" style="display: flex; align-items: center; gap: 10px; margin: 10px 4px; width: 100%;">
-      <input type="text" id="new-subtask-text" class="input subtask-text" style="flex: 1; margin: 0;" placeholder="добавить подзадачу" />
-      <button type="button" id="add-subtask-btn" class="button add-subtask" style="padding: 8px 24px; flex-shrink: 0;">Add</button>
+     <div class="subtask-input" style="display: flex; align-items: center; gap: 10px; margin: 10px 4px; width: 100%;">
+      <input type="text" class="input subtask-text" style="flex: 1; margin: 0;" placeholder="добавить подзадачу" />
+      <button type="button" class="button add-subtask" style="padding: 8px 24px; flex-shrink: 0;">Add</button>
     </div>
-    <div class="areaTODO-content" style="margin: 0px; max-height: 200px;">{{subtasks}}</div>
+    <div class="areaTODO-content subtask-list" style="margin: 0px; max-height: 200px;">{{subtasks}}</div>
     <div class="card-container" style="margin: 10px 0px 0px 0px;">
       <div class="card-body">
         <div class="messages_container-content" style="max-height: 400px;">{{chat}}</div>
@@ -601,18 +601,16 @@ function handleRealtime(payload) {
   if (cont) cont.innerHTML = '<div class="checklist-title">Subtasks</div>';
 }
 
-function addSubtaskRow(text = '', done = false) {
-  const cont = document.getElementById('task-subtasks');
-  if (!cont) return;
-  const id = `subtask_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const div = document.createElement('div');
-  div.className = 'checklist-item';
+function addSubtaskRow(container, text = '', done = false, taskId = '') {
+  if (!container) return;
+  const index = container.querySelectorAll('.material-checkbox').length;
   const label = document.createElement('label');
-    `<input type="checkbox" id="${id}" class="checklist-checkbox" ${done ? 'checked' : ''}>` +
-      `<span class="checkmark"></span>` +
+   label.className = 'material-checkbox';
+  label.innerHTML =
+    `<input type="checkbox" class="checklist-checkbox" data-id="${taskId}" data-index="${index}" ${done ? 'checked' : ''}>` +
+    `<span class="checkmark"></span>` +
     `<span class="task-text" contenteditable="true">${text}</span>`;
-  div.appendChild(label);
-  cont.appendChild(div);
+  container.appendChild(label);
 }
 
 
@@ -655,11 +653,12 @@ async function openTaskModal(status, id) {
       document.getElementById('task-due').value = task.dueDate || '';
       document.getElementById('task-observer').value = task.observer;
       clearSubtaskList();
-      if (Array.isArray(task.subtasks) && task.subtasks.length) {
-        task.subtasks.forEach(st => addSubtaskRow(st.text, st.done));
-      } else {
-        addSubtaskRow();
-      }
+        const cont = document.getElementById('task-subtasks');
+        if (Array.isArray(task.subtasks) && task.subtasks.length) {
+          task.subtasks.forEach(st => addSubtaskRow(cont, st.text, st.done, task.id));
+        } else {
+          addSubtaskRow(cont);
+        }
       form.dataset.status = task.status;
     }
   }
@@ -723,10 +722,13 @@ document.getElementById('task-form').addEventListener('submit', async e => {
   redraw();
 });
 
-  document.getElementById("add-subtask-btn").addEventListener("click", () => {
-    const input = document.getElementById("new-subtask-text");
-    const text = input.value.trim();
-    if (text) { addSubtaskRow(text); input.value = ""; }
+  document.getElementById('task-form').addEventListener('click', e => {
+    if (e.target.id === 'add-subtask-btn') {
+      const input = document.getElementById('new-subtask-text');
+      const cont = document.getElementById('task-subtasks');
+      const text = input.value.trim();
+      if (text) { addSubtaskRow(cont, text); input.value = ''; }
+    }
   });
 
 function renderShort(task) {
@@ -867,6 +869,25 @@ async function initBoard() {
 
   const viewModal = document.getElementById('view-modal');
   viewModal.addEventListener('click', async e => {
+    if (e.target.classList.contains('add-subtask')) {
+      const card = e.target.closest('.task-full-card');
+      const input = card.querySelector('.subtask-text');
+      const list = card.querySelector('.subtask-list');
+      const id = card.dataset.id;
+      const text = input.value.trim();
+      if (text && id && list) {
+        addSubtaskRow(list, text, false, id);
+        input.value = '';
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+          task.subtasks.push({ text, done: false });
+          await saveTasks(task);
+          redraw();
+          openViewModal(id);
+        }
+      }
+      return;
+    }
     if (e.target === viewModal) {
       const task = tasks.find(t => t.id === currentViewId);
       if (task) {
