@@ -758,6 +758,7 @@
           loginBtn.innerHTML = originalLoginText;
           return;
         }
+        await supabase.auth.signInWithPassword({ email, password: pass });
       } catch (e) {
         console.error('Custom auth exception', e);
         alert('Ошибка авторизации: ' + (e.message || e.description || e));
@@ -886,6 +887,10 @@
       if (error) {
         throw error;
       }
+      await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password
+      });
       return data;
     }
 
