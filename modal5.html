@@ -234,18 +234,17 @@ export async function initModal5() {
 
   async function askGpt(question) {
     console.log('[modal5] askGpt', question);
-    const apiKey = window.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
-    const payload = {
-      model: 'gpt-3.5-turbo',
-      messages: history.map(h => ({ role: h.role, content: h.content })).concat([{ role: 'user', content: question }])
-    };
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify(payload)
+    const { data, error } = await window.supabase.functions.invoke('ask-gpt', {
+      body: {
+        question,
+        history: history.map(h => ({ role: h.role, content: h.content }))
+      }
     });
-    const data = await res.json();
-    const answer = data.choices?.[0]?.message?.content || '';
+    if (error) {
+      console.error('[modal5] askGpt error', error);
+      return '';
+    }
+    const answer = data?.answer || '';
     console.log('[modal5] askGpt reply', answer);
     return answer;
   }
