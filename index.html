@@ -847,10 +847,7 @@
             const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
             if (authErr) {
               console.error('Supabase auth error', authErr);
-              alert('Ошибка авторизации: ' + (authErr.message || authErr.description || authErr));
-              regBtn.disabled = false;
-              regBtn.innerHTML = originalRegText;
-              return;
+              alert('Подтвердите свой email, чтобы войти.');
             } else {
               session = authData.session;
             }
@@ -878,7 +875,7 @@
             if (settingsItem) settingsItem.style.display = user.is_admin ? '' : 'none';
           }
 
-          alert('Регистрация успешна!');
+          alert('Регистрация успешна! Подтвердите email перед входом.');
           toggleOverlay(false);
           showRightModal('modal0');
         } catch (error) {
