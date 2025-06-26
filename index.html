@@ -877,7 +877,7 @@
             middle_name: userData.middlename,
             phone:       userData.phone,
             email:       userData.email,
-            pass_hash,
+            pass: pass_hash,
             company_id:  companyId,
             company_name: companyName,
             menu_levels: 'PAGE1,PAGE2,PAGE3'
@@ -900,7 +900,7 @@
           .select('*')
           .eq('email', email)
           .single();
-        if (adminData && adminData.pass_hash === pass_hash) {
+        if (adminData && adminData.pass === pass_hash) {
           return { ...adminData, is_admin: true };
         }
         let { data: empData } = await supabase
@@ -908,7 +908,7 @@
           .select('*')
           .eq('email', email)
           .single();
-        if (empData && empData.pass_hash === pass_hash) {
+        if (empData && empData.pass === pass_hash) {
           return { ...empData, is_admin: false };
         }
         return null;
