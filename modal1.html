@@ -111,9 +111,10 @@
 .checklist-container {
   width: 100%;
   margin: 10px;
+  margin-bottom: 0px;
   padding: 1px;
   border: 1px solid #1c1c1b;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 /* ---------- пункт списка ---------- */
@@ -433,7 +434,7 @@
 <div id="view-modal">
   <div class="view-content"></div>
 </div>
-<template id="task-short-template" style="padding-bottom: 0px; border-radius: 6px;">
+<template id="task-short-template">
   <div><strong>{{title}}</strong></div>
   <div class="meta" style="margin-top: 8px;">автор: {{author}}</div>
   <div class="meta">исполнитель: {{executor}}</div>
