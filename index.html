@@ -829,6 +829,23 @@
         };
 
         try {
+          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email: data.email, password: data.password });
+          if (signUpErr) {
+            throw signUpErr;
+          }
+
+          let session = signUpData.session;
+          if (!session) {
+            const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+            if (authErr) {
+              console.error('Supabase auth error', authErr);
+            } else {
+              session = authData.session;
+            }
+          }
+          if (session) {
+            window.supabaseSession = session;
+          }
           const companyId = crypto.randomUUID();
           const companyName = 'Company NAME';
           const companyInfo = await registerUser(data, companyId, companyName);
@@ -838,16 +855,6 @@
 
           const user = await checkLoginSupabase(data.email, data.password);
           if (user) {
-            try {
-              const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-              if (authErr) {
-                console.error('Supabase auth error', authErr);
-              } else {
-                window.supabaseSession = authData.session;
-              }
-            } catch (e) {
-              console.error('Supabase auth exception', e);
-            }
             window.companyId = user.company_id;
             window.companyName = user.company_name;
             window.USER_KEY = user.user_key;
@@ -863,7 +870,7 @@
           toggleOverlay(false);
           showRightModal('modal0');
         } catch (error) {
-          alert('Ошибка регистрации: ' + error.message);
+          alert('Ошибка регистрации: ' + (error.message || error.description || error));
         } finally {
           regBtn.disabled = false;
           regBtn.innerHTML = originalRegText;
