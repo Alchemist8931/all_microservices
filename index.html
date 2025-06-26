@@ -684,7 +684,15 @@
     const loginEmail        = document.getElementById('loginEmail');
     const loginPassword     = document.getElementById('loginPassword');
     const loginBtn          = document.getElementById('loginBtn');
-    const regBtn            = document.getElementById('regBtn');
+     const regBtn            = document.getElementById('regBtn');
+
+    async function hashPassword(str) {
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
 
     // Прелоадер при загрузке index.html
     document.addEventListener('DOMContentLoaded', () => {
@@ -743,28 +751,15 @@
 
       let user = null;
       try {
-        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password: pass });
-        if (authErr) {
-          console.error('Supabase auth error', authErr);
-           alert('Ошибка авторизации: ' + (authErr.message || authErr.description || authErr));
-          loginBtn.disabled = false;
-          loginBtn.innerHTML = originalLoginText;
-          return;
-        } else {
-          window.supabaseSession = authData.session;
-          if (authData.session?.user?.id) {
-            window.AUTH_ID = authData.session.user.id;
-          }
-        }
-         user = await checkLoginSupabase(email);
+        user = await checkLoginCustom(email, pass);
         if (!user) {
-          alert('Пользователь не найден');
+          alert('Неверный логин или пароль');
           loginBtn.disabled = false;
           loginBtn.innerHTML = originalLoginText;
           return;
         }
       } catch (e) {
-        console.error('Supabase auth exception', e);
+        console.error('Custom auth exception', e);
         alert('Ошибка авторизации: ' + (e.message || e.description || e));
         loginBtn.disabled = false;
         loginBtn.innerHTML = originalLoginText;
@@ -773,6 +768,7 @@
       // Сохраняем данные компании глобально
       window.companyId = user.company_id;
       window.companyName = user.company_name;
+      window.AUTH_ID = user.id;
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
       window.USER_KEY = user.user_key;
       window.IS_ADMIN = user.is_admin;
@@ -835,27 +831,6 @@
         };
 
         try {
-          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email: data.email, password: data.password });
-          if (signUpErr) {
-            throw signUpErr;
-          }
-
-          let session = signUpData.session;
-          if (!session) {
-            const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-            if (authErr) {
-              console.error('Supabase auth error', authErr);
-              alert('Подтвердите свой email, чтобы войти.');
-            } else {
-              session = authData.session;
-            }
-          }
-          if (session) {
-            window.supabaseSession = session;
-            if (session.user?.id) {
-              window.AUTH_ID = session.user.id;
-            }
-          }
           const companyId = crypto.randomUUID();
           const companyName = 'Company NAME';
           const companyInfo = await registerUser(data, companyId, companyName);
@@ -863,10 +838,11 @@
           window.companyName = companyName;
           window.registeredCompany = companyInfo;
 
-          const user = await checkLoginSupabase(data.email);
+          const user = await checkLoginCustom(data.email, data.password);
           if (user) {
             window.companyId = user.company_id;
             window.companyName = user.company_name;
+            window.AUTH_ID = user.id;
             window.USER_KEY = user.user_key;
             window.IS_ADMIN = user.is_admin;
             window.USER_LEVELS = user.menu_levels || '';
@@ -889,18 +865,22 @@
     }
 
     async function registerUser(userData, companyId, companyName) {
+      const pass_hash = await hashPassword(userData.password || '');
       const { data, error } = await supabase
         .from('administrators')
-        .insert([{
-          last_name:   userData.lastname,
-          first_name:  userData.firstname,
-          middle_name: userData.middlename,
-          phone:       userData.phone,
-          email:       userData.email,
-          company_id:  companyId,
-          company_name: companyName,
-          menu_levels: 'PAGE1,PAGE2,PAGE3'
-        }])
+        .insert([
+          {
+            last_name:   userData.lastname,
+            first_name:  userData.firstname,
+            middle_name: userData.middlename,
+            phone:       userData.phone,
+            email:       userData.email,
+            pass_hash,
+            company_id:  companyId,
+            company_name: companyName,
+            menu_levels: 'PAGE1,PAGE2,PAGE3'
+          }
+        ])
         .select('*')
         .single();
       if (error) {
@@ -910,27 +890,26 @@
     }
 
     // Проверка логина
-    async function checkLoginSupabase(email) {
+    async function checkLoginCustom(email, password) {
+      const pass_hash = await hashPassword(password);
       try {
-        let user = null;
         let { data: adminData } = await supabase
           .from('administrators')
           .select('*')
           .eq('email', email)
           .single();
-        if (adminData) {
-          user = { ...adminData, is_admin: true };
-        } else {
-          let { data: empData } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('email', email)
-            .single();
-          if (empData) {
-            user = { ...empData, is_admin: false };
-          }
+        if (adminData && adminData.pass_hash === pass_hash) {
+          return { ...adminData, is_admin: true };
         }
-        return user;
+        let { data: empData } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('email', email)
+          .single();
+        if (empData && empData.pass_hash === pass_hash) {
+          return { ...empData, is_admin: false };
+        }
+        return null;
       } catch (err) {
         console.error(err);
         return null;
@@ -1087,12 +1066,7 @@
         title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
       }));
 
-    window.logout = async function() {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        console.error('Supabase signOut error', e);
-      }
+    window.logout = function() {
       location.reload();
     };
   </script>
