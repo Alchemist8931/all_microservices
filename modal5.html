@@ -11,6 +11,29 @@
       padding: 10px;
       box-sizing: border-box;
     }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tab {
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      user-select: none;
+    }
+    .tab.active {
+      background: #212121;
+      color: #fff;
+    }
+    .page {
+      width: 100%;
+    }
+    .page:not(.active) {
+      display: none;
+    }
     #chat-window {
       width: 100%;
       max-width: 600px;
@@ -51,19 +74,51 @@
       cursor: pointer;
     }
   </style>
-  <div id="chat-window"></div>
-  <form id="chat-form">
-    <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
-    <button id="chat-send">Send</button>
-  </form>
-</div>
+ <div class="tabs">
+    <div class="tab active" data-page="1">Page 1</div>
+    <div class="tab" data-page="2">Page 2</div>
+    <div class="tab" data-page="3">Page 3</div>
+  </div>
+  <div id="page1" class="page active">
+    <div id="chat-window"></div>
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
+      <button id="chat-send">Send</button>
+    </form>
+  </div>
+  <div id="page2" class="page">страница в разработке</div>
+  <div id="page3" class="page">страница в разработке</div>
+  </div>
 <script type="module">
 export async function initModal5() {
   console.log('[modal5.html] PAGE 5 активирован');
   const root = document.getElementById('modal5-container');
+  const tabs = root.querySelectorAll('.tab');
+  const pages = root.querySelectorAll('.page');
   const chatWindow = root.querySelector('#chat-window');
   const form = root.querySelector('#chat-form');
   const input = root.querySelector('#chat-input');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.classList.contains('active')) return;
+      const id = tab.dataset.page;
+      const nextPage = root.querySelector('#page' + id);
+      const activeTab = root.querySelector('.tab.active');
+      const activePage = root.querySelector('.page.active');
+      const switchPage = () => {
+        activeTab && activeTab.classList.remove('active');
+        activePage && activePage.classList.remove('active');
+        tab.classList.add('active');
+        nextPage.classList.add('active');
+      };
+      if (document.startViewTransition) {
+        document.startViewTransition(switchPage);
+      } else {
+        switchPage();
+      }
+    });
+  });
   let history = [];
 
   async function loadHistory() {
