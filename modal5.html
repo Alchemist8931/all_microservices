@@ -150,7 +150,7 @@ export async function initModal5() {
     }
     console.log('[modal5] upload complete:', data);
     uploadProgress.value = 100;
-    uploadStatus.textContent = 'File uploaded';
+    uploadStatus.textContent = 'Файл загружен';
     await insertRequestRow(data.path);
   });
 
@@ -235,11 +235,13 @@ export async function initModal5() {
   }
 
   async function insertRequestRow(filePath) {
-    if (!window.supabase || !window.AUTH_ID) return;
+    if (!window.supabase) return;
+    const uid = window.AUTH_ID || window.USER_KEY;
+    if (!uid) return;
     try {
       const { data, error } = await window.supabase
         .from('requests')
-        .insert({ user_id: window.AUTH_ID, file_path: filePath, status: 'uploaded' })
+        .insert({ user_id: uid, file_path: filePath, status: 'uploaded' })
         .select('id')
         .single();
       console.log('[modal5] db insert:', data, error);
@@ -248,7 +250,7 @@ export async function initModal5() {
         throw error;
       }
       if (data) {
-        uploadStatus.textContent = 'Request saved';
+        uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
         await invokeEquipSelector(data.id);
       }
     } catch (err) {
@@ -270,6 +272,7 @@ export async function initModal5() {
       if (csvResult) {
         csvResult.value = typeof data === 'string' ? data : JSON.stringify(data);
       }
+      uploadStatus.textContent = 'Файл обработан успешно';
     } catch (err) {
       console.log('[modal5] invokeEquipSelector error:', err);
     }
