@@ -758,11 +758,19 @@
         const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (authErr) {
           console.error('Supabase auth error', authErr);
+           alert('Ошибка авторизации: ' + (authErr.message || authErr.description || authErr));
+          loginBtn.disabled = false;
+          loginBtn.innerHTML = originalLoginText;
+          return;
         } else {
           window.supabaseSession = authData.session;
         }
       } catch (e) {
         console.error('Supabase auth exception', e);
+        alert('Ошибка авторизации: ' + (e.message || e.description || e));
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = originalLoginText;
+        return;
       }
       // Сохраняем данные компании глобально
       window.companyId = user.company_id;
@@ -839,6 +847,10 @@
             const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
             if (authErr) {
               console.error('Supabase auth error', authErr);
+              alert('Ошибка авторизации: ' + (authErr.message || authErr.description || authErr));
+              regBtn.disabled = false;
+              regBtn.innerHTML = originalRegText;
+              return;
             } else {
               session = authData.session;
             }
