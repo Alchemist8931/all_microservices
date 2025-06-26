@@ -419,6 +419,60 @@
     .content-area.visible {
       opacity: 1;
     }
+
+      /* Overlay показывающий потерю соединения */
+    #db-disconnect-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      z-index: 2000;
+    }
+    #db-disconnect-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .loading-wave {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 1000px;
+      height: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+    #db-disconnect-overlay.show .loading-wave {
+      opacity: 1;
+    }
+    .loading-bar {
+      width: 20px;
+      height: 40px;
+      margin: 0 5px;
+      background-color: #6b252c;
+      border-radius: 5px;
+      animation: loading-wave-animation 1s ease-in-out infinite;
+    }
+    .loading-bar:nth-child(2) { animation-delay: 0.1s; }
+    .loading-bar:nth-child(3) { animation-delay: 0.3s; }
+    .loading-bar:nth-child(4) { animation-delay: 0.5s; }
+    .loading-bar:nth-child(5) { animation-delay: 0.7s; }
+    .loading-bar:nth-child(6) { animation-delay: 0.9s; }
+    .loading-bar:nth-child(7) { animation-delay: 0.11s; }
+    @keyframes loading-wave-animation {
+      0% { height: 10px; }
+      50% { height: 40px; }
+      100% { height: 10px; }
+    }
+    
   </style>
 </head>
 <body>
@@ -429,6 +483,19 @@
     <div class="line"></div>
     <div class="line"></div>
     <div class="line"></div>
+  </div>
+
+    <!-- Оверлей при потере соединения -->
+  <div id="db-disconnect-overlay">
+    <div class="loading-wave">
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+    </div>
   </div>
 
    <!-- Меню (скрыто до логина) -->
@@ -836,6 +903,31 @@
     const rightModal       = document.getElementById('right-modal');
     const linesLoader      = document.getElementById('linesLoader');
     const modalContentArea = document.getElementById('modalContentArea');
+    const dbOverlay        = document.getElementById('db-disconnect-overlay');
+
+    async function pingDatabase() {
+      try {
+        const { error } = await supabase
+          .from('administrators')
+          .select('id')
+          .limit(1);
+        return !error;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function checkDbConnection() {
+      const isOk = await pingDatabase();
+      if (isOk) {
+        dbOverlay.classList.remove('show');
+      } else {
+        dbOverlay.classList.add('show');
+      }
+    }
+
+    setInterval(checkDbConnection, 10000);
+    checkDbConnection();
 
     // Функция, которая находит все <script> в загруженном контенте и выполняет их
     function executeScriptsFromHTML(parentElem) {
