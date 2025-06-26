@@ -120,6 +120,10 @@ export async function initModal5() {
   const uploadStatus = root.querySelector('#upload-status');
   const csvResult = root.querySelector('#csv-result');
 
+   function sanitize(name) {
+    return name.replace(/[^a-z0-9.-]/gi, '_');
+  }
+
   let selectedFile = null;
   fileInput.addEventListener('change', () => {
     selectedFile = fileInput.files[0] || null;
@@ -132,7 +136,8 @@ export async function initModal5() {
     uploadProgress.style.display = 'block';
     uploadProgress.value = 0;
     uploadStatus.textContent = 'Uploading...';
-    const filePath = `${window.USER_KEY || 'anon'}/${Date.now()}_${selectedFile.name}`;
+    const safeName = sanitize(selectedFile.name);
+    const filePath = `${window.USER_KEY || 'anon'}/${Date.now()}_${safeName}`;
     const { data, error } = await window.supabase.storage
       .from('user-uploads')
       .upload(filePath, selectedFile, { upsert: true });
