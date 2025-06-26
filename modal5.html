@@ -3,17 +3,138 @@
   <style>
     #modal5-container {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #chat-window {
+      width: 100%;
+      max-width: 600px;
+      height: 400px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+    .msg {
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      max-width: 90%;
+    }
+    .msg.user { background: #dcf8c6; align-self: flex-end; }
+    .msg.assistant { background: #f1f0f0; align-self: flex-start; }
+    #chat-form {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      gap: 8px;
+    }
+    #chat-input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    #chat-send {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      background: #212121;
+      color: #fff;
+      cursor: pointer;
     }
   </style>
-  страница 5
-  </div>
+  <div id="chat-window"></div>
+  <form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
+    <button id="chat-send">Send</button>
+  </form>
+</div>
 <script type="module">
-export function initModal5() {
+export async function initModal5() {
   console.log('[modal5.html] PAGE 5 активирован');
+  const root = document.getElementById('modal5-container');
+  const chatWindow = root.querySelector('#chat-window');
+  const form = root.querySelector('#chat-form');
+  const input = root.querySelector('#chat-input');
+  let history = [];
+
+  async function loadHistory() {
+    if (!window.supabase || !window.USER_KEY) return;
+    const { data } = await window.supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('user_key', window.USER_KEY)
+      .order('created_at');
+    if (Array.isArray(data)) {
+      history = data;
+      render();
+    }
+  }
+
+  function render() {
+    chatWindow.innerHTML = history
+      .map(m => `<div class="msg ${m.role}">${m.content}</div>`)
+      .join('');
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  async function saveMessage(role, content) {
+    if (!window.supabase || !window.USER_KEY) return;
+    const { data } = await window.supabase
+      .from('chat_messages')
+      .insert({ user_key: window.USER_KEY, role, content })
+      .select('*')
+      .single();
+    if (data) history.push(data);
+  }
+
+  async function askGpt(question) {
+    const apiKey = window.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
+    const payload = {
+      model: 'gpt-3.5-turbo',
+      messages: history.map(h => ({ role: h.role, content: h.content })).concat([{ role: 'user', content: question }])
+    };
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    await saveMessage('user', text);
+    render();
+    let reply = '...';
+    render();
+    try {
+      reply = await askGpt(text);
+    } catch (e) {
+      reply = 'Ошибка обращения к API';
+    }
+    await saveMessage('assistant', reply);
+    render();
+  });
+
+  await loadHistory();
 }
-initModal5();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initModal5);
+} else {
+  initModal5();
+}
 </script>
