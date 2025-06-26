@@ -73,6 +73,8 @@
       color: #fff;
       cursor: pointer;
     }
+    #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
+    #upload-progress { width: 100%; margin-top: 6px; }
   </style>
  <div class="tabs">
     <div class="tab active" data-page="1">Page 1</div>
@@ -80,6 +82,12 @@
     <div class="tab" data-page="3">Page 3</div>
   </div>
   <div id="page1" class="page active">
+    <div id="file-upload">
+      <input type="file" id="file-input" />
+      <button id="upload-btn">Upload</button>
+      <progress id="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+      <div id="upload-status"></div>
+    </div>
     <div id="chat-window"></div>
     <form id="chat-form">
       <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
@@ -98,6 +106,37 @@ export async function initModal5() {
   const chatWindow = root.querySelector('#chat-window');
   const form = root.querySelector('#chat-form');
   const input = root.querySelector('#chat-input');
+  const fileInput = root.querySelector('#file-input');
+  const uploadBtn = root.querySelector('#upload-btn');
+  const uploadProgress = root.querySelector('#upload-progress');
+  const uploadStatus = root.querySelector('#upload-status');
+
+  let selectedFile = null;
+  fileInput.addEventListener('change', () => {
+    selectedFile = fileInput.files[0] || null;
+    console.log('[modal5] file selected:', selectedFile);
+    uploadStatus.textContent = selectedFile ? `Selected: ${selectedFile.name}` : '';
+  });
+
+  uploadBtn.addEventListener('click', async () => {
+    if (!selectedFile || !window.supabase) return;
+    uploadProgress.style.display = 'block';
+    uploadProgress.value = 0;
+    uploadStatus.textContent = 'Uploading...';
+    const filePath = `${window.USER_KEY || 'anon'}/${Date.now()}_${selectedFile.name}`;
+    const { data, error } = await window.supabase.storage
+      .from('user-uploads')
+      .upload(filePath, selectedFile, { upsert: true });
+    if (error) {
+      console.log('[modal5] upload error:', error);
+      uploadStatus.textContent = 'Upload error';
+      return;
+    }
+    console.log('[modal5] upload complete:', data);
+    uploadProgress.value = 100;
+    uploadStatus.textContent = 'File uploaded';
+    await insertRequestRow(data.path);
+  });
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -164,6 +203,17 @@ export async function initModal5() {
     });
     const data = await res.json();
     return data.choices?.[0]?.message?.content || '';
+  }
+
+  async function insertRequestRow(filePath) {
+    if (!window.supabase || !window.USER_KEY) return;
+    const { data, error } = await window.supabase
+      .from('requests')
+      .insert({ user_id: window.USER_KEY, file_path: filePath, status: 'uploaded' })
+      .select('*')
+      .single();
+    console.log('[modal5] db insert:', data, error);
+    if (data) uploadStatus.textContent = 'Request saved';
   }
 
   form.addEventListener('submit', async e => {
