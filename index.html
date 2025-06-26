@@ -764,6 +764,9 @@
           return;
         } else {
           window.supabaseSession = authData.session;
+          if (authData.session?.user?.id) {
+            window.AUTH_ID = authData.session.user.id;
+          }
         }
       } catch (e) {
         console.error('Supabase auth exception', e);
@@ -854,6 +857,9 @@
           }
           if (session) {
             window.supabaseSession = session;
+            if (session.user?.id) {
+              window.AUTH_ID = session.user.id;
+            }
           }
           const companyId = crypto.randomUUID();
           const companyName = 'Company NAME';
