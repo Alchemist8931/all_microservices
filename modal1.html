@@ -184,6 +184,12 @@
 .task-text{
   transition: color .4s ease;
 }
+    .short-view .task-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 /* перечёркивание и смена цвета при отметке */
 .material-checkbox input[type="checkbox"]:checked ~ .task-text{
   color: #aaa;
@@ -433,7 +439,7 @@
   <div class="meta">Executor: {{executor}}</div>
   <div class="meta">Created: {{created}}</div>
   <div class="meta">Due: {{due}}</div>
-  <div class="checklist-container" style="margin-left: 0px;">{{subtasks}}</div>
+  {{subtaskBlock}}
 </template>
 
 <template id="task-full-template">
@@ -733,11 +739,14 @@ document.getElementById('task-form').addEventListener('submit', async e => {
 
 function renderShort(task) {
   const created = new Date(task.createdAt).toLocaleDateString();
-  const subtasks = task.subtasks
+  const subtasksMarkup = (task.subtasks || [])
     .map((s, i) =>
       `<label class="material-checkbox"><input type="checkbox" class="checklist-checkbox" data-id="${task.id}" data-index="${i}" ${s.done ? 'checked' : ''}><span class="checkmark"></span><span class="task-text">${s.text}</span></label>`
     )
     .join('');
+  const subtaskBlock = subtasksMarkup
+    ? `<div class="checklist-container" style="margin-left: 0px;">${subtasksMarkup}</div>`
+    : '';
   const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
   return fillTemplate(shortTemplate, {
     title: task.title,
@@ -745,7 +754,7 @@ function renderShort(task) {
     executor: task.executor || '',
     created,
     due,
-    subtasks
+    subtaskBlock
   });
 }
 
