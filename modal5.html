@@ -75,11 +75,14 @@
     }
     #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
     #upload-progress { width: 100%; margin-top: 6px; }
+    .under-construction {
+      text-align: center;
+    }
   </style>
  <div class="tabs">
     <div class="tab active" data-page="1">Page 1</div>
-    <div class="tab" data-page="2">Page 2</div>
-    <div class="tab" data-page="3">Page 3</div>
+   <div class="tab" data-page="2">подбор попозиционный</div>
+    <div class="tab" data-page="3">написание ТЗ</div>
   </div>
   <div id="page1" class="page active">
     <div id="file-upload">
@@ -95,8 +98,12 @@
     </form>
     <textarea id="csv-result" placeholder="CSV result will appear here" style="width:100%;height:120px;margin-top:10px" readonly></textarea>
   </div>
-  <div id="page2" class="page">страница в разработке</div>
-  <div id="page3" class="page">страница в разработке</div>
+  <div id="page2" class="page">
+    <p class="under-construction">страница в разработке</p>
+  </div>
+  <div id="page3" class="page">
+    <p class="under-construction">страница в разработке</p>
+  </div>
   </div>
 <script type="module">
 export async function initModal5() {
