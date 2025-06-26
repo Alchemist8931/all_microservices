@@ -135,24 +135,30 @@ export async function initModal5() {
 
   uploadBtn.addEventListener('click', async () => {
     if (!selectedFile || !window.supabase) return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      uploadStatus.textContent = 'Необходимо авторизоваться';
+      return;
+    }
+    const uid = data.session.user.id;
     uploadProgress.style.display = 'block';
     uploadProgress.value = 0;
     uploadStatus.textContent = 'Uploading...';
     const safeName = sanitize(selectedFile.name);
     const safeFolder = sanitize(window.AUTH_ID || window.USER_KEY || 'anon');
     const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
-    const { data, error } = await window.supabase.storage
+    const { data: upData, error } = await window.supabase.storage
       .from('user-uploads')
       .upload(filePath, selectedFile, { upsert: true });
     if (error) {
-      console.log('[modal5] upload error:', error);
+      console.log('[modal5] upload complete:', upData);
       uploadStatus.textContent = 'Upload error';
       return;
     }
     console.log('[modal5] upload complete:', data);
     uploadProgress.value = 100;
     uploadStatus.textContent = 'Файл загружен';
-    await insertRequestRow(data.path);
+    await insertRequestRow(upData.path, uid);
   });
 
   tabs.forEach(tab => {
@@ -235,9 +241,8 @@ export async function initModal5() {
     return answer;
   }
 
-  async function insertRequestRow(filePath) {
+ async function insertRequestRow(filePath, uid) {
     if (!window.supabase) return;
-    const uid = window.AUTH_ID || window.USER_KEY;
     if (!uid) return;
     try {
       const { data, error } = await window.supabase
