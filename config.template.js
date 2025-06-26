@@ -1,3 +1,0 @@
-
-window.SUPABASE_URL = 'https://jviswahajwmwibedxcll.supabase.co';
-window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2aXN3YWhhandtd2liZWR4Y2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMzU5NDcsImV4cCI6MjA2NDkxMTk0N30.Bkgknn8BAhlUp429fhyOErV-afbPkfcneTdVhKwgn7c';
