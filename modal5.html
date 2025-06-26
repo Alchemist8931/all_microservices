@@ -139,7 +139,8 @@ export async function initModal5() {
     uploadProgress.value = 0;
     uploadStatus.textContent = 'Uploading...';
     const safeName = sanitize(selectedFile.name);
-    const filePath = `${window.USER_KEY || 'anon'}/${Date.now()}_${safeName}`;
+    const safeFolder = sanitize(window.USER_KEY || 'anon');
+    const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
     const { data, error } = await window.supabase.storage
       .from('user-uploads')
       .upload(filePath, selectedFile, { upsert: true });
