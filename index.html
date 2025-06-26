@@ -476,11 +476,8 @@
   </style>
 </head>
 <body>
-  <!-- Для работы AI-инструментов необходимо указать свой OpenAI API key -->
-  <script>
-    // Замените пустую строку на ваш ключ OpenAI API, например: 'sk-...'
-    window.OPENAI_API_KEY = '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';
-  </script>
+  <!-- Load runtime configuration -->
+  <script src="config.js"></script>
   <!-- Прелоадер при загрузке index.html -->
   <div id="preloader">
     <div class="line"></div>
@@ -670,10 +667,7 @@
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
     
-    const SUPABASE_URL = 'https://jviswahajwmwibedxcll.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2aXN3YWhhandtd2liZWR4Y2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMzU5NDcsImV4cCI6MjA2NDkxMTk0N30.Bkgknn8BAhlUp429fhyOErV-afbPkfcneTdVhKwgn7c';
-    
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   
   // Сделать supabase доступным глобально
   window.supabase = supabase;
