@@ -170,6 +170,7 @@ export async function initModal5() {
   let history = [];
 
   async function loadHistory() {
+    console.log('[modal5] loadHistory start');
     if (!window.supabase || !window.USER_KEY) return;
     const { data } = await window.supabase
       .from('chat_messages')
@@ -178,11 +179,13 @@ export async function initModal5() {
       .order('created_at');
     if (Array.isArray(data)) {
       history = data;
+      console.log('[modal5] loadHistory data:', history);
       render();
     }
   }
 
   function render() {
+    console.log('[modal5] render', history);
     chatWindow.innerHTML = history
       .map(m => `<div class="msg ${m.role}">${m.content}</div>`)
       .join('');
@@ -190,16 +193,21 @@ export async function initModal5() {
   }
 
   async function saveMessage(role, content) {
+    console.log('[modal5] saveMessage', role, content);
     if (!window.supabase || !window.USER_KEY) return;
     const { data } = await window.supabase
       .from('chat_messages')
       .insert({ user_key: window.USER_KEY, role, content })
       .select('*')
       .single();
-    if (data) history.push(data);
+    if (data) {
+      history.push(data);
+      console.log('[modal5] saveMessage stored', data);
+    }
   }
 
   async function askGpt(question) {
+    console.log('[modal5] askGpt', question);
     const apiKey = window.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
     const payload = {
       model: 'gpt-3.5-turbo',
@@ -211,7 +219,9 @@ export async function initModal5() {
       body: JSON.stringify(payload)
     });
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
+    const answer = data.choices?.[0]?.message?.content || '';
+    console.log('[modal5] askGpt reply', answer);
+    return answer;
   }
 
   async function insertRequestRow(filePath) {
