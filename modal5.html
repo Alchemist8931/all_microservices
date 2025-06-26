@@ -120,6 +120,23 @@ export async function initModal5() {
   const uploadStatus = root.querySelector('#upload-status');
   const csvResult = root.querySelector('#csv-result');
 
+  // Получаем текущую сессию пользователя для определения AUTH_ID
+  if (window.supabase) {
+    try {
+      const { data: { session } } = await window.supabase.auth.getSession();
+      if (session?.user?.id) {
+        window.AUTH_ID = session.user.id;
+      } else {
+        const { data: { user } } = await window.supabase.auth.getUser();
+        if (user?.id) {
+          window.AUTH_ID = user.id;
+        }
+      }
+    } catch (e) {
+      console.log('[modal5] auth session error:', e);
+    }
+  }
+
    function sanitize(name) {
     return name.replace(/[^a-z0-9.-]/gi, '_');
   }
@@ -230,11 +247,11 @@ export async function initModal5() {
   }
 
   async function insertRequestRow(filePath) {
-    if (!window.supabase || !window.USER_KEY) return;
+    if (!window.supabase || !window.AUTH_ID) return;
     try {
       const { data, error } = await window.supabase
         .from('requests')
-        .insert({ user_id: window.USER_KEY, file_path: filePath, status: 'uploaded' })
+        .insert({ user_id: window.AUTH_ID, file_path: filePath, status: 'uploaded' })
         .select('id')
         .single();
       console.log('[modal5] db insert:', data, error);
