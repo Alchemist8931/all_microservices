@@ -120,22 +120,7 @@ export async function initModal5() {
   const uploadStatus = root.querySelector('#upload-status');
   const csvResult = root.querySelector('#csv-result');
 
-  // Получаем текущую сессию пользователя для определения AUTH_ID
-  if (window.supabase) {
-    try {
-      const { data: { session } } = await window.supabase.auth.getSession();
-      if (session?.user?.id) {
-        window.AUTH_ID = session.user.id;
-      } else {
-        const { data: { user } } = await window.supabase.auth.getUser();
-        if (user?.id) {
-          window.AUTH_ID = user.id;
-        }
-      }
-    } catch (e) {
-      console.log('[modal5] auth session error:', e);
-    }
-  }
+  // AUTH_ID уже должен быть установлен после входа
 
    function sanitize(name) {
     return name.replace(/[^a-z0-9.-]/gi, '_');
