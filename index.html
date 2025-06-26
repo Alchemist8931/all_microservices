@@ -750,6 +750,7 @@
       loginBtn.innerHTML = 'Загрузка...';
 
       let user = null;
+      let loginData = null;
       try {
         user = await checkLoginCustom(email, pass);
         if (!user) {
@@ -758,7 +759,12 @@
           loginBtn.innerHTML = originalLoginText;
           return;
         }
-        await supabase.auth.signInWithPassword({ email, password: pass });
+        const { data: ld, error: loginErr } =
+          await supabase.auth.signInWithPassword({ email, password: pass });
+        if (loginErr) {
+          throw loginErr;
+        }
+        loginData = ld;
       } catch (e) {
         console.error('Custom auth exception', e);
         alert('Ошибка авторизации: ' + (e.message || e.description || e));
@@ -769,7 +775,8 @@
       // Сохраняем данные компании глобально
       window.companyId = user.company_id;
       window.companyName = user.company_name;
-      window.AUTH_ID = user.id;
+      window.LOCAL_USER_ID = user.id;
+      window.AUTH_ID = loginData?.user?.id || user.id;
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
       window.USER_KEY = user.user_key;
       window.IS_ADMIN = user.is_admin;
