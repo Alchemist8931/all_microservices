@@ -93,6 +93,7 @@
       <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
       <button id="chat-send">Send</button>
     </form>
+    <textarea id="csv-result" placeholder="CSV result will appear here" style="width:100%;height:120px;margin-top:10px" readonly></textarea>
   </div>
   <div id="page2" class="page">страница в разработке</div>
   <div id="page3" class="page">страница в разработке</div>
@@ -110,6 +111,7 @@ export async function initModal5() {
   const uploadBtn = root.querySelector('#upload-btn');
   const uploadProgress = root.querySelector('#upload-progress');
   const uploadStatus = root.querySelector('#upload-status');
+  const csvResult = root.querySelector('#csv-result');
 
   let selectedFile = null;
   fileInput.addEventListener('change', () => {
@@ -207,13 +209,43 @@ export async function initModal5() {
 
   async function insertRequestRow(filePath) {
     if (!window.supabase || !window.USER_KEY) return;
-    const { data, error } = await window.supabase
-      .from('requests')
-      .insert({ user_id: window.USER_KEY, file_path: filePath, status: 'uploaded' })
-      .select('*')
-      .single();
-    console.log('[modal5] db insert:', data, error);
-    if (data) uploadStatus.textContent = 'Request saved';
+    try {
+      const { data, error } = await window.supabase
+        .from('requests')
+        .insert({ user_id: window.USER_KEY, file_path: filePath, status: 'uploaded' })
+        .select('id')
+        .single();
+      console.log('[modal5] db insert:', data, error);
+      if (error) {
+        uploadStatus.textContent = 'Insert error';
+        throw error;
+      }
+      if (data) {
+        uploadStatus.textContent = 'Request saved';
+        await invokeEquipSelector(data.id);
+      }
+    } catch (err) {
+      console.log('[modal5] insertRequestRow error:', err);
+    }
+  }
+
+  async function invokeEquipSelector(requestId) {
+    try {
+      console.log('[modal5] invoking equip-selector', requestId);
+      const { data, error } = await window.supabase.functions.invoke('equip-selector', {
+        body: { request_id: requestId }
+      });
+      console.log('[modal5] equip-selector result:', data, error);
+      if (error) {
+        uploadStatus.textContent = 'Function error';
+        return;
+      }
+      if (csvResult) {
+        csvResult.value = typeof data === 'string' ? data : JSON.stringify(data);
+      }
+    } catch (err) {
+      console.log('[modal5] invokeEquipSelector error:', err);
+    }
   }
 
   form.addEventListener('submit', async e => {
