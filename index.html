@@ -747,13 +747,7 @@
       const originalLoginText = loginBtn.innerHTML;
       loginBtn.innerHTML = 'Загрузка...';
 
-      const user = await checkLoginSupabase(email, pass);
-      if (!user) {
-        alert('Неверные логин/пароль');
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = originalLoginText;
-        return;
-      }
+      let user = null;
       try {
         const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (authErr) {
@@ -767,6 +761,13 @@
           if (authData.session?.user?.id) {
             window.AUTH_ID = authData.session.user.id;
           }
+        }
+         user = await checkLoginSupabase(email);
+        if (!user) {
+          alert('Пользователь не найден');
+          loginBtn.disabled = false;
+          loginBtn.innerHTML = originalLoginText;
+          return;
         }
       } catch (e) {
         console.error('Supabase auth exception', e);
@@ -868,7 +869,7 @@
           window.companyName = companyName;
           window.registeredCompany = companyInfo;
 
-          const user = await checkLoginSupabase(data.email, data.password);
+          const user = await checkLoginSupabase(data.email);
           if (user) {
             window.companyId = user.company_id;
             window.companyName = user.company_name;
@@ -902,7 +903,6 @@
           middle_name: userData.middlename,
           phone:       userData.phone,
           email:       userData.email,
-          pass:        userData.password,
           company_id:  companyId,
           company_name: companyName,
           menu_levels: 'PAGE1,PAGE2,PAGE3'
@@ -916,14 +916,13 @@
     }
 
     // Проверка логина
-    async function checkLoginSupabase(email, password) {
+    async function checkLoginSupabase(email) {
       try {
         let user = null;
         let { data: adminData } = await supabase
           .from('administrators')
           .select('*')
           .eq('email', email)
-          .eq('pass', password)
           .single();
         if (adminData) {
           user = { ...adminData, is_admin: true };
@@ -932,7 +931,6 @@
             .from('employees')
             .select('*')
             .eq('email', email)
-            .eq('pass', password)
             .single();
           if (empData) {
             user = { ...empData, is_admin: false };
