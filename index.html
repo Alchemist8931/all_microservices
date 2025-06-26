@@ -754,6 +754,16 @@
         loginBtn.innerHTML = originalLoginText;
         return;
       }
+      try {
+        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (authErr) {
+          console.error('Supabase auth error', authErr);
+        } else {
+          window.supabaseSession = authData.session;
+        }
+      } catch (e) {
+        console.error('Supabase auth exception', e);
+      }
       // Сохраняем данные компании глобально
       window.companyId = user.company_id;
       window.companyName = user.company_name;
@@ -828,6 +838,16 @@
 
           const user = await checkLoginSupabase(data.email, data.password);
           if (user) {
+            try {
+              const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+              if (authErr) {
+                console.error('Supabase auth error', authErr);
+              } else {
+                window.supabaseSession = authData.session;
+              }
+            } catch (e) {
+              console.error('Supabase auth exception', e);
+            }
             window.companyId = user.company_id;
             window.companyName = user.company_name;
             window.USER_KEY = user.user_key;
@@ -1053,6 +1073,14 @@
         title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
       }));
 
+    window.logout = async function() {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error('Supabase signOut error', e);
+      }
+      location.reload();
+    };
   </script>
 </body>
 </html>
