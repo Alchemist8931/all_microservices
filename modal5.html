@@ -151,8 +151,8 @@ export async function initModal5() {
       .from('user-uploads')
       .upload(filePath, selectedFile, { upsert: true });
     if (error) {
-      console.log('[modal5] upload complete:', upData);
-      uploadStatus.textContent = 'Upload error';
+      console.error('[modal5] upload error:', error);
+      uploadStatus.textContent = 'Upload error: ' + error.message;
       return;
     }
     console.log('[modal5] upload complete:', data);
