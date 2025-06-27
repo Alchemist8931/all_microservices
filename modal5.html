@@ -77,7 +77,6 @@
       <progress id="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div id="upload-status"></div>
     </div>
-    <input type="text" id="prompt-input" placeholder="Введите подсказку" />
     <div id="history-list" class="history-list"></div>
   </div>
   <div id="page2" class="page">
@@ -91,18 +90,17 @@
 /* ------------- глобальный supabase берём из window ------------ */
 const supabase = window.supabase;
 
-/* -------------------- DOM -------------------- */
-const root           = document.getElementById('modal5-container');
-const tabs           = root.querySelectorAll('.tab');
-const pages          = root.querySelectorAll('.page');
-const historyList    = root.querySelector('#history-list');
-const fileInput      = root.querySelector('#file-input');
-const uploadBtn      = root.querySelector('#upload-btn');
-const uploadProgress = root.querySelector('#upload-progress');
-const uploadStatus   = root.querySelector('#upload-status');
-const promptInput    = root.querySelector('#prompt-input');
+/* -------------------- DOM ------------------- */
+const root            = document.getElementById('modal5-container');
+const tabs            = root.querySelectorAll('.tab');
+const pages           = root.querySelectorAll('.page');
+const historyList     = root.querySelector('#history-list');
+const fileInput       = root.querySelector('#file-input');
+const uploadBtn       = root.querySelector('#upload-btn');
+const uploadProgress  = root.querySelector('#upload-progress');
+const uploadStatus    = root.querySelector('#upload-status');
 
-/* ---------------- helpers -------------------- */
+/* -------------- helpers --------------------- */
 const sanitize = (s) => s
   .normalize('NFKD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -114,11 +112,11 @@ fileInput.addEventListener('change', () => {
   uploadStatus.textContent = selectedFile ? `Выбран: ${selectedFile.name}` : '';
 });
 
-/* ------------- загрузка файла + insert + invoke -------------- */
+/* ------- загрузка файла + insert + invoke --- */
 uploadBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 
-  const { data:{ session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
 
   const safeName   = sanitize(selectedFile.name);
@@ -126,10 +124,11 @@ uploadBtn.addEventListener('click', async () => {
   const filePath   = `${safeFolder}/${Date.now()}_${safeName}`;
 
   uploadProgress.style.display = 'block';
-  uploadProgress.value = 0;
+  uploadProgress.value   = 0;
   uploadStatus.textContent = 'Загружаю…';
 
-  /* 1. Storage ------------------------------------------------- */
+
+ /* 1. Storage */
   const { error: upErr } = await supabase
     .storage
     .from('user-uploads')
@@ -138,7 +137,7 @@ uploadBtn.addEventListener('click', async () => {
   if (upErr) { uploadStatus.textContent = 'Ошибка upload: ' + upErr.message; return; }
   uploadProgress.value = 100;
 
-  /* 2. INSERT -------------------------------------------------- */
+  /* 2. INSERT */
   const { data: reqRow, error: insErr } = await supabase
     .from('requests')
     .insert({ user_id: session.user.id, file_path: filePath, status: 'pending' })
@@ -147,16 +146,13 @@ uploadBtn.addEventListener('click', async () => {
 
   if (insErr) { uploadStatus.textContent = 'Ошибка insert'; return; }
 
-  /* 3. INVOKE -------------------------------------------------- */
+  /* 3. INVOKE (без prompt) */
   uploadStatus.textContent = 'GPT обрабатывает…';
-  const prompt = promptInput.value.trim() || 'подбор оборудования';
 
   const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
-   'equip-selector',
-   {
-     body: { request_id: reqRow.id, prompt, save: true } // SDK сам всё сериализует и проставит заголовок
-   }
- );
+    'equip-selector',
+    { body: { request_id: reqRow.id, save: true } }
+  );
 
   if (funcErr) {
     console.error('[modal5] function error:', funcErr);
@@ -170,9 +166,8 @@ uploadBtn.addEventListener('click', async () => {
   await loadHistory();
 });
 
-/* --------------------- история ------------------------------- */
+/* -------------- история --------------------- */
 let history = [];
-
 async function loadHistory() {
   const { data, error } = await supabase
     .from('requests')
@@ -191,7 +186,6 @@ function renderHistory() {
     const row   = document.createElement('div');
     row.className = 'history-item';
 
-    /* левая часть */
     const left  = document.createElement('div');
     const name  = document.createElement('span');
     name.textContent = item.file_path.split('/').pop();
@@ -200,10 +194,9 @@ function renderHistory() {
 
     const isDone = (item.status === 'done') || !!item.response_path;
     status.textContent = isDone ? 'завершено' : 'в работе';
-
     left.append(name, status);
 
-    /* иконка info */
+    /* info-icon */
     const icon = document.createElement('span');
     icon.className = 'info-icon';
     icon.textContent = 'ⓘ';
@@ -211,20 +204,14 @@ function renderHistory() {
 
     icon.addEventListener('click', async () => {
       if (!isDone) return;
-      /* кешируем ответ, чтобы не качать много раз */
       if (!icon.dataset.answer) {
         const { data } = await supabase
           .storage
           .from('user-uploads')
           .download(item.response_path);
-
-        if (data) {
-          icon.dataset.answer = await data.text();
-        } else {
-          icon.dataset.answer = 'Ответ недоступен';
-        }
+        icon.dataset.answer = data ? await data.text() : 'Ответ недоступен';
       }
-      alert(icon.dataset.answer);              // простая модалка-alert
+      alert(icon.dataset.answer);
       await navigator.clipboard.writeText(icon.dataset.answer);
     });
 
@@ -233,7 +220,7 @@ function renderHistory() {
   });
 }
 
-/* ---------------------- вкладки ------------------------------ */
+/* -------------- вкладки --------------------- */
 tabs.forEach(tab => {
   tab.addEventListener('click', () => {
     if (tab.classList.contains('active')) return;
@@ -244,6 +231,6 @@ tabs.forEach(tab => {
   });
 });
 
-/* ---------------- init ---------------- */
+/* -------------- init ------------------------ */
 await loadHistory();
 </script>
