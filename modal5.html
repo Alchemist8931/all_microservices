@@ -50,6 +50,10 @@
       cursor: pointer;
       color: #007bff;
     }
+    .info-icon.disabled {
+      color: #6c757d;
+      pointer-events: none;
+    }
     #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
     #upload-progress { width: 100%; margin-top: 6px; }
     .under-construction {
@@ -156,9 +160,10 @@ export async function initModal5() {
     if (!window.supabase || !window.AUTH_ID) return;
     const { data } = await window.supabase
      .from('requests')
-      .select('id, file_path, response_path')
+      .select('id, file_path, response_path, status')
       .eq('user_id', window.AUTH_ID)
       .order('created_at', { ascending: false });
+    console.log('[modal5] history loaded:', data);
     history = Array.isArray(data) ? data : [];
     renderHistory();
   }
@@ -169,30 +174,44 @@ export async function initModal5() {
     for (const item of history) {
       const row = document.createElement('div');
       row.className = 'history-item';
-      row.textContent = item.file_path.split('/').pop();
+      const left = document.createElement('div');
+      const nameEl = document.createElement('span');
+      nameEl.textContent = item.file_path.split('/').pop();
+      const statusEl = document.createElement('span');
+      statusEl.style.marginLeft = '8px';
+      statusEl.textContent = item.response_path ? 'завершено' : 'в работе';
+      left.appendChild(nameEl);
+      left.appendChild(statusEl);
       const icon = document.createElement('span');
       icon.className = 'info-icon';
       icon.textContent = 'ⓘ';
-      icon.addEventListener('mouseenter', async () => {
-        if (icon.dataset.answer || !item.response_path) return;
-        const { data } = await window.supabase.storage
-          .from('user-uploads')
-          .download(item.response_path);
-        if (data) {
-          const text = await data.text();
-          icon.dataset.answer = text;
-          icon.title = text;
-        }
-      }, { once: true });
+      if (!item.response_path) {
+        icon.classList.add('disabled');
+      } else {
+        icon.addEventListener('mouseenter', async () => {
+          if (icon.dataset.answer) return;
+          const { data } = await window.supabase.storage
+            .from('user-uploads')
+            .download(item.response_path);
+          if (data) {
+            const text = await data.text();
+            icon.dataset.answer = text;
+            icon.title = text;
+            icon.classList.remove('disabled');
+            console.log('[modal5] answer loaded for', item.file_path);
+          }
+        }, { once: true });
+      }
       icon.addEventListener('click', () => {
         if (icon.dataset.answer) {
           navigator.clipboard.writeText(icon.dataset.answer);
         }
       }, { once: true });
+      row.appendChild(left);
       row.appendChild(icon);
       historyList.appendChild(row);
-      }
     }
+  }
 
  async function insertRequestRow(filePath, uid) {
     if (!window.supabase) return;
