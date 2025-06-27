@@ -103,7 +103,10 @@ const uploadStatus   = root.querySelector('#upload-status');
 const promptInput    = root.querySelector('#prompt-input');
 
 /* ---------------- helpers -------------------- */
-const sanitize = (s) => s.replace(/[^a-z0-9.-]/gi, '_');
+const sanitize = (s) => s
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9._-]/gi, '_');
 
 let selectedFile = null;
 fileInput.addEventListener('change', () => {
@@ -114,6 +117,7 @@ fileInput.addEventListener('change', () => {
 /* ------------- загрузка файла + insert + invoke -------------- */
 uploadBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
+
   const { data:{ session } } = await supabase.auth.getSession();
   if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
 
@@ -150,14 +154,14 @@ uploadBtn.addEventListener('click', async () => {
   const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
     'equip-selector',
     {
-      body: { request_id: reqRow.id, prompt, save: true },
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },   // ← было пусто
+      body:     { request_id: reqRow.id, prompt, save: true }
     }
   );
 
   if (funcErr) {
     console.error('[modal5] function error:', funcErr);
-    uploadStatus.textContent = 'Ошибка функции';
+    uploadStatus.textContent = 'Ошибка функции: ' + funcErr.message;
   } else {
     uploadStatus.textContent = 'Готово!';
     console.log('[modal5] GPT answer:', funcRes?.csv);
