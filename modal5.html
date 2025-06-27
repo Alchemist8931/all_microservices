@@ -152,11 +152,12 @@ uploadBtn.addEventListener('click', async () => {
   const prompt = promptInput.value.trim() || 'подбор оборудования';
 
   const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
-     'equip-selector',
-     {
-       body: { request_id: reqRow.id, prompt, save: true }   // SDK сам всё сериализует
-     }
-   );
+    'equip-selector',
+    {
+      headers: { 'Content-Type': 'application/json' },       // <-- важно!
+      body:    { request_id: reqRow.id, prompt, save: true }
+    }
+  );
 
   if (funcErr) {
     console.error('[modal5] function error:', funcErr);
