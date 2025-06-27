@@ -59,6 +59,7 @@
       pointer-events: none;
     }
     #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
+    #prompt-input { width: 100%; max-width: 600px; margin: 6px 0; }
     #upload-progress { width: 100%; margin-top: 6px; }
     .under-construction {
       text-align: center;
@@ -76,6 +77,7 @@
       <progress id="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div id="upload-status"></div>
     </div>
+    <input type="text" id="prompt-input" placeholder="Введите подсказку" />
     <div id="history-list" class="history-list"></div>
   </div>
   <div id="page2" class="page">
@@ -96,6 +98,7 @@ export async function initModal5() {
   const uploadBtn = root.querySelector('#upload-btn');
   const uploadProgress = root.querySelector('#upload-progress');
   const uploadStatus = root.querySelector('#upload-status');
+  const promptInput = root.querySelector('#prompt-input');
 
   // AUTH_ID уже должен быть установлен после входа
 
@@ -249,7 +252,9 @@ export async function initModal5() {
       }
       if (data) {
         uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
-        await invokeEquipSelector(data.id);
+        const prompt = promptInput && promptInput.value.trim() ?
+          promptInput.value.trim() : 'подбор оборудования';
+        await invokeEquipSelector(data.id, prompt);
         await loadHistory();
         return data.id;
       }
@@ -259,11 +264,11 @@ export async function initModal5() {
    return null;
   }
 
-  async function invokeEquipSelector(requestId) {
+  async function invokeEquipSelector(requestId, prompt) {
     try {
       console.log('[modal5] invoking equip-selector', requestId);
       const { data, error } = await window.supabase.functions.invoke('equip-selector', {
-        body: { request_id: requestId, save: true }
+        body: { request_id: requestId, prompt, save: true }
       });
       console.log('[modal5] equip-selector result:', data, error);
       if (error) {
