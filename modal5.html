@@ -88,205 +88,159 @@
   </div>
   </div>
 <script type="module">
-export async function initModal5() {
-  console.log('[modal5.html] PAGE 5 активирован');
-  const root = document.getElementById('modal5-container');
-  const tabs = root.querySelectorAll('.tab');
-  const pages = root.querySelectorAll('.page');
-  const historyList = root.querySelector('#history-list');
-  const fileInput = root.querySelector('#file-input');
-  const uploadBtn = root.querySelector('#upload-btn');
-  const uploadProgress = root.querySelector('#upload-progress');
-  const uploadStatus = root.querySelector('#upload-status');
-  const promptInput = root.querySelector('#prompt-input');
+/* ------------- глобальный supabase берём из window ------------ */
+const supabase = window.supabase;
 
-  // AUTH_ID уже должен быть установлен после входа
+/* -------------------- DOM -------------------- */
+const root           = document.getElementById('modal5-container');
+const tabs           = root.querySelectorAll('.tab');
+const pages          = root.querySelectorAll('.page');
+const historyList    = root.querySelector('#history-list');
+const fileInput      = root.querySelector('#file-input');
+const uploadBtn      = root.querySelector('#upload-btn');
+const uploadProgress = root.querySelector('#upload-progress');
+const uploadStatus   = root.querySelector('#upload-status');
+const promptInput    = root.querySelector('#prompt-input');
 
-   function sanitize(name) {
-    return name.replace(/[^a-z0-9.-]/gi, '_');
+/* ---------------- helpers -------------------- */
+const sanitize = (s) => s.replace(/[^a-z0-9.-]/gi, '_');
+
+let selectedFile = null;
+fileInput.addEventListener('change', () => {
+  selectedFile = fileInput.files[0] || null;
+  uploadStatus.textContent = selectedFile ? `Выбран: ${selectedFile.name}` : '';
+});
+
+/* ------------- загрузка файла + insert + invoke -------------- */
+uploadBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  const { data:{ session } } = await supabase.auth.getSession();
+  if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
+
+  const safeName   = sanitize(selectedFile.name);
+  const safeFolder = sanitize(session.user.id);
+  const filePath   = `${safeFolder}/${Date.now()}_${safeName}`;
+
+  uploadProgress.style.display = 'block';
+  uploadProgress.value = 0;
+  uploadStatus.textContent = 'Загружаю…';
+
+  /* 1. Storage ------------------------------------------------- */
+  const { error: upErr } = await supabase
+    .storage
+    .from('user-uploads')
+    .upload(filePath, selectedFile, { upsert: true });
+
+  if (upErr) { uploadStatus.textContent = 'Ошибка upload: ' + upErr.message; return; }
+  uploadProgress.value = 100;
+
+  /* 2. INSERT -------------------------------------------------- */
+  const { data: reqRow, error: insErr } = await supabase
+    .from('requests')
+    .insert({ user_id: session.user.id, file_path: filePath, status: 'pending' })
+    .select('*')
+    .single();
+
+  if (insErr) { uploadStatus.textContent = 'Ошибка insert'; return; }
+
+  /* 3. INVOKE -------------------------------------------------- */
+  uploadStatus.textContent = 'GPT обрабатывает…';
+  const prompt = promptInput.value.trim() || 'подбор оборудования';
+
+  const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
+    'equip-selector',
+    {
+      body: { request_id: reqRow.id, prompt, save: true },
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
+
+  if (funcErr) {
+    console.error('[modal5] function error:', funcErr);
+    uploadStatus.textContent = 'Ошибка функции';
+  } else {
+    uploadStatus.textContent = 'Готово!';
+    console.log('[modal5] GPT answer:', funcRes?.csv);
   }
 
-  let selectedFile = null;
-  fileInput.addEventListener('change', () => {
-    selectedFile = fileInput.files[0] || null;
-    console.log('[modal5] file selected:', selectedFile);
-    uploadStatus.textContent = selectedFile ? `Selected: ${selectedFile.name}` : '';
-  });
-
-  uploadBtn.addEventListener('click', async () => {
-    if (!selectedFile || !window.supabase) return;
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      uploadStatus.textContent = 'Необходимо авторизоваться';
-      return;
-    }
-    const uid = data.session.user.id;
-    uploadProgress.style.display = 'block';
-    uploadProgress.value = 0;
-    uploadStatus.textContent = 'Uploading...';
-    console.log('[modal5] upload started');
-    const safeName = sanitize(selectedFile.name);
-    const safeFolder = sanitize(window.AUTH_ID || window.USER_KEY || 'anon');
-    const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
-    const { data: upData, error } = await window.supabase.storage
-      .from('user-uploads')
-      .upload(filePath, selectedFile, { upsert: true });
-    if (error) {
-      console.error('[modal5] upload error:', error);
-      uploadStatus.textContent = 'Upload error: ' + error.message;
-      return;
-    }
-    console.log('[modal5] upload complete:', upData);
-    uploadProgress.value = 100;
-    uploadStatus.textContent = 'Файл загружен';
-    const requestId = await insertRequestRow(upData.path, uid);
-    if (requestId) {
-      console.log('[modal5] request inserted with id:', requestId);
-    }
-  });
-
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      if (tab.classList.contains('active')) return;
-      const id = tab.dataset.page;
-      const nextPage = root.querySelector('#page' + id);
-      const activeTab = root.querySelector('.tab.active');
-      const activePage = root.querySelector('.page.active');
-      const switchPage = () => {
-        activeTab && activeTab.classList.remove('active');
-        activePage && activePage.classList.remove('active');
-        tab.classList.add('active');
-        nextPage.classList.add('active');
-      };
-      if (document.startViewTransition) {
-        document.startViewTransition(switchPage);
-      } else {
-        switchPage();
-      }
-    });
-  });
-  let history = [];
-
-  async function loadHistory() {
-    if (!window.supabase || !window.AUTH_ID) return;
-    const { data } = await window.supabase
-     .from('requests')
-      .select('id, file_path, response_path, status')
-      .eq('user_id', window.AUTH_ID)
-      .order('created_at', { ascending: false });
-    console.log('[modal5] history loaded:', data);
-    history = Array.isArray(data) ? data : [];
-    renderHistory();
-  }
-
-  function renderHistory() {
-    if (!historyList) return;
-    historyList.innerHTML = '';
-    for (const item of history) {
-      const row = document.createElement('div');
-      row.className = 'history-item';
-      const left = document.createElement('div');
-      const nameEl = document.createElement('span');
-      nameEl.textContent = item.file_path.split('/').pop();
-      const statusEl = document.createElement('span');
-      statusEl.className = 'status';
-      const isDone = (item.status && item.status !== 'uploaded') || item.response_path;
-      statusEl.textContent = isDone ? 'завершено' : 'в работе';
-      left.appendChild(nameEl);
-      left.appendChild(statusEl);
-      const icon = document.createElement('span');
-      icon.className = 'info-icon';
-      icon.textContent = 'ⓘ';
-      if (!item.response_path) {
-        icon.classList.add('disabled');
-      } else {
-        icon.addEventListener('mouseenter', async () => {
-          if (icon.dataset.answer) return;
-          const { data } = await window.supabase.storage
-            .from('user-uploads')
-            .download(item.response_path);
-          if (data) {
-            const text = await data.text();
-            if (!text.trim()) {
-              icon.title = 'Ответ не получен';
-              uploadStatus.textContent = 'Ответ не получен';
-              return;
-            }
-            icon.dataset.answer = text;
-            icon.title = text;
-            icon.classList.remove('disabled');
-            icon.dispatchEvent(new Event('mouseenter'));
-            console.log('[modal5] answer loaded for', item.file_path);
-            console.log('[modal5] answer text:', text);
-            } else {
-            icon.title = 'Ответ не получен';
-            uploadStatus.textContent = 'Ответ не получен';
-          }
-        }, { once: true });
-      }
-      icon.addEventListener('click', () => {
-        if (icon.dataset.answer) {
-          navigator.clipboard.writeText(icon.dataset.answer);
-        }
-      }, { once: true });
-      row.appendChild(left);
-      row.appendChild(icon);
-      historyList.appendChild(row);
-    }
-  }
-
- async function insertRequestRow(filePath, uid) {
-   if (!window.supabase) return null;
-    if (!uid) return null;
-    try {
-      const { data, error } = await window.supabase
-        .from('requests')
-        .insert({ user_id: uid, file_path: filePath, status: 'uploaded' })
-        .select('id')
-        .single();
-      console.log('[modal5] db insert:', data, error);
-      if (error) {
-        uploadStatus.textContent = 'Insert error: ' +
-          (error.message || error.description || JSON.stringify(error));
-        return null;
-      }
-      if (data) {
-        uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
-        const prompt = promptInput && promptInput.value.trim() ?
-          promptInput.value.trim() : 'подбор оборудования';
-        await invokeEquipSelector(data.id, prompt);
-        await loadHistory();
-        return data.id;
-      }
-    } catch (err) {
-      console.log('[modal5] insertRequestRow error:', err);
-    }
-   return null;
-  }
-
-  async function invokeEquipSelector(requestId, prompt) {
-    try {
-      console.log('[modal5] invoking equip-selector', requestId);
-      const { data, error } = await window.supabase.functions.invoke('equip-selector', {
-        body: { request_id: requestId, prompt, save: true }
-      });
-      console.log('[modal5] equip-selector result:', data, error);
-      if (error) {
-        uploadStatus.textContent = 'Function error';
-        return;
-      }
-      uploadStatus.textContent = 'Файл обработан успешно';
-    } catch (err) {
-      console.log('[modal5] invokeEquipSelector error:', err);
-    }
-  }
-
+  /* 4. Перезагружаем историю */
   await loadHistory();
+});
+
+/* --------------------- история ------------------------------- */
+let history = [];
+
+async function loadHistory() {
+  const { data, error } = await supabase
+    .from('requests')
+    .select('id, file_path, response_path, status')
+    .eq('user_id', window.AUTH_ID)
+    .order('created_at', { ascending: false });
+
+  if (error) { console.error(error); return; }
+  history = data || [];
+  renderHistory();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initModal5);
-} else {
-  initModal5();
+function renderHistory() {
+  historyList.innerHTML = '';
+  history.forEach(item => {
+    const row   = document.createElement('div');
+    row.className = 'history-item';
+
+    /* левая часть */
+    const left  = document.createElement('div');
+    const name  = document.createElement('span');
+    name.textContent = item.file_path.split('/').pop();
+    const status = document.createElement('span');
+    status.className = 'status';
+
+    const isDone = (item.status === 'done') || !!item.response_path;
+    status.textContent = isDone ? 'завершено' : 'в работе';
+
+    left.append(name, status);
+
+    /* иконка info */
+    const icon = document.createElement('span');
+    icon.className = 'info-icon';
+    icon.textContent = 'ⓘ';
+    if (!isDone) icon.classList.add('disabled');
+
+    icon.addEventListener('click', async () => {
+      if (!isDone) return;
+      /* кешируем ответ, чтобы не качать много раз */
+      if (!icon.dataset.answer) {
+        const { data } = await supabase
+          .storage
+          .from('user-uploads')
+          .download(item.response_path);
+
+        if (data) {
+          icon.dataset.answer = await data.text();
+        } else {
+          icon.dataset.answer = 'Ответ недоступен';
+        }
+      }
+      alert(icon.dataset.answer);              // простая модалка-alert
+      await navigator.clipboard.writeText(icon.dataset.answer);
+    });
+
+    row.append(left, icon);
+    historyList.appendChild(row);
+  });
 }
+
+/* ---------------------- вкладки ------------------------------ */
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.classList.contains('active')) return;
+    tabs.forEach(t => t.classList.remove('active'));
+    pages.forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    root.querySelector('#page' + tab.dataset.page).classList.add('active');
+  });
+});
+
+/* ---------------- init ---------------- */
+await loadHistory();
 </script>
