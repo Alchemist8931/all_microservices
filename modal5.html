@@ -252,8 +252,9 @@ export async function initModal5() {
         .single();
       console.log('[modal5] db insert:', data, error);
       if (error) {
-        uploadStatus.textContent = 'Insert error';
-        throw error;
+        uploadStatus.textContent = 'Insert error: ' +
+          (error.message || error.description || JSON.stringify(error));
+        return;
       }
       if (data) {
         uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
