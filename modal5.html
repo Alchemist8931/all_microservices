@@ -117,6 +117,7 @@ export async function initModal5() {
     uploadProgress.style.display = 'block';
     uploadProgress.value = 0;
     uploadStatus.textContent = 'Uploading...';
+    console.log('[modal5] upload started');
     const safeName = sanitize(selectedFile.name);
     const safeFolder = sanitize(window.AUTH_ID || window.USER_KEY || 'anon');
     const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
@@ -131,7 +132,10 @@ export async function initModal5() {
     console.log('[modal5] upload complete:', upData);
     uploadProgress.value = 100;
     uploadStatus.textContent = 'Файл загружен';
-    await insertRequestRow(upData.path, uid);
+    const requestId = await insertRequestRow(upData.path, uid);
+    if (requestId) {
+      console.log('[modal5] request inserted with id:', requestId);
+    }
   });
 
   tabs.forEach(tab => {
@@ -199,6 +203,7 @@ export async function initModal5() {
             icon.title = text;
             icon.classList.remove('disabled');
             console.log('[modal5] answer loaded for', item.file_path);
+            console.log('[modal5] answer text:', text);
           }
         }, { once: true });
       }
@@ -214,8 +219,8 @@ export async function initModal5() {
   }
 
  async function insertRequestRow(filePath, uid) {
-    if (!window.supabase) return;
-    if (!uid) return;
+   if (!window.supabase) return null;
+    if (!uid) return null;
     try {
       const { data, error } = await window.supabase
         .from('requests')
@@ -226,16 +231,18 @@ export async function initModal5() {
       if (error) {
         uploadStatus.textContent = 'Insert error: ' +
           (error.message || error.description || JSON.stringify(error));
-        return;
+        return null;
       }
       if (data) {
         uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
         await invokeEquipSelector(data.id);
         await loadHistory();
+        return data.id;
       }
     } catch (err) {
       console.log('[modal5] insertRequestRow error:', err);
     }
+   return null;
   }
 
   async function invokeEquipSelector(requestId) {
