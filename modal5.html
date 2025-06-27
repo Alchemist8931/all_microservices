@@ -34,44 +34,21 @@
     .page:not(.active) {
       display: none;
     }
-    #chat-window {
+    .history-list {
       width: 100%;
       max-width: 600px;
-      height: 400px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      background: #fafafa;
+      margin-top: 10px;
     }
-    .msg {
-      margin-bottom: 8px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      max-width: 90%;
-    }
-    .msg.user { background: #dcf8c6; align-self: flex-end; }
-    .msg.assistant { background: #f1f0f0; align-self: flex-start; }
-    #chat-form {
-      width: 100%;
-      max-width: 600px;
+    .history-item {
       display: flex;
-      gap: 8px;
+      justify-content: space-between;
+      padding: 4px 8px;
+      border-bottom: 1px solid #ddd;
     }
-    #chat-input {
-      flex: 1;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    #chat-send {
-      padding: 8px 16px;
-      border-radius: 6px;
-      border: none;
-      background: #212121;
-      color: #fff;
+    .info-icon {
+      margin-left: 8px;
       cursor: pointer;
+      color: #007bff;
     }
     #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
     #upload-progress { width: 100%; margin-top: 6px; }
@@ -91,12 +68,7 @@
       <progress id="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div id="upload-status"></div>
     </div>
-    <div id="chat-window"></div>
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="Ваш вопрос" autocomplete="off" />
-      <button id="chat-send">Send</button>
-    </form>
-    <textarea id="csv-result" placeholder="CSV result will appear here" style="width:100%;height:120px;margin-top:10px" readonly></textarea>
+    <div id="history-list" class="history-list"></div>
   </div>
   <div id="page2" class="page">
     <p class="under-construction">страница в разработке</p>
@@ -111,14 +83,11 @@ export async function initModal5() {
   const root = document.getElementById('modal5-container');
   const tabs = root.querySelectorAll('.tab');
   const pages = root.querySelectorAll('.page');
-  const chatWindow = root.querySelector('#chat-window');
-  const form = root.querySelector('#chat-form');
-  const input = root.querySelector('#chat-input');
+  const historyList = root.querySelector('#history-list');
   const fileInput = root.querySelector('#file-input');
   const uploadBtn = root.querySelector('#upload-btn');
   const uploadProgress = root.querySelector('#upload-progress');
   const uploadStatus = root.querySelector('#upload-status');
-  const csvResult = root.querySelector('#csv-result');
 
   // AUTH_ID уже должен быть установлен после входа
 
@@ -184,62 +153,45 @@ export async function initModal5() {
   let history = [];
 
   async function loadHistory() {
-    console.log('[modal5] loadHistory start');
-    if (!window.supabase || !window.USER_KEY) return;
+    if (!window.supabase || !window.AUTH_ID) return;
     const { data } = await window.supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('user_key', window.USER_KEY)
-      .order('created_at');
-    if (Array.isArray(data)) {
-      history = data;
-      console.log('[modal5] loadHistory data:', history);
-      render();
-    }
+     .from('requests')
+      .select('id, file_path, response_path')
+      .eq('user_id', window.AUTH_ID)
+      .order('created_at', { ascending: false });
+    history = Array.isArray(data) ? data : [];
+    renderHistory();
   }
 
-  function render() {
-    console.log('[modal5] render', history);
-    chatWindow.innerHTML = '';
-    for (const m of history) {
-      const div = document.createElement('div');
-      div.className = `msg ${m.role}`;
-      div.textContent = m.content;
-      chatWindow.appendChild(div);
+  function renderHistory() {
+    if (!historyList) return;
+    historyList.innerHTML = '';
+    for (const item of history) {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.textContent = item.file_path.split('/').pop();
+      const icon = document.createElement('span');
+      icon.className = 'info-icon';
+      icon.textContent = 'ⓘ';
+      icon.addEventListener('mouseenter', async () => {
+        if (icon.dataset.answer || !item.response_path) return;
+        const { data } = await window.supabase.storage
+          .from('user-uploads')
+          .download(item.response_path);
+        if (data) {
+          const text = await data.text();
+          icon.dataset.answer = text;
+          icon.title = text;
+        }
+      }, { once: true });
+      icon.addEventListener('click', () => {
+        if (icon.dataset.answer) {
+          navigator.clipboard.writeText(icon.dataset.answer);
+        }
+      }, { once: true });
+      row.appendChild(icon);
+      historyList.appendChild(row);
     }
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-  }
-
-  async function saveMessage(role, content) {
-    console.log('[modal5] saveMessage', role, content);
-    if (!window.supabase || !window.USER_KEY) return;
-    const { data } = await window.supabase
-      .from('chat_messages')
-      .insert({ user_key: window.USER_KEY, role, content })
-      .select('*')
-      .single();
-    if (data) {
-      history.push(data);
-      console.log('[modal5] saveMessage stored', data);
-    }
-  }
-
-  async function askGpt(question) {
-    console.log('[modal5] askGpt', question);
-    const { data, error } = await window.supabase.functions.invoke('ask-gpt', {
-      body: {
-        question,
-        history: history.map(h => ({ role: h.role, content: h.content }))
-      }
-    });
-    if (error) {
-      console.error('[modal5] askGpt error', error);
-      return '';
-    }
-    const answer = data?.answer || '';
-    console.log('[modal5] askGpt reply', answer);
-    return answer;
-  }
 
  async function insertRequestRow(filePath, uid) {
     if (!window.supabase) return;
@@ -259,6 +211,7 @@ export async function initModal5() {
       if (data) {
         uploadStatus.textContent = 'Загрузка завершена, запрос сохранён';
         await invokeEquipSelector(data.id);
+        await loadHistory();
       }
     } catch (err) {
       console.log('[modal5] insertRequestRow error:', err);
@@ -269,39 +222,18 @@ export async function initModal5() {
     try {
       console.log('[modal5] invoking equip-selector', requestId);
       const { data, error } = await window.supabase.functions.invoke('equip-selector', {
-        body: { request_id: requestId }
+        body: { request_id: requestId, save: true }
       });
       console.log('[modal5] equip-selector result:', data, error);
       if (error) {
         uploadStatus.textContent = 'Function error';
         return;
       }
-      if (csvResult) {
-        csvResult.value = typeof data === 'string' ? data : JSON.stringify(data);
-      }
       uploadStatus.textContent = 'Файл обработан успешно';
     } catch (err) {
       console.log('[modal5] invokeEquipSelector error:', err);
     }
   }
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    await saveMessage('user', text);
-    render();
-    let reply = '...';
-    render();
-    try {
-      reply = await askGpt(text);
-    } catch (e) {
-      reply = 'Ошибка обращения к API';
-    }
-    await saveMessage('assistant', reply);
-    render();
-  });
 
   await loadHistory();
 }
