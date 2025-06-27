@@ -207,6 +207,7 @@ export async function initModal5() {
             icon.dataset.answer = text;
             icon.title = text;
             icon.classList.remove('disabled');
+            icon.dispatchEvent(new Event('mouseenter'));
             console.log('[modal5] answer loaded for', item.file_path);
             console.log('[modal5] answer text:', text);
           }
