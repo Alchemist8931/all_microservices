@@ -45,6 +45,10 @@
       padding: 4px 8px;
       border-bottom: 1px solid #ddd;
     }
+    .history-item .status {
+      margin-left: 8px;
+      color: #6c757d;
+    }
     .info-icon {
       margin-left: 8px;
       cursor: pointer;
@@ -182,8 +186,9 @@ export async function initModal5() {
       const nameEl = document.createElement('span');
       nameEl.textContent = item.file_path.split('/').pop();
       const statusEl = document.createElement('span');
-      statusEl.style.marginLeft = '8px';
-      statusEl.textContent = item.response_path ? 'завершено' : 'в работе';
+      statusEl.className = 'status';
+      const isDone = (item.status && item.status !== 'uploaded') || item.response_path;
+      statusEl.textContent = isDone ? 'завершено' : 'в работе';
       left.appendChild(nameEl);
       left.appendChild(statusEl);
       const icon = document.createElement('span');
