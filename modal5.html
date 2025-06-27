@@ -155,7 +155,7 @@ export async function initModal5() {
       uploadStatus.textContent = 'Upload error: ' + error.message;
       return;
     }
-    console.log('[modal5] upload complete:', data);
+    console.log('[modal5] upload complete:', upData);
     uploadProgress.value = 100;
     uploadStatus.textContent = 'Файл загружен';
     await insertRequestRow(upData.path, uid);
