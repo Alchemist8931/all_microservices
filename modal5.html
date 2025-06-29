@@ -58,9 +58,8 @@
       color: #6c757d;
       pointer-events: none;
     }
-    #file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
-    #prompt-input { width: 100%; max-width: 600px; margin: 6px 0; }
-    #upload-progress { width: 100%; margin-top: 6px; }
+    .file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
+    .upload-progress { width: 100%; margin-top: 6px; }
     .under-construction {
       text-align: center;
     }
@@ -106,19 +105,19 @@
    <div class="tab" data-page="2">подбор попозиционный</div>
     <div class="tab" data-page="3">написание ТЗ</div>
   </div>
-  <div id="page1" class="page active">
-    <div id="file-upload">
-      <input type="file" id="file-input" />
-      <button id="upload-btn">Upload</button>
-      <progress id="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
-      <div id="upload-status"></div>
+  <div class="page active" data-page="1">
+    <div class="file-upload">
+      <input type="file" class="file-input" />
+      <button class="upload-btn">Upload</button>
+      <progress class="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+      <div class="upload-status"></div>
     </div>
-    <div id="history-list" class="history-list"></div>
+    <div class="history-list"></div>
   </div>
-  <div id="page2" class="page">
+  <div class="page" data-page="2">
     <p class="under-construction">страница в разработке</p>
   </div>
-  <div id="page3" class="page">
+  <div class="page" data-page="3">
     <p class="under-construction">страница в разработке</p>
   </div>
   </div>
@@ -130,11 +129,11 @@ const supabase = window.supabase;
 const root            = document.getElementById('modal5-container');
 const tabs            = root.querySelectorAll('.tab');
 const pages           = root.querySelectorAll('.page');
-const historyList     = root.querySelector('#history-list');
-const fileInput       = root.querySelector('#file-input');
-const uploadBtn       = root.querySelector('#upload-btn');
-const uploadProgress  = root.querySelector('#upload-progress');
-const uploadStatus    = root.querySelector('#upload-status');
+const historyList     = root.querySelector('.history-list');
+const fileInput       = root.querySelector('.file-input');
+const uploadBtn       = root.querySelector('.upload-btn');
+const uploadProgress  = root.querySelector('.upload-progress');
+const uploadStatus    = root.querySelector('.upload-status');
 
 /* -------------- helpers --------------------- */
 const sanitize = (s) => s
@@ -323,7 +322,7 @@ tabs.forEach(tab => {
     tabs.forEach(t => t.classList.remove('active'));
     pages.forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
-    root.querySelector('#page' + tab.dataset.page).classList.add('active');
+    root.querySelector(`[data-page="${tab.dataset.page}"]`).classList.add('active');
   });
 });
 
