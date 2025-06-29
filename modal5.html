@@ -1,6 +1,17 @@
 <!-- ========= modal5.html  (Проект 5) ========= -->
 <div id="modal5-container" class="spec-modal">
   <style>
+    :root {
+      --form-width: 900px;
+      --form-height: 900px;
+      --overlay-width: 385px;
+      /* Прелоадер */
+      --loader-line-color: #ffffff;
+      --loader-line-width: 10px;
+      --loader-line-height: 70px;
+      --fon: #f5f5f5;
+    }
+    
     .spec-modal {
       display: flex;
       flex-direction: column;
@@ -257,7 +268,7 @@
     <span id="tooltip-btn" class="spec-info-icon">?</span>
     <template id="tooltip-modal-template" style="z-index: 9999;">
       <div class="tooltip-overlay">
-        <div class="modal style="z-index: 9999;">
+        <div class="modal style="z-index: 9999; background-color: #fff;">
           <div class="modalRow">
             <div class="modalCollumn">
               <div class="modalCONTEINERpost">
