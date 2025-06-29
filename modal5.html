@@ -428,7 +428,7 @@ function renderHistory() {
     box.appendChild(content);
     overlay.appendChild(box);
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) hide();
+      if (!box.contains(e.target)) hide();
     });
 
     document.body.appendChild(overlay);
