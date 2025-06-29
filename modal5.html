@@ -1,6 +1,4 @@
 <!-- ========= modal5.html  (Проект 5) ========= -->
-<head>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <div id="modal5-container">
   <style>
     #modal5-container {
@@ -66,6 +64,42 @@
     .under-construction {
       text-align: center;
     }
+    .spec-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .spec-box {
+      background: #fff;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      padding: 24px;
+      border-radius: 10px;
+      position: relative;
+    }
+    .spec-close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .spec-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .spec-table th,
+    .spec-table td {
+      border: 1px solid #ddd;
+      padding: 4px 8px;
+    }
   </style>
  <div class="tabs">
     <div class="tab active" data-page="1">Page 1</div>
@@ -107,6 +141,30 @@ const sanitize = (s) => s
   .normalize('NFKD')
   .replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-z0-9._-]/gi, '_');
+
+  /* ----------- CSV -> DOM спецификация ----------- */
+function parseCsvToSpec(csvText = '') {
+  const rows = csvText.trim().split(/\r?\n/);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'spec-content';
+
+  const table = document.createElement('table');
+  table.className = 'spec-table';
+
+  rows.forEach((rowText, rowIndex) => {
+    if (!rowText.trim()) return;
+    const tr = document.createElement('tr');
+    rowText.split(';').forEach(cellText => {
+      const cell = document.createElement(rowIndex === 0 ? 'th' : 'td');
+      cell.textContent = cellText.trim();
+      tr.appendChild(cell);
+    });
+    table.appendChild(tr);
+  });
+
+  wrapper.appendChild(table);
+  return wrapper;
+}
 
 let selectedFile = null;
 fileInput.addEventListener('change', () => {
@@ -186,43 +244,23 @@ async function loadHistory() {
 function renderHistory() {
   historyList.innerHTML = '';
 
-  /* маленький helper для модального окна с Markdown-ответом */
-  const showAnswerModal = (markdown) => {
-    // если уже открыто — закроем
-    document.querySelectorAll('.answer-overlay').forEach(el => el.remove());
+  /* маленький helper для модального окна со спецификацией */
+  const showAnswerModal = (csvText) => {
+    document.querySelectorAll('.spec-overlay').forEach(el => el.remove());
 
-    /* затемнённый фон */
+
     const overlay = document.createElement('div');
-    overlay.className = 'answer-overlay';
-    overlay.style.cssText = `
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.45);
-      display:flex; align-items:center; justify-content:center;
-      z-index:9999;`;
-
-    /* белая карточка */
+    overlay.className = 'spec-overlay';
     const box = document.createElement('div');
-    box.className = 'answer-box';
-    box.style.cssText = `
-      background:#fff; max-width:90vw; max-height:90vh;
-      overflow:auto; padding:24px; border-radius:10px;
-      position:relative;`;
-
-    /* перевод Markdown → HTML */
-    box.innerHTML = marked.parse(markdown ?? '*Ответ недоступен*');
-
-    /* кнопка «×» */
+    box.className = 'spec-box';
+    const content = parseCsvToSpec(csvText || '');
     const close = document.createElement('button');
+    close.className = 'spec-close';
     close.textContent = '×';
-    close.style.cssText = `
-      position:absolute; top:8px; right:12px;
-      font-size:24px; background:none; border:none; cursor:pointer;`;
     close.addEventListener('click', () => overlay.remove());
-
     box.appendChild(close);
+    box.appendChild(content);
     overlay.appendChild(box);
-
-    /* клик по фону — закрыть */
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.remove();
     });
