@@ -74,33 +74,6 @@
     .spec-under-construction {
       text-align: center;
     }
-    .spec-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .spec-box {
-      background: #fff;
-      max-width: 90vw;
-      max-height: 90vh;
-      overflow: auto;
-      padding: 24px;
-      border-radius: 10px;
-      position: relative;
-    }
-    .spec-close {
-      position: absolute;
-      top: 8px;
-      right: 12px;
-      font-size: 24px;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
     .spec-table {
       border-collapse: collapse;
       width: 100%;
@@ -110,6 +83,85 @@
       border: 1px solid #ddd;
       padding: 4px 8px;
     }
+    /* ----------- новая форма ответа ----------- */
+    .ans5-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+    }
+    .ans5-modal {
+      position: relative;
+      background: #fff;
+      border: 1px solid #1c1c1b;
+      border-radius: 10px;
+      padding: 10px;
+      width: 1320px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      margin: 30px;
+      display: inline-block;
+    }
+    .ans5-close {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .ans5-column { display:flex; flex-direction:column; }
+    .ans5-row { display:flex; gap:10px; margin-top:10px; align-items:center; }
+    .ans5-list { margin-top:10px; }
+    .ans5-post {
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+      padding:6px;
+      border:1px solid rgba(0,0,0,0.05);
+      border-radius:6px;
+    }
+    .ans5-input-group { position:relative; font-family:"Comfortaa", sans-serif; }
+    .ans5-input-group label {
+      position:absolute;
+      top:17px;
+      left:8px;
+      transform:translateY(-50%);
+      text-transform:uppercase;
+      font-weight:700;
+      pointer-events:none;
+      font-size:9px;
+      color:#212121;
+      transition:all 0.3s;
+    }
+    .ans5-input-group input {
+      padding:8px;
+      border:1px solid #212121;
+      outline:none;
+      font-size:9px;
+      text-transform:uppercase;
+      background:transparent;
+      border-radius:6px;
+    }
+    .ans5-input-group input:focus + label,
+    .ans5-input-group input:not(:placeholder-shown) + label {
+      top:0;
+      font-size:6px;
+      padding:2px 8px;
+      background:#fff;
+      border-radius:4px;
+    }
+    .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
   </style>
  <div class="tabs spec-tabs">
     <div class="tab spec-tab active" data-page="1">Page 1</div>
@@ -185,6 +237,89 @@ function parseCsvToSpec(csvText = '') {
   });
 
   if (tableRowIndex > 0) wrapper.appendChild(table);
+  return wrapper;
+}
+
+  /* ---- CSV -> новая форма ответа ---- */
+function parseCsvToAnsForm(csvText = '') {
+  const lines = csvText.trim().split(/\r?\n/);
+  if (!lines.length) return document.createTextNode('');
+
+  const header = lines[0].split(/[;,]/).map(t => t.trim());
+  const widths = ['50px','180px','70px','160px','300px','160px','70px','100px','100px'];
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'ans5-column';
+
+  const topRow = document.createElement('div');
+  topRow.className = 'ans5-row';
+
+  const titleGroup = document.createElement('div');
+  titleGroup.className = 'ans5-input-group';
+  const titleInput = document.createElement('input');
+  titleInput.className = 'ans5-input';
+  titleInput.placeholder = ' ';
+  titleInput.style.width = '900px';
+  titleGroup.appendChild(titleInput);
+  topRow.appendChild(titleGroup);
+
+  const copyIcon = document.createElement('span');
+  copyIcon.className = 'ans5-copy material-symbols-outlined';
+  copyIcon.textContent = 'content_copy';
+  copyIcon.addEventListener('click', () => navigator.clipboard.writeText(csvText));
+  topRow.appendChild(copyIcon);
+
+  const totalGroup = document.createElement('div');
+  totalGroup.className = 'ans5-input-group';
+  const totalInput = document.createElement('input');
+  totalInput.className = 'ans5-input';
+  totalInput.placeholder = ' ';
+  totalInput.style.width = '204px';
+  totalInput.style.textAlign = 'right';
+  const totalLabel = document.createElement('label');
+  totalLabel.textContent = 'total';
+  totalGroup.append(totalInput, totalLabel);
+  topRow.appendChild(totalGroup);
+
+  wrapper.appendChild(topRow);
+
+  const list = document.createElement('div');
+  list.className = 'ans5-list';
+  wrapper.appendChild(list);
+
+  let total = 0;
+
+  lines.slice(1).forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.split(/[;,]/).map(t => t.trim());
+    const post = document.createElement('div');
+    post.className = 'ans5-post';
+
+    parts.forEach((val, idx) => {
+      if (idx >= widths.length) return;
+      const g = document.createElement('div');
+      g.className = 'ans5-input-group';
+      const inp = document.createElement('input');
+      inp.className = 'ans5-input';
+      inp.placeholder = ' ';
+      inp.value = val;
+      inp.style.width = widths[idx];
+      if (idx === 0) g.style.marginLeft = '2px';
+      const lab = document.createElement('label');
+      lab.textContent = header[idx] || '';
+      g.append(inp, lab);
+      post.appendChild(g);
+    });
+
+    const q = parseFloat((parts[6] || '').replace(/\s+/g,'').replace(',','.')) || 0;
+    const p = parseFloat((parts[7] || '').replace(/\s+/g,'').replace(',','.')) || 0;
+    total += q * p;
+
+    list.appendChild(post);
+  });
+
+  if (total) totalInput.value = total.toFixed(2);
+
   return wrapper;
 }
 
@@ -268,18 +403,16 @@ function renderHistory() {
 
   /* маленький helper для модального окна со спецификацией */
   const showAnswerModal = (csvText) => {
-    document.querySelectorAll('.spec-overlay').forEach(el => el.remove());
-
-
+    document.querySelectorAll('.ans5-overlay').forEach(el => el.remove());
     const overlay = document.createElement('div');
-    overlay.className = 'spec-overlay';
+    overlay.className = 'ans5-overlay';
     const box = document.createElement('div');
-    box.className = 'spec-box';
-    const content = parseCsvToSpec(csvText || '');
+    box.className = 'ans5-modal';
     const close = document.createElement('button');
-    close.className = 'spec-close';
+    close.className = 'ans5-close';
     close.textContent = '×';
     close.addEventListener('click', () => overlay.remove());
+    const content = parseCsvToAnsForm(csvText || '');
     box.appendChild(close);
     box.appendChild(content);
     overlay.appendChild(box);
