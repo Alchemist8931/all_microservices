@@ -92,7 +92,14 @@
       align-items: center;
       background: rgba(255,255,255,0.6);
       backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s;
       z-index: 1000;
+    }
+    .ans5-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
     }
     .ans5-modal {
       position: relative;
@@ -411,16 +418,21 @@ function renderHistory() {
     const close = document.createElement('button');
     close.className = 'ans5-close';
     close.textContent = '×';
-    close.addEventListener('click', () => overlay.remove());
+    const hide = () => {
+      overlay.classList.remove('show');
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    };
+    close.addEventListener('click', hide);
     const content = parseCsvToAnsForm(csvText || '');
     box.appendChild(close);
     box.appendChild(content);
     overlay.appendChild(box);
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.remove();
+      if (e.target === overlay) hide();
     });
 
     document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
   };
 
   /* цикл по запросам */
