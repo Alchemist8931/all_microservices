@@ -1,7 +1,7 @@
 <!-- ========= modal5.html  (Проект 5) ========= -->
-<div id="modal5-container">
+<div id="modal5-container" class="spec-modal">
   <style>
-    #modal5-container {
+    .spec-modal {
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -11,12 +11,12 @@
       padding: 10px;
       box-sizing: border-box;
     }
-    .tabs {
+    .spec-tabs {
       display: flex;
       gap: 8px;
       margin-bottom: 10px;
     }
-    .tab {
+    .spec-tab {
       padding: 6px 12px;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -24,43 +24,54 @@
       transition: background-color 0.3s;
       user-select: none;
     }
-    .tab.active {
+    .spec-page:not(.active) {
       background: #212121;
       color: #fff;
     }
-    .page {
+    .spec-page {
       width: 100%;
     }
     .page:not(.active) {
       display: none;
     }
-    .history-list {
+    .spec-history-list {
       width: 100%;
       max-width: 600px;
       margin-top: 10px;
     }
-    .history-item {
+    .spec-history-item {
       display: flex;
       justify-content: space-between;
       padding: 4px 8px;
       border-bottom: 1px solid #ddd;
     }
-    .history-item .status {
+    .spec-history-item .status {
       margin-left: 8px;
       color: #6c757d;
     }
-    .info-icon {
+    .spec-info-icon {
       margin-left: 8px;
       cursor: pointer;
       color: #007bff;
     }
-    .info-icon.disabled {
+    .spec-info-icon.disabled {
       color: #6c757d;
       pointer-events: none;
     }
-    .file-upload { width: 100%; max-width: 600px; margin-bottom: 10px; }
-    .upload-progress { width: 100%; margin-top: 6px; }
-    .under-construction {
+    .spec-row {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 10px;
+    }
+    .spec-input-group {
+      display: flex;
+      gap: 8px;
+    }
+    .spec-upload-progress {
+      width: 100%;
+      margin-top: 6px;
+    }
+    .spec-under-construction {
       text-align: center;
     }
     .spec-overlay {
@@ -100,25 +111,27 @@
       padding: 4px 8px;
     }
   </style>
- <div class="tabs">
-    <div class="tab active" data-page="1">Page 1</div>
-   <div class="tab" data-page="2">подбор попозиционный</div>
-    <div class="tab" data-page="3">написание ТЗ</div>
+ <div class="tabs spec-tabs">
+    <div class="tab spec-tab active" data-page="1">Page 1</div>
+    <div class="tab spec-tab" data-page="2">подбор попозиционный</div>
+    <div class="tab spec-tab" data-page="3">написание ТЗ</div>
   </div>
-  <div class="page active" data-page="1">
-    <div class="file-upload">
-      <input type="file" class="file-input" />
-      <button class="upload-btn">Upload</button>
-      <progress class="upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+  <div class="page spec-page active" data-page="1">
+    <div class="file-upload spec-row">
+      <div class="spec-input-group">
+        <input type="file" class="file-input" />
+        <button class="upload-btn">Upload</button>
+      </div>
+      <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
     </div>
-    <div class="history-list"></div>
+    <div class="history-list spec-history-list"></div>
   </div>
-  <div class="page" data-page="2">
-    <p class="under-construction">страница в разработке</p>
+  <div class="page spec-page" data-page="2">
+    <p class="under-construction spec-under-construction">страница в разработке</p>
   </div>
-  <div class="page" data-page="3">
-    <p class="under-construction">страница в разработке</p>
+  <div class="page spec-page" data-page="3">
+    <p class="under-construction spec-under-construction">страница в разработке</p>
   </div>
   </div>
 <script type="module">
@@ -273,7 +286,7 @@ function renderHistory() {
 
     /* строка истории */
     const row = document.createElement('div');
-    row.className = 'history-item';
+    row.className = 'history-item spec-history-item';
 
     /* левая часть: имя файла + статус */
     const left  = document.createElement('div');
@@ -289,7 +302,7 @@ function renderHistory() {
 
     /* иконка info */
     const icon = document.createElement('span');
-    icon.className = 'info-icon';
+     icon.className = 'info-icon spec-info-icon';
     icon.textContent = 'ⓘ';
     if (!isDone) icon.classList.add('disabled');
 
