@@ -169,6 +169,36 @@
       border-radius:4px;
     }
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
+    .tooltip-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s;
+      z-index: 1000;
+    }
+    .tooltip-overlay.show { opacity: 1; pointer-events: auto; }
+    .modal { width: 1320px; padding: 10px; border: 1px solid #1c1c1b;
+             border-radius: 10px; background: #fff; max-height: 90vh; overflow:auto; }
+    .modalRow { display:flex; gap:10px; margin-top:10px; }
+    .modalColumn { display:flex; flex-direction:column; gap:10px; }
+    .modalCONTEINERpost { display:flex; padding:6px; border-radius:6px;
+                          background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.05); }
+    .input-group { position:relative; font-family:"Comfortaa", sans-serif; }
+    .input-group label { position:absolute; top:17px; left:8px; transform:translateY(-50%);
+                         font-size:9px; text-transform:uppercase; font-weight:700;
+                         pointer-events:none; transition:all .3s; color:#212121; }
+    .input-group input { padding:8px; border:1px solid #212121; border-radius:6px;
+                         outline:none; font-size:9px; text-transform:uppercase; background:transparent; }
+    .input-group input:focus + label,
+    .input-group input:not(:placeholder-shown) + label {
+        top:0; font-size:6px; padding:2px 8px; background:#fff; border-radius:4px;
+    }
   </style>
  <div class="tabs spec-tabs">
     <div class="tab spec-tab active" data-page="1">Page 1</div>
@@ -185,6 +215,14 @@
       <div class="upload-status"></div>
     </div>
     <div class="history-list spec-history-list"></div>
+    <span id="tooltip-btn" class="spec-info-icon">?</span>
+    <template id="tooltip-modal-template">
+      <div class="tooltip-overlay">
+        <div class="modal">
+          <!-- содержимое формы из предоставленной разметки -->
+        </div>
+      </div>
+    </template>
   </div>
   <div class="page spec-page" data-page="2">
     <p class="under-construction spec-under-construction">страница в разработке</p>
@@ -206,6 +244,20 @@ const fileInput       = root.querySelector('.file-input');
 const uploadBtn       = root.querySelector('.upload-btn');
 const uploadProgress  = root.querySelector('.upload-progress');
 const uploadStatus    = root.querySelector('.upload-status');
+const tooltipBtn      = root.querySelector('#tooltip-btn');
+const tooltipTemplate = document.getElementById('tooltip-modal-template');
+
+function showTooltipModal() {
+  const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    overlay.addEventListener('transitionend', () => overlay.remove(), {once: true});
+  }, 1000);
+}
+
+tooltipBtn.addEventListener('click', showTooltipModal);
 
 /* -------------- helpers --------------------- */
 const sanitize = (s) => s
