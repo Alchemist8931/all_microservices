@@ -340,6 +340,19 @@ const sanitize = (s) => s
   .replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-z0-9._-]/gi, '_');
 
+  /* -- небольшая функция разбора CSV строки с учётом кавычек -- */
+function parseCsvLine(line = '') {
+  return line
+    .split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map((part) => {
+      let p = part.trim();
+      if (p.startsWith('"') && p.endsWith('"')) {
+        p = p.slice(1, -1).replace(/""/g, '"');
+      }
+      return p;
+    });
+}
+
   /* ----------- CSV -> DOM спецификация ----------- */
 function parseCsvToSpec(csvText = '') {
   const lines = csvText.trim().split(/\r?\n/);
@@ -354,18 +367,19 @@ function parseCsvToSpec(csvText = '') {
   lines.forEach((line) => {
     if (!line.trim()) return;
 
-    if (line.includes(';')) {
+    const parts = parseCsvLine(line);
+    if (parts.length > 1) {
       const tr = document.createElement('tr');
-      line.split(';').forEach(cellText => {
+      parts.forEach((cellText) => {
         const cell = document.createElement(tableRowIndex === 0 ? 'th' : 'td');
-        cell.textContent = cellText.trim();
+        cell.textContent = cellText;
         tr.appendChild(cell);
       });
       table.appendChild(tr);
       tableRowIndex++;
     } else {
       const p = document.createElement('p');
-      p.textContent = line.trim();
+      p.textContent = parts[0] || '';
       wrapper.appendChild(p);
     }
   });
@@ -379,8 +393,15 @@ function parseCsvToAnsForm(csvText = '') {
   const lines = csvText.trim().split(/\r?\n/);
   if (!lines.length) return document.createTextNode('');
 
-  const header = lines[0].split(/[;,]/).map(t => t.trim());
-  const widths = ['50px','180px','70px','160px','300px','160px','70px','100px','100px'];
+  const header = parseCsvLine(lines[0]);
+  let widths = ['50px','180px','70px','160px','300px','160px','70px','100px','100px'];
+  if (header.length !== widths.length) {
+    if (header.length > widths.length) {
+      while (widths.length < header.length) widths.push('100px');
+    } else {
+      widths = widths.slice(0, header.length);
+    }
+  }
 
   const wrapper = document.createElement('div');
   wrapper.className = 'ans5-column';
@@ -425,7 +446,7 @@ function parseCsvToAnsForm(csvText = '') {
 
   lines.slice(1).forEach(line => {
     if (!line.trim()) return;
-    const parts = line.split(/[;,]/).map(t => t.trim());
+    const parts = parseCsvLine(line);
     const post = document.createElement('div');
     post.className = 'ans5-post';
 
