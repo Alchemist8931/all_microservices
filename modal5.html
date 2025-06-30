@@ -186,25 +186,32 @@
       border-radius:4px;
     }
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
-   .tooltip-overlay {
+   /* === Замените предыдущий .tooltip-overlay полностью === */
+.tooltip-overlay {
   position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8); /* непрозрачный фон */
-      display: flex;              /* позволяет центрировать модальное окно */
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 9998;              /* находится выше основного контента, но ниже самого модального окна */
-    }
-      .tooltip-overlay.show {
-        opacity: 1;
-        pointer-events: auto;
-      }
+  inset: 0;
+  /* делаем фон полностью непрозрачным */
+  background: #000;               /* <-- 100 % непрозрачность */
+  /* если нужен лёгкий «дим» вместо абсолютной черноты,
+     используйте rgba(0,0,0,.95) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s;
+  z-index: 9998;                  /* поверх остального контента */
+}
+
+.tooltip-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Блокируем прокрутку страницы, пока открыт tooltip */
+body.tooltip-open {
+  overflow: hidden;
+}
     .modal { width: 1320px; padding: 10px; border: 1px solid #1c1c1b;
              border-radius: 10px; background: #fff; max-height: 90vh; overflow:auto; }
     .modalRow { display:flex; gap:10px; margin-top:10px; }
@@ -328,22 +335,30 @@ const tooltipTemplate = document.getElementById('tooltip-modal-template');
 
 function showTooltipModal() {
   const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
-  const box = overlay.querySelector('.modal');
+  const box     = overlay.querySelector('.modal');
+
+  /* —--- добавлено: закрытие страницы для прокрутки ---- */
+  document.body.classList.add('tooltip-open');
+
   const close = document.createElement('button');
   close.className = 'ans5-close';
   close.textContent = '×';
+
   const hide = () => {
     overlay.classList.remove('show');
+    /* —--- возвращаем прокрутку странице ---- */
+    document.body.classList.remove('tooltip-open');
     overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
   };
+
   close.addEventListener('click', hide);
-  overlay.addEventListener('click', (e) => {
-    if (!box.contains(e.target)) hide();
-  });
+  overlay.addEventListener('click', (e) => { if (!box.contains(e.target)) hide(); });
+
   box.appendChild(close);
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('show'));
 }
+
 
 tooltipBtn.addEventListener('click', showTooltipModal);
 
