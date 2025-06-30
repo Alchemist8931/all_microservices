@@ -282,26 +282,7 @@ body.tooltip-open{ overflow:hidden; }
     </div>
     <div class="history-list spec-history-list"></div>
     <span id="tooltip-btn" class="spec-info-icon">?</span>
-    <template id="tooltip-modal-template" style="z-index: 9999;">
-      <div class="tooltip-overlay">
-        <div class="modal" style="z-index: 9999; background-color: #fff;">
-          <div class="modalRow">
-            <div class="modalCollumn">
-              <div class="modalCONTEINERpost">
-                <div class="card-container">
-                  <div class="card-body">
-                    <div class="messages_container-content" style="max-height:200px;">
-                      Здесь будет подсказка
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <span class="iconTYPE1 material-symbols-outlined">info</span>
-          </div>
-        </div>
-      </div>
-    </template>
+  
   </div>
   <div class="page spec-page" data-page="2">
     <p class="under-construction spec-under-construction">страница в разработке</p>
@@ -324,18 +305,23 @@ const uploadBtn       = root.querySelector('.upload-btn');
 const uploadProgress  = root.querySelector('.upload-progress');
 const uploadStatus    = root.querySelector('.upload-status');
 const tooltipBtn      = root.querySelector('#tooltip-btn');
-const tooltipTemplate = document.getElementById('tooltip-modal-template');
 
-function showTooltipModal(){
-  const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
-  const box     = overlay.querySelector('.modal');
 
-  /* блокируем фон-скролл */
-  document.body.classList.add('tooltip-open');
+function renderTooltip(contentHtml) {
+  const overlay = document.createElement('div');
+  overlay.className = 'tooltip-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
 
   const close = document.createElement('button');
   close.className = 'ans5-close';
   close.textContent = '×';
+
+  const content = document.createElement('div');
+  content.className = 'messages_container-content';
+  content.style.maxHeight = '200px';
+  content.innerHTML = contentHtml;
 
   const hide = () => {
     document.body.classList.remove('tooltip-open');
@@ -343,11 +329,20 @@ function showTooltipModal(){
   };
 
   close.addEventListener('click', hide);
-  overlay.addEventListener('click', e => { if (!box.contains(e.target)) hide(); });
+  overlay.addEventListener('click', e => { if (!modal.contains(e.target)) hide(); });
 
-  box.appendChild(close);
-  document.body.appendChild(overlay);   // ← overlay сразу непрозрачный
+  modal.appendChild(close);
+  modal.appendChild(content);
+  overlay.appendChild(modal);
+
+  document.body.classList.add('tooltip-open');
+  document.body.appendChild(overlay);
 }
+
+  function showTooltipModal() {
+  renderTooltip('Здесь будет подсказка');
+}
+
 
 
 
