@@ -190,29 +190,16 @@
 .tooltip-overlay{
   position:fixed;
   inset:0;
-  background:#000 !important; /* ← абсолютная непрозрачность */
+  background:#000 !important;      /* 100-процентная непрозрачность */
   display:flex;
   justify-content:center;
   align-items:center;
-  z-index:10000;   
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .3s;
-}
+  z-index:10000;
 
-    .tooltip-overlay .modal{
-  background:#fff !important; /* страхуемся от наследуемой прозрачности */
-  border:1px solid #1c1c1b;
-  border-radius:10px;
-  padding:10px;
-  max-height:90vh;
-  overflow:auto;
-  box-shadow:6px 6px 16px rgba(22,20,19,.45);
-}
-
-.tooltip-overlay.show {
-  opacity: 1;
-  pointer-events: auto;
+  /* никаких анимаций, overlay сразу плотный */
+  opacity:1;
+  pointer-events:auto;
+  transition:none;
 }
 
 /* Блокируем прокрутку страницы, пока открыт tooltip */
@@ -339,10 +326,11 @@ const uploadStatus    = root.querySelector('.upload-status');
 const tooltipBtn      = root.querySelector('#tooltip-btn');
 const tooltipTemplate = document.getElementById('tooltip-modal-template');
 
-function showTooltipModal() {
+function showTooltipModal(){
   const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
   const box     = overlay.querySelector('.modal');
 
+  /* блокируем фон-скролл */
   document.body.classList.add('tooltip-open');
 
   const close = document.createElement('button');
@@ -350,22 +338,17 @@ function showTooltipModal() {
   close.textContent = '×';
 
   const hide = () => {
-    overlay.classList.remove('show');
-    overlay.addEventListener('transitionend', () => {
-      document.body.classList.remove('tooltip-open');
-      overlay.remove();
-    }, { once:true });
+    document.body.classList.remove('tooltip-open');
+    overlay.remove();
   };
 
   close.addEventListener('click', hide);
   overlay.addEventListener('click', e => { if (!box.contains(e.target)) hide(); });
 
   box.appendChild(close);
-  document.body.appendChild(overlay);
-
-  /* ← ВОТ ЭТА СТРОКА ВЕРНЁТ НЕПРОЗРАЧНЫЙ ФОН */
-  requestAnimationFrame(() => overlay.classList.add('show'));
+  document.body.appendChild(overlay);   // ← overlay сразу непрозрачный
 }
+
 
 
 
