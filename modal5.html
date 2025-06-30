@@ -188,16 +188,19 @@
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
    .tooltip-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* затемнение фона */
-  display: flex;              /* позволяет центрировать модальное окно */
-  justify-content: center;
-  align-items: center;
-  z-index: 9998;              /* находится выше основного контента, но ниже самого модального окна */
-}
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8); /* непрозрачный фон */
+      display: flex;              /* позволяет центрировать модальное окно */
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 9998;              /* находится выше основного контента, но ниже самого модального окна */
+    }
       .tooltip-overlay.show {
         opacity: 1;
         pointer-events: auto;
@@ -207,8 +210,13 @@
     .modalRow { display:flex; gap:10px; margin-top:10px; }
     .modalColumn { display:flex; flex-direction:column; gap:10px; }
     .modalCollumn { display:flex; flex-direction:column; gap:10px; }
-    .modalCONTEINERpost { display:flex; padding:6px; border-radius:6px;
-                          background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.05); }
+    .modalCONTEINERpost {
+      display: flex;
+      padding: 6px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #ccc;
+    }
     .iconTYPE1 { font-size:18px; cursor:pointer; color:#007bff; }
     .card-container {
       background-color: #fff;
