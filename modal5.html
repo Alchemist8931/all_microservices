@@ -276,6 +276,8 @@ const uploadBtn       = root.querySelector('.upload-btn');
 const uploadProgress  = root.querySelector('.upload-progress');
 const uploadStatus    = root.querySelector('.upload-status');
 const tooltipBtn      = root.querySelector('#tooltip-btn');
+/* -------------------- CONSTANTS ------------------- */
+const DELIM = window.__DELIM || "###";
 
 
 function renderTooltip(contentHtml) {
@@ -373,7 +375,10 @@ function parseCsvToAnsForm(csvText = '') {
   if (!lines.length) return document.createTextNode('');
 
   const header = parseCsvLine(lines[0]);
-  let widths = ['50px','180px','70px','160px','300px','160px','70px','100px','100px'];
+  let widths = [
+  '50px','180px','70px','160px',
+  '300px','160px','70px','100px'
+];
   if (header.length !== widths.length) {
     if (header.length > widths.length) {
       while (widths.length < header.length) widths.push('100px');
