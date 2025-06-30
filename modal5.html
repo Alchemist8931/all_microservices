@@ -339,30 +339,34 @@ const uploadStatus    = root.querySelector('.upload-status');
 const tooltipBtn      = root.querySelector('#tooltip-btn');
 const tooltipTemplate = document.getElementById('tooltip-modal-template');
 
-function showTooltipModal(){
-  /* 1) создаём overlay  */
+function showTooltipModal() {
   const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
   const box     = overlay.querySelector('.modal');
 
-  /* 2) блокируем прокрутку фона */
   document.body.classList.add('tooltip-open');
 
-  /* 3) закрывающая кнопка */
   const close = document.createElement('button');
   close.className = 'ans5-close';
   close.textContent = '×';
 
   const hide = () => {
-    document.body.classList.remove('tooltip-open');
-    overlay.remove();
+    overlay.classList.remove('show');
+    overlay.addEventListener('transitionend', () => {
+      document.body.classList.remove('tooltip-open');
+      overlay.remove();
+    }, { once:true });
   };
 
   close.addEventListener('click', hide);
-  overlay.addEventListener('click', e => { if(!box.contains(e.target)) hide(); });
+  overlay.addEventListener('click', e => { if (!box.contains(e.target)) hide(); });
 
   box.appendChild(close);
   document.body.appendChild(overlay);
+
+  /* ← ВОТ ЭТА СТРОКА ВЕРНЁТ НЕПРОЗРАЧНЫЙ ФОН */
+  requestAnimationFrame(() => overlay.classList.add('show'));
 }
+
 
 
 
