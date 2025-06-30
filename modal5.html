@@ -97,26 +97,19 @@
       padding: 4px 8px;
     }
     /* ----------- новая форма ответа ----------- */
-    .ans5-overlay {
+    .tooltip-overlay {
       position: fixed;
       inset: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: var(--fon);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 1s;
-      z-index: 1000;
-    }
-    .ans5-overlay.show {
+       background: #000;
       opacity: 1;
-      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
     }
-    .ans5-modal {
+    .tooltip-modal {
       position: relative;
-      background: var(--fon);
+      background: #fff;
       border: 1px solid rgba(0,0,0,0.10);
       box-shadow: 6px 6px 16px rgba(22,20,19,0.4);
       border-radius: 10px;
@@ -125,16 +118,12 @@
       max-width: 90vw;
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--fon);
-      max-width: 90vw;
-      max-height: 90vh;
-      overflow-y: auto;
       margin: 30px;
       display: inline-block;
     }
-    .ans5-modal::-webkit-scrollbar { width: 6px; }
-    .ans5-modal::-webkit-scrollbar-track { background: var(--scrollbar-color, #e0e0e0); }
-    .ans5-modal::-webkit-scrollbar-thumb { background: var(--black-color, #000); border-radius: 10px; }
+    .tooltip-modal::-webkit-scrollbar { width: 6px; }
+    .tooltip-modal::-webkit-scrollbar-track { background: var(--scrollbar-color, #e0e0e0); }
+    .tooltip-modal::-webkit-scrollbar-thumb { background: var(--black-color, #000); border-radius: 10px; }
     .ans5-close {
       position: absolute;
       top: 4px;
@@ -186,27 +175,9 @@
       border-radius:4px;
     }
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
-   /* === Замените предыдущий .tooltip-overlay полностью === */
-.tooltip-overlay{
-  position:fixed;
-  inset:0;
-  background:#000 !important;      /* 100-процентная непрозрачность */
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:10000;
-
-  /* никаких анимаций, overlay сразу плотный */
-  opacity:1;
-  pointer-events:auto;
-  transition:none;
-}
-
-/* Блокируем прокрутку страницы, пока открыт tooltip */
+  /* Блокируем прокрутку страницы, пока открыт tooltip */
 body.tooltip-open{ overflow:hidden; }
     
-    .modal { width: 1320px; padding: 10px; border: 1px solid #1c1c1b;
-             border-radius: 10px; background: #fff; max-height: 90vh; overflow:auto; }
     .modalRow { display:flex; gap:10px; margin-top:10px; }
     .modalColumn { display:flex; flex-direction:column; gap:10px; }
     .modalCollumn { display:flex; flex-direction:column; gap:10px; }
@@ -312,7 +283,7 @@ function renderTooltip(contentHtml) {
   overlay.className = 'tooltip-overlay';
 
   const modal = document.createElement('div');
-  modal.className = 'modal';
+  modal.className = 'tooltip-modal';
 
   const close = document.createElement('button');
   close.className = 'ans5-close';
@@ -574,17 +545,17 @@ function renderHistory() {
 
   /* маленький helper для модального окна со спецификацией */
   const showAnswerModal = (csvText) => {
-    document.querySelectorAll('.ans5-overlay').forEach(el => el.remove());
+   document.querySelectorAll('.tooltip-overlay').forEach(el => el.remove());
     const overlay = document.createElement('div');
-    overlay.className = 'ans5-overlay';
+    overlay.className = 'tooltip-overlay';
     const box = document.createElement('div');
-    box.className = 'ans5-modal';
+    box.className = 'tooltip-modal';
     const close = document.createElement('button');
     close.className = 'ans5-close';
     close.textContent = '×';
     const hide = () => {
-      overlay.classList.remove('show');
-      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+       document.body.classList.remove('tooltip-open');
+      overlay.remove();
     };
     close.addEventListener('click', hide);
     const content = parseCsvToAnsForm(csvText || '');
@@ -595,8 +566,8 @@ function renderHistory() {
       if (!box.contains(e.target)) hide();
     });
 
+    document.body.classList.add('tooltip-open');
     document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('show'));
   };
 
   /* цикл по запросам */
