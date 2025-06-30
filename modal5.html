@@ -187,18 +187,17 @@
     }
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
    .tooltip-overlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(4px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 1s;
-        z-index: 1000;
-      }
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* затемнение фона */
+  display: flex;              /* позволяет центрировать модальное окно */
+  justify-content: center;
+  align-items: center;
+  z-index: 9998;              /* находится выше основного контента, но ниже самого модального окна */
+}
       .tooltip-overlay.show {
         opacity: 1;
         pointer-events: auto;
