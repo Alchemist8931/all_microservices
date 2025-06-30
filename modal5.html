@@ -180,20 +180,23 @@
       border-radius:4px;
     }
     .ans5-copy { cursor:pointer; display:flex; align-items:center; font-size:26px; margin-left:100px; margin-top:4px; }
-    .tooltip-overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 1s;
-      z-index: 1000;
-    }
-    .tooltip-overlay.show { opacity: 1; pointer-events: auto; }
+   .tooltip-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 1s;
+        z-index: 1000;
+      }
+      .tooltip-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
     .modal { width: 1320px; padding: 10px; border: 1px solid #1c1c1b;
              border-radius: 10px; background: #fff; max-height: 90vh; overflow:auto; }
     .modalRow { display:flex; gap:10px; margin-top:10px; }
@@ -312,12 +315,21 @@ const tooltipTemplate = document.getElementById('tooltip-modal-template');
 
 function showTooltipModal() {
   const overlay = tooltipTemplate.content.firstElementChild.cloneNode(true);
+  const box = overlay.querySelector('.modal');
+  const close = document.createElement('button');
+  close.className = 'ans5-close';
+  close.textContent = '×';
+  const hide = () => {
+    overlay.classList.remove('show');
+    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+  };
+  close.addEventListener('click', hide);
+  overlay.addEventListener('click', (e) => {
+    if (!box.contains(e.target)) hide();
+  });
+  box.appendChild(close);
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('show'));
-  setTimeout(() => {
-    overlay.classList.remove('show');
-    overlay.addEventListener('transitionend', () => overlay.remove(), {once: true});
-  }, 1000);
 }
 
 tooltipBtn.addEventListener('click', showTooltipModal);
