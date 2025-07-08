@@ -51,6 +51,14 @@
     nav.nav_copy .slider { position:absolute; top:0; left:0; width:50%; height:100%; background:#fff; border-radius:6px; transition:left 0.3s; }
     nav.nav_copy .tab { flex:1; text-align:center; color:#fff; z-index:1; }
     nav.nav_copy .tab.active { color:#212121; }
+
+       /* ---- загрузка файлов ---- */
+    .file-upload__modal { display:flex; flex-direction:column; gap:8px; }
+    .file-upload__form { border:2px dashed #888; padding:20px; text-align:center; }
+    .js-dropzone.drag { background: rgba(255,255,255,0.1); }
+    .file__input-label { cursor:pointer; color:#fff; }
+    .file-upload__list { list-style:none; margin:0; padding:0; color:#fff; }
+      
   </style>
   <div class="modal9-window">
     <nav class="nav_copy">
@@ -60,11 +68,6 @@
     </nav>
 
     <div class="page spec-page active" data-page="1">
-      <div class="file-upload spec-row">
-        <div class="spec-input-group">
-          <input type="file" class="file-input" />
-          <button class="upload-btn">Upload</button>
-        </div>
         <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
         <div class="upload-status"></div>
       </div>
@@ -88,7 +91,9 @@ export async function initModal9() {
   const slider = root.querySelector('.slider');
   const pages = root.querySelectorAll('.page');
   const historyList = root.querySelector('.history-list');
-  const fileInput = root.querySelector('.file-input');
+  const dropzone = root.querySelector('.js-dropzone');
+  const fileInput = root.querySelector('.js-file__input');
+  const fileList = root.querySelector('.file-upload__list');
   const uploadBtn = root.querySelector('.upload-btn');
   const uploadProgress = root.querySelector('.upload-progress');
   const uploadStatus = root.querySelector('.upload-status');
@@ -98,8 +103,30 @@ export async function initModal9() {
   let selectedFile = null;
   fileInput.addEventListener('change', () => {
     selectedFile = fileInput.files[0] || null;
-    uploadStatus.textContent = selectedFile ? `Выбран: ${selectedFile.name}` : '';
+    renderFileList();
   });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('drag');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    selectedFile = e.dataTransfer.files[0];
+    renderFileList();
+  });
+
+  function renderFileList() {
+    fileList.innerHTML = '';
+    uploadStatus.textContent = selectedFile ? `Выбран: ${selectedFile.name}` : '';
+    if (selectedFile) {
+      const li = document.createElement('li');
+      li.textContent = selectedFile.name;
+      fileList.appendChild(li);
+    }
+  }
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
