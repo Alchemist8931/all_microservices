@@ -107,7 +107,7 @@ export async function initModal9() {
       tabs.forEach(t => t.classList.remove('active'));
       pages.forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      root.querySelector(`[data-page="${tab.dataset.page}"]`).classList.add('active');
+      root.querySelector(`.page[data-page="${tab.dataset.page}"]`).classList.add('active');
       slider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
     });
   });
