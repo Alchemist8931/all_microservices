@@ -1,19 +1,241 @@
 <!-- ========= modal9.html  (Проект 9) ========= -->
-<div id="modal9-container">
+<div id="modal9-container" class="spec-modal">
   <style>
     #modal9-container {
+    /* ---- базовые стили из modal5 ---- */
+    .spec-modal {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
     }
+    .spec-tabs,
+    nav.nav_copy { display:flex; gap:8px; margin-bottom:10px; }
+    .spec-tab,
+    nav.nav_copy .tab { padding:6px 12px; border:1px solid #ccc; border-radius:4px; cursor:pointer; transition:background-color 0.3s; user-select:none; }
+    .spec-page { width:100%; }
+    .spec-page:not(.active) { display:none; }
+    .spec-history-list { width:100%; max-width:600px; margin-top:10px; }
+    .spec-history-item { display:flex; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #ddd; }
+    .spec-history-item .status { margin-left:8px; color:#6c757d; }
+    .spec-info-icon { margin-left:8px; cursor:pointer; color:#007bff; }
+    .spec-info-icon.disabled { color:#6c757d; pointer-events:none; }
+    .spec-row { width:100%; max-width:600px; margin-bottom:10px; }
+    .spec-input-group { display:flex; gap:8px; }
+    .spec-upload-progress { width:100%; margin-top:6px; }
+    .tooltip-overlay { position:fixed; inset:0; background:#000; opacity:1; display:flex; align-items:center; justify-content:center; z-index:10000; }
+    .tooltip-modal { position:relative; background:#fff; border:1px solid rgba(0,0,0,0.10); box-shadow:6px 6px 16px rgba(22,20,19,0.4); border-radius:10px; padding:10px; width:1320px; max-width:90vw; max-height:90vh; overflow-y:auto; margin:30px; display:inline-block; }
+    .tooltip-modal::-webkit-scrollbar { width:6px; }
+    .tooltip-modal::-webkit-scrollbar-track { background:#e0e0e0; }
+    .tooltip-modal::-webkit-scrollbar-thumb { background:#000; border-radius:10px; }
+    .ans5-close { position:absolute; top:4px; right:8px; font-size:24px; background:none; border:none; cursor:pointer; }
+
+    /* ---- окно модалки ---- */
+    .modal9-window {
+      background:#212121;
+      color:#fff;
+      border-radius:10px;
+      width:1380px;
+      max-width:90vw;
+      max-height:90vh;
+      padding:20px;
+      overflow-y:auto;
+    }
+
+    /* ---- навигация nav_copy ---- */
+    nav.nav_copy { position:relative; background:#333; border-radius:6px; overflow:hidden; width:200px; }
+    nav.nav_copy .slider { position:absolute; top:0; left:0; width:50%; height:100%; background:#fff; border-radius:6px; transition:left 0.3s; }
+    nav.nav_copy .tab { flex:1; text-align:center; color:#fff; z-index:1; }
+    nav.nav_copy .tab.active { color:#212121; }
   </style>
-  страница 9
+  <div class="modal9-window">
+    <nav class="nav_copy">
+      <div class="slider"></div>
+      <div class="tab active" data-page="1">страница 1</div>
+      <div class="tab" data-page="2">страница 2</div>
+    </nav>
+
+    <div class="page spec-page active" data-page="1">
+      <div class="file-upload spec-row">
+        <div class="spec-input-group">
+          <input type="file" class="file-input" />
+          <button class="upload-btn">Upload</button>
+        </div>
+        <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+        <div class="upload-status"></div>
+      </div>
+      <div class="history-list spec-history-list"></div>
+    </div>
+
+    <div class="page spec-page" data-page="2">
+      <div class="spec-under-construction" style="text-align:center;">подстраница 2</div>
+    </div>
   </div>
+</div>
 <script type="module">
-export function initModal9() {
+export async function initModal9() {
   console.log('[modal9.html] PAGE 9 активирован');
+  
+  const supabase = window.supabase;
+  const BUCKET = 'modal9-uploads';
+
+  const root = document.getElementById('modal9-container');
+  const tabs = root.querySelectorAll('.tab');
+  const slider = root.querySelector('.slider');
+  const pages = root.querySelectorAll('.page');
+  const historyList = root.querySelector('.history-list');
+  const fileInput = root.querySelector('.file-input');
+  const uploadBtn = root.querySelector('.upload-btn');
+  const uploadProgress = root.querySelector('.upload-progress');
+  const uploadStatus = root.querySelector('.upload-status');
+
+  const DELIM = window.__DELIM || "###";
+
+  let selectedFile = null;
+  fileInput.addEventListener('change', () => {
+    selectedFile = fileInput.files[0] || null;
+    uploadStatus.textContent = selectedFile ? `Выбран: ${selectedFile.name}` : '';
+  });
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.classList.contains('active')) return;
+      tabs.forEach(t => t.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      root.querySelector(`[data-page="${tab.dataset.page}"]`).classList.add('active');
+      slider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
+    });
+  });
+
+  const sanitize = (s) => s
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9._-]/gi, '_');
+
+  uploadBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
+
+    const safeName = sanitize(selectedFile.name);
+    const safeFolder = sanitize(session.user.id);
+    const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
+
+    uploadProgress.style.display = 'block';
+    uploadProgress.value = 0;
+    uploadStatus.textContent = 'Загружаю…';
+
+    const { error: upErr } = await supabase
+      .storage
+      .from(BUCKET)
+      .upload(filePath, selectedFile, { upsert: true });
+
+    if (upErr) { uploadStatus.textContent = 'Ошибка upload: ' + upErr.message; return; }
+    uploadProgress.value = 100;
+
+    const { data: reqRow, error: insErr } = await supabase
+      .from('requests')
+      .insert({ user_id: session.user.id, file_path: filePath, status: 'pending' })
+      .select('*')
+      .single();
+
+    if (insErr) { uploadStatus.textContent = 'Ошибка insert'; return; }
+
+    uploadStatus.textContent = 'GPT обрабатывает…';
+
+    const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
+      'equip-selector',
+      { body: { request_id: reqRow.id, save: true } }
+    );
+
+    if (funcErr) {
+      console.error('[modal9] function error:', funcErr);
+      uploadStatus.textContent = 'Ошибка функции: ' + funcErr.message;
+    } else {
+      uploadStatus.textContent = 'Готово!';
+      console.log('[modal9] GPT answer:', funcRes?.csv);
+    }
+
+    await loadHistory();
+  });
+
+  let history = [];
+  async function loadHistory() {
+    const { data, error } = await supabase
+      .from('requests')
+      .select('id, file_path, response_path, status')
+      .eq('user_id', window.AUTH_ID)
+      .order('created_at', { ascending: false });
+
+    if (error) { console.error(error); return; }
+    history = data || [];
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = '';
+
+    history.forEach((item) => {
+      const isDone = item.status === 'done' || !!item.response_path;
+      const row = document.createElement('div');
+      row.className = 'history-item spec-history-item';
+
+      const left = document.createElement('div');
+      const name = document.createElement('span');
+      name.textContent = item.file_path.split('/').pop();
+      const status = document.createElement('span');
+      status.className = 'status';
+      status.textContent = isDone ? 'завершено' : 'в работе';
+      left.append(name, status);
+
+      const icon = document.createElement('span');
+      icon.className = 'info-icon spec-info-icon';
+      icon.textContent = 'ⓘ';
+      if (!isDone) icon.classList.add('disabled');
+
+      icon.addEventListener('click', async () => {
+        if (!isDone) return;
+
+        if (!icon.dataset.answer) {
+          const { data } = await supabase
+            .storage
+            .from(BUCKET)
+            .download(item.response_path);
+
+          icon.dataset.answer = data ? await data.text() : 'Ответ недоступен';
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'tooltip-overlay';
+        const modal = document.createElement('div');
+        modal.className = 'tooltip-modal';
+        const close = document.createElement('button');
+        close.className = 'ans5-close';
+        close.textContent = '×';
+        close.addEventListener('click', () => { document.body.classList.remove('tooltip-open'); overlay.remove(); });
+        const content = document.createElement('div');
+        content.className = 'messages_container-content';
+        content.textContent = icon.dataset.answer;
+        modal.appendChild(close);
+        modal.appendChild(content);
+        overlay.appendChild(modal);
+        overlay.addEventListener('click', (e) => { if (!modal.contains(e.target)) { document.body.classList.remove('tooltip-open'); overlay.remove(); } });
+        document.body.classList.add('tooltip-open');
+        document.body.appendChild(overlay);
+      });
+
+      row.append(left, icon);
+      historyList.appendChild(row);
+    });
+  }
+
+  await loadHistory();
 }
 initModal9();
 </script>
