@@ -1,7 +1,6 @@
 <!-- ========= modal9.html  (Проект 9) ========= -->
 <div id="modal9-container" class="spec-modal">
   <style>
-    #modal9-container {
     /* ---- базовые стили из modal5 ---- */
     .spec-modal {
       display: flex;
@@ -72,15 +71,22 @@
     </nav>
 
     <div class="page spec-page active" data-page="1">
-        <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
-        <div class="upload-status"></div>
+        <div class="file-upload__modal">
+        <div class="file-upload__form js-dropzone">
+          <input type="file" class="file__input js-file__input" hidden>
+          <label class="file__input-label">Выберите файл</label>
+        </div>
+        <button type="button" class="upload-btn">Загрузить</button>
+        <ul class="file-upload__list"></ul>
       </div>
-      <div class="history-list spec-history-list"></div>
+      <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+      <div class="upload-status"></div>
     </div>
 
     <div class="page spec-page" data-page="2">
       <div class="spec-under-construction" style="text-align:center;">подстраница 2</div>
     </div>
+    <div class="history-list spec-history-list"></div>
   </div>
 </div>
 <script type="module">
