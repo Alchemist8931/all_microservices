@@ -22,11 +22,15 @@
     .spec-history-list { width:100%; max-width:600px; margin-top:10px; }
     .spec-history-item { display:flex; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #ddd; }
     .spec-history-item .status { margin-left:8px; color:#6c757d; }
+    .spec-history-item .time   { margin-left:8px; color:#b5b5b5; font-size:0.9em; }
     .spec-info-icon { margin-left:8px; cursor:pointer; color:#007bff; }
     .spec-info-icon.disabled { color:#6c757d; pointer-events:none; }
+    .spec-done-icon { margin-left:8px; color:#28a745; }
     .spec-row { width:100%; max-width:600px; margin-bottom:10px; }
     .spec-input-group { display:flex; gap:8px; }
     .spec-upload-progress { width:100%; margin-top:6px; }
+      .spec-upload-progress.running::-webkit-progress-value { transition: width 0.4s ease; background:#007bff; }
+    .spec-upload-progress.done::-webkit-progress-value { background:#28a745; }
     .tooltip-overlay { position:fixed; inset:0; background:#000; opacity:1; display:flex; align-items:center; justify-content:center; z-index:10000; }
     .tooltip-modal { position:relative; background:#fff; border:1px solid rgba(0,0,0,0.10); box-shadow:6px 6px 16px rgba(22,20,19,0.4); border-radius:10px; padding:10px; width:1320px; max-width:90vw; max-height:90vh; overflow-y:auto; margin:30px; display:inline-block; }
     .tooltip-modal::-webkit-scrollbar { width:6px; }
@@ -156,6 +160,8 @@ export async function initModal9() {
 
     uploadProgress.style.display = 'block';
     uploadProgress.value = 0;
+    uploadProgress.classList.remove('done');
+    uploadProgress.classList.add('running');
     uploadStatus.textContent = 'Загружаю…';
 
     const { error: upErr } = await supabase
@@ -165,6 +171,8 @@ export async function initModal9() {
 
     if (upErr) { uploadStatus.textContent = 'Ошибка upload: ' + upErr.message; return; }
     uploadProgress.value = 100;
+    uploadProgress.classList.remove('running');
+    uploadProgress.classList.add('done');
 
     const { data: reqRow, error: insErr } = await supabase
       .from('requests')
@@ -190,13 +198,14 @@ export async function initModal9() {
     }
 
     await loadHistory();
+    uploadProgress.style.display = 'none';
   });
 
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
       .from('requests')
-      .select('id, file_path, response_path, status')
+      .select('id, file_path, response_path, status, created_at')
       .eq('user_id', window.AUTH_ID)
       .order('created_at', { ascending: false });
 
@@ -216,10 +225,14 @@ export async function initModal9() {
       const left = document.createElement('div');
       const name = document.createElement('span');
       name.textContent = item.file_path.split('/').pop();
+      const time = document.createElement('span');
+      time.className = 'time';
+      const d = new Date(item.created_at);
+      time.textContent = d.toLocaleTimeString();
       const status = document.createElement('span');
       status.className = 'status';
       status.textContent = isDone ? 'завершено' : 'в работе';
-      left.append(name, status);
+      left.append(name, time, status);
 
       const icon = document.createElement('span');
       icon.className = 'info-icon spec-info-icon';
@@ -257,7 +270,14 @@ export async function initModal9() {
         document.body.appendChild(overlay);
       });
 
-      row.append(left, icon);
+      if (isDone) {
+        const doneIcon = document.createElement('span');
+        doneIcon.className = 'done-icon spec-done-icon';
+        doneIcon.textContent = '✓';
+        row.append(left, doneIcon, icon);
+      } else {
+        row.append(left, icon);
+      }
       historyList.appendChild(row);
     });
   }
