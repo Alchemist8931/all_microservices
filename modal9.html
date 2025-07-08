@@ -81,12 +81,12 @@
       </div>
       <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
+      <div class="history-list spec-history-list"></div>
     </div>
 
     <div class="page spec-page" data-page="2">
       <div class="spec-under-construction" style="text-align:center;">подстраница 2</div>
     </div>
-    <div class="history-list spec-history-list"></div>
   </div>
 </div>
 <script type="module">
@@ -210,7 +210,7 @@ export async function initModal9() {
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
-      .from('requests')
+      .from('page9_requests')
       .select('id, file_path, response_path, status, created_at')
       .eq('user_id', window.AUTH_ID)
       .order('created_at', { ascending: false });
@@ -234,7 +234,7 @@ export async function initModal9() {
       const time = document.createElement('span');
       time.className = 'time';
       const d = new Date(item.created_at);
-      time.textContent = d.toLocaleTimeString();
+      time.textContent = d.toLocaleString();
       const status = document.createElement('span');
       status.className = 'status';
       status.textContent = isDone ? 'завершено' : 'в работе';
