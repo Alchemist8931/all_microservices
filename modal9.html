@@ -302,24 +302,31 @@ if (upErr) {
     }
     uploadProgress.value = 100;
 
-    const { error: regErr } = await supabase
-      .from(TABLE)
-      .insert({
-          file_number: fileNumber,
-          user_login: window.USER_LOGIN || '',
-          file_path: filePath,
-          file_name: selectedFile.name,
-          file_ext: ext,
-          status: 'uploaded'
-      });
+    const { data: insertedRow, error: regErr } = await supabase
+        .from(TABLE)
+        .insert({
+            file_number: fileNumber,
+            user_login: window.USER_LOGIN || '',
+            file_path: filePath,
+            file_name: selectedFile.name,
+            file_ext: ext,
+            status: 'uploaded'
+        })
+        .select('*')
+        .single();
 
     if (regErr) {
-      uploadStatus.textContent = 'Ошибка записи в реестр';
-      return;
-    }
-    uploadStatus.textContent = 'Файл сохранён';
-    await loadHistory();
-    uploadProgress.style.display = 'none';
+        uploadStatus.textContent = 'Ошибка записи в реестр';
+        return;
+      }
+
+      uploadStatus.textContent = 'GPT обрабатывает…';
+      await supabase.functions.invoke('modal9-parser', {
+        body: { request_id: insertedRow.id }
+      });
+      uploadStatus.textContent = 'Файл сохранён';
+      await loadHistory();
+      uploadProgress.style.display = 'none';
   });
 
   let history = [];
