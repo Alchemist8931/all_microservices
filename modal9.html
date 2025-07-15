@@ -121,6 +121,11 @@
     .js-dropzone.drag { background: rgba(255,255,255,0.1); }
     .file__input-label { cursor:pointer; color:#fff; }
     .file-upload__list { list-style:none; margin:0; padding:0; color:#fff; }
+
+     /* --- блок результатов --- */
+    .block1-wrapper { max-height:60vh; overflow-y:auto; }
+    .block1-table { width:100%; border-collapse:collapse; }
+    .block1-table th, .block1-table td { border:1px solid #ccc; padding:4px; }
       
   </style>
   <div class="modal9-window">
@@ -173,7 +178,29 @@
     </div>
 
     <div class="page spec-page" data-page="2">
-      <div class="spec-under-construction" style="text-align:center;">подстраница 2</div>
+      <div class="block1-wrapper">
+        <table class="block1-table">
+          <thead>
+            <tr>
+              <th>номер</th>
+              <th>наименование из ТЗ</th>
+              <th>количество</th>
+              <th>параметр соответствия</th>
+              <th>требуемое значение</th>
+            </tr>
+          </thead>
+          <tbody class="block1-list"></tbody>
+        </table>
+      </div>
+      <template id="block1-row-template">
+        <tr>
+          <td data-field="number"></td>
+          <td data-field="title"></td>
+          <td data-field="qty"></td>
+          <td data-field="param"></td>
+          <td data-field="value"></td>
+        </tr>
+      </template>
     </div>
   </div>
 </div>
@@ -185,6 +212,7 @@ export async function initModal9() {
   const BUCKET = 'modal9-page1-uploads';
   const TABLE = 'modal9-page1-uploads-registry';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls'];
+  const BLOCK1_TABLE = 'modal9-page1-Block1';
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -198,6 +226,8 @@ export async function initModal9() {
   const uploadBtn = root.querySelector('.upload-btn');
   const uploadProgress = root.querySelector('.upload-progress');
   const uploadStatus = root.querySelector('.upload-status');
+  const block1List = root.querySelector('.block1-list');
+  const block1RowTemplate = root.querySelector('#block1-row-template');
 
   const DELIM = window.__DELIM || "###";
 
@@ -237,6 +267,7 @@ export async function initModal9() {
       tab.classList.add('active');
       root.querySelector(`.page[data-page="${tab.dataset.page}"]`).classList.add('active');
       slider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
+      if (tab.dataset.page === '2') loadBlock1();
     });
   });
 
@@ -325,8 +356,9 @@ if (upErr) {
         body: { request_id: insertedRow.id }
       });
       uploadStatus.textContent = 'Файл сохранён';
-      await loadHistory();
-      uploadProgress.style.display = 'none';
+        await loadHistory();
+        await loadBlock1();
+        uploadProgress.style.display = 'none';
   });
 
   let history = [];
@@ -362,7 +394,33 @@ if (upErr) {
     });
   }
 
+  let block1Rows = [];
+  async function loadBlock1() {
+    const { data, error } = await supabase
+      .from(BLOCK1_TABLE)
+      .select('number, title, qty, param, value')
+      .order('id');
+
+    if (error) { console.error(error); return; }
+    block1Rows = data || [];
+    renderBlock1();
+  }
+
+  function renderBlock1() {
+    block1List.innerHTML = '';
+    block1Rows.forEach(row => {
+      const fragment = block1RowTemplate.content.cloneNode(true);
+      fragment.querySelector('[data-field="number"]').textContent = row.number || '';
+      fragment.querySelector('[data-field="title"]').textContent = row.title || '';
+      fragment.querySelector('[data-field="qty"]').textContent = row.qty || '';
+      fragment.querySelector('[data-field="param"]').textContent = row.param || '';
+      fragment.querySelector('[data-field="value"]').textContent = row.value || '';
+      block1List.appendChild(fragment);
+    });
+  }
+
   await loadHistory();
+  await loadBlock1();
 }
 initModal9();
 </script>
