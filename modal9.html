@@ -162,6 +162,8 @@ export async function initModal9() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
 
+    const ext = selectedFile.name.split('.').pop().toLowerCase();
+
     if (!ALLOWED_EXTS.includes(ext)) {
       uploadStatus.textContent = 'Недопустимый тип файла';
       return;
