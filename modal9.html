@@ -353,7 +353,8 @@ if (upErr) {
 
       uploadStatus.textContent = 'GPT обрабатывает…';
       await supabase.functions.invoke('modal9-parser', {
-        body: { request_id: insertedRow.id }
+       // headers НЕ передаём – SDK сам проставит нужное
+       body: { request_id: insertedRow.id }
       });
       uploadStatus.textContent = 'Файл сохранён';
         await loadHistory();
