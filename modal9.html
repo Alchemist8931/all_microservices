@@ -18,7 +18,11 @@
     nav.nav_copy .tab { padding:6px 12px; border:1px solid #ccc; border-radius:4px; cursor:pointer; transition:background-color 0.3s; user-select:none; }
     .spec-page { width:100%; }
     .spec-page:not(.active) { display:none; }
-    .spec-history-list { width:100%; margin: 10px;}
+    .spec-history-list {
+      width: 100%;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
     .spec-history-item { display:flex; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #ddd; }
     .spec-history-item .status { margin-left:8px; color:#6c757d; }
     .spec-history-item .time   { margin-left:8px; color:#b5b5b5; font-size:0.9em; }
@@ -71,7 +75,11 @@
       padding: 0 8px;
     }
     .styled_input_bar:not(:hover):not(:placeholder-shown) + .input-label { color: grey; }
-    .spec-history-item.input-row { gap: 8px; flex-wrap: wrap; }
+    .spec-history-item.input-row {
+      gap: 8px;
+      flex-wrap: nowrap;
+      width: max-content;
+    }
     .copy-tooltip {
       position: fixed;
       background: #333;
