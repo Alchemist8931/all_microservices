@@ -162,22 +162,21 @@ export async function initModal9() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
 
-    const ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
-if (!ALLOWED_EXTS.includes(ext)) {
-    uploadStatus.textContent = 'Недопустимый тип файла';
-    return;
-}
+    if (!ALLOWED_EXTS.includes(ext)) {
+      uploadStatus.textContent = 'Недопустимый тип файла';
+      return;
+    }
 
 const { data: last } = await supabase
-    .from(TABLE)
-    .select('file_number')
-    .order('id', { ascending: false })
-    .limit(1);
+      .from(TABLE)
+      .select('file_number')
+      .order('id', { ascending: false })
+      .limit(1);
 
-const nextNum = last?.[0]
-    ? parseInt(last[0].file_number.slice(3)) + 1
-    : 1;
-const fileNumber = `AK-${String(nextNum).padStart(6, '0')}`;
+    const nextNum = last?.[0]
+      ? parseInt(last[0].file_number.slice(3)) + 1
+      : 1;
+    const fileNumber = `AK-${String(nextNum).padStart(6, '0')}`;
 
 
     const safeName = sanitize(selectedFile.name);
@@ -190,37 +189,33 @@ const fileNumber = `AK-${String(nextNum).padStart(6, '0')}`;
     uploadProgress.classList.add('running');
     uploadStatus.textContent = 'Загружаю…';
 
-  const { error: regErr } = await supabase
-    .from(TABLE)
-    .insert({
-        file_number: fileNumber,
-        user_login: window.USER_LOGIN || '',
-        file_path: filePath,
-        file_name: selectedFile.name,
-        file_ext: ext,
-        status: 'uploaded'
-    });
+  const { error: upErr } = await supabase
+      .storage
+      .from(BUCKET)
+      .upload(filePath, selectedFile, { upsert: true });
 
-if (regErr) {
-    uploadStatus.textContent = 'Ошибка записи в реестр';
-    return;
-}
-uploadStatus.textContent = 'Файл сохранён';
-
-
-    const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
-      'equip-selector',
-      { body: { request_id: reqRow.id, save: true } }
-    );
-
-    if (funcErr) {
-      console.error('[modal9] function error:', funcErr);
-      uploadStatus.textContent = 'Ошибка функции: ' + funcErr.message;
-    } else {
-      uploadStatus.textContent = 'Готово!';
-      console.log('[modal9] GPT answer:', funcRes?.csv);
+if (upErr) {
+      uploadStatus.textContent = 'Ошибка upload: ' + upErr.message;
+      return;
     }
+    uploadProgress.value = 100;
 
+    const { error: regErr } = await supabase
+      .from(TABLE)
+      .insert({
+          file_number: fileNumber,
+          user_login: window.USER_LOGIN || '',
+          file_path: filePath,
+          file_name: selectedFile.name,
+          file_ext: ext,
+          status: 'uploaded'
+      });
+
+    if (regErr) {
+      uploadStatus.textContent = 'Ошибка записи в реестр';
+      return;
+    }
+    uploadStatus.textContent = 'Файл сохранён';
     await loadHistory();
     uploadProgress.style.display = 'none';
   });
