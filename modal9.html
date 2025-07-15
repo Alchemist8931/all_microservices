@@ -30,6 +30,57 @@
     .spec-upload-progress { width:100%; margin-top:6px; }
       .spec-upload-progress.running::-webkit-progress-value { transition: width 0.4s ease; background:#007bff; }
     .spec-upload-progress.done::-webkit-progress-value { background:#28a745; }
+    /* ------- новые стили для полей истории ------- */
+    .input-container {
+      position: relative;
+      width: 300px;
+    }
+    .styled_input_bar {
+      width: 400px;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid grey;
+      border-radius: 8px;
+      background-color: transparent;
+      color: white;
+      outline: none;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+    .styled_input_bar::placeholder { color: grey; transition: all 0.3s ease; }
+    .styled_input_bar:hover { border-color: white; }
+    .styled_input_bar:hover::placeholder { color: transparent; }
+    .input-label {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: grey;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    .styled_input_bar:hover + .input-label,
+    .styled_input_bar:not(:placeholder-shown) + .input-label {
+      top: -2px;
+      left: 10px;
+      font-size: 13px;
+      color: white;
+      background-color: #212121;
+      padding: 0 8px;
+    }
+    .styled_input_bar:not(:hover):not(:placeholder-shown) + .input-label { color: grey; }
+    .spec-history-item.input-row { gap: 8px; flex-wrap: wrap; }
+    .copy-tooltip {
+      position: fixed;
+      background: #333;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+    }
     .tooltip-overlay { position:fixed; inset:0; background:#000; opacity:1; display:flex; align-items:center; justify-content:center; z-index:10000; }
     .tooltip-modal { position:relative; background:#fff; border:1px solid rgba(0,0,0,0.10); box-shadow:6px 6px 16px rgba(22,20,19,0.4); border-radius:10px; padding:10px; width:1320px; max-width:90vw; max-height:90vh; overflow-y:auto; margin:30px; display:inline-block; }
     .tooltip-modal::-webkit-scrollbar { width:6px; }
@@ -82,6 +133,34 @@
       <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
       <div class="history-list spec-history-list"></div>
+      <template id="history-row-template">
+        <div class="history-item spec-history-item input-row">
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="file_number" readonly placeholder=" ">
+            <label class="input-label">номер</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="user_login" readonly placeholder=" ">
+            <label class="input-label">login</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="created_at" readonly placeholder=" ">
+            <label class="input-label">дата</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="file_name" readonly placeholder=" ">
+            <label class="input-label">файл</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="file_ext" readonly placeholder=" ">
+            <label class="input-label">ext</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="status" readonly placeholder=" ">
+            <label class="input-label">статус</label>
+          </div>
+        </div>
+      </template>
     </div>
 
     <div class="page spec-page" data-page="2">
@@ -104,6 +183,7 @@ export async function initModal9() {
   const pages = root.querySelectorAll('.page');
   const historyList = root.querySelector('.history-list');
   const dropzone = root.querySelector('.js-dropzone');
+  const rowTemplate = root.querySelector('#history-row-template');
   const fileInput = root.querySelector('.js-file__input');
   const fileList = root.querySelector('.file-upload__list');
   const uploadBtn = root.querySelector('.upload-btn');
@@ -155,6 +235,17 @@ export async function initModal9() {
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9._-]/gi, '_');
+
+  function showCopyTip(el) {
+    const tip = document.createElement('div');
+    tip.className = 'copy-tooltip';
+    tip.textContent = 'скопировано';
+    document.body.appendChild(tip);
+    const r = el.getBoundingClientRect();
+    tip.style.left = r.left + r.width / 2 - tip.offsetWidth / 2 + 'px';
+    tip.style.top = r.top - tip.offsetHeight - 6 + 'px';
+    setTimeout(() => tip.remove(), 1000);
+  }
 
   uploadBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
@@ -238,33 +329,22 @@ if (upErr) {
   function renderHistory() {
     historyList.innerHTML = '';
     history.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'history-item spec-history-item';
-
-        const num    = document.createElement('span');
-        num.textContent = item.file_number;
-
-        const user   = document.createElement('span');
-        user.textContent = item.user_login;
-
-        const time   = document.createElement('span');
-        time.className = 'time';
-        time.textContent = new Date(item.created_at).toLocaleString();
-
-        const name   = document.createElement('span');
-        name.textContent = item.file_name;
-
-        const ext    = document.createElement('span');
-        ext.textContent = item.file_ext;
-
-        const status = document.createElement('span');
-        status.className = 'status';
-        status.textContent = item.status;
-
-        row.append(num, user, time, name, ext, status);
-        historyList.appendChild(row);
+        const fragment = rowTemplate.content.cloneNode(true);
+        fragment.querySelectorAll('input').forEach(inp => {
+          const field = inp.dataset.field;
+          let val = item[field];
+          if (field === 'created_at') {
+            val = new Date(item.created_at).toLocaleString();
+          }
+          inp.value = val || '';
+          inp.addEventListener('click', () => {
+            navigator.clipboard.writeText(inp.value || '');
+            showCopyTip(inp);
+          });
+        });
+        historyList.appendChild(fragment);
     });
-}
+  }
 
   await loadHistory();
 }
