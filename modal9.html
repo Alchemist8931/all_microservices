@@ -162,6 +162,24 @@ export async function initModal9() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { uploadStatus.textContent = 'Необходим вход'; return; }
 
+    const ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
+if (!ALLOWED_EXTS.includes(ext)) {
+    uploadStatus.textContent = 'Недопустимый тип файла';
+    return;
+}
+
+const { data: last } = await supabase
+    .from(TABLE)
+    .select('file_number')
+    .order('id', { ascending: false })
+    .limit(1);
+
+const nextNum = last?.[0]
+    ? parseInt(last[0].file_number.slice(3)) + 1
+    : 1;
+const fileNumber = `AK-${String(nextNum).padStart(6, '0')}`;
+
+
     const safeName = sanitize(selectedFile.name);
     const safeFolder = sanitize(session.user.id);
     const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
@@ -172,25 +190,23 @@ export async function initModal9() {
     uploadProgress.classList.add('running');
     uploadStatus.textContent = 'Загружаю…';
 
-    const { error: upErr } = await supabase
-      .storage
-      .from(BUCKET)
-      .upload(filePath, selectedFile, { upsert: true });
+  const { error: regErr } = await supabase
+    .from(TABLE)
+    .insert({
+        file_number: fileNumber,
+        user_login: window.USER_LOGIN || '',
+        file_path: filePath,
+        file_name: selectedFile.name,
+        file_ext: ext,
+        status: 'uploaded'
+    });
 
-    if (upErr) { uploadStatus.textContent = 'Ошибка upload: ' + upErr.message; return; }
-    uploadProgress.value = 100;
-    uploadProgress.classList.remove('running');
-    uploadProgress.classList.add('done');
+if (regErr) {
+    uploadStatus.textContent = 'Ошибка записи в реестр';
+    return;
+}
+uploadStatus.textContent = 'Файл сохранён';
 
-    const { data: reqRow, error: insErr } = await supabase
-      .from('requests')
-      .insert({ user_id: session.user.id, file_path: filePath, status: 'pending' })
-      .select('*')
-      .single();
-
-    if (insErr) { uploadStatus.textContent = 'Ошибка insert'; return; }
-
-    uploadStatus.textContent = 'GPT обрабатывает…';
 
     const { data: funcRes, error: funcErr } = await supabase.functions.invoke(
       'equip-selector',
@@ -212,83 +228,46 @@ export async function initModal9() {
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
-      .from('page9_requests')
-      .select('id, file_path, response_path, status, created_at')
-      .eq('user_id', window.AUTH_ID)
-      .order('created_at', { ascending: false });
+        .from(TABLE)
+        .select('file_number, user_login, created_at, file_name, file_ext, status')
+        .order('created_at', { ascending: false });
 
     if (error) { console.error(error); return; }
     history = data || [];
     renderHistory();
-  }
+}
+
 
   function renderHistory() {
     historyList.innerHTML = '';
+    history.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'history-item spec-history-item';
 
-    history.forEach((item) => {
-      const isDone = item.status === 'done' || !!item.response_path;
-      const row = document.createElement('div');
-      row.className = 'history-item spec-history-item';
+        const num    = document.createElement('span');
+        num.textContent = item.file_number;
 
-      const left = document.createElement('div');
-      const name = document.createElement('span');
-      name.textContent = item.file_path.split('/').pop();
-      const time = document.createElement('span');
-      time.className = 'time';
-      const d = new Date(item.created_at);
-      time.textContent = d.toLocaleString();
-      const status = document.createElement('span');
-      status.className = 'status';
-      status.textContent = isDone ? 'завершено' : 'в работе';
-      left.append(name, time, status);
+        const user   = document.createElement('span');
+        user.textContent = item.user_login;
 
-      const icon = document.createElement('span');
-      icon.className = 'info-icon spec-info-icon';
-      icon.textContent = 'ⓘ';
-      if (!isDone) icon.classList.add('disabled');
+        const time   = document.createElement('span');
+        time.className = 'time';
+        time.textContent = new Date(item.created_at).toLocaleString();
 
-      icon.addEventListener('click', async () => {
-        if (!isDone) return;
+        const name   = document.createElement('span');
+        name.textContent = item.file_name;
 
-        if (!icon.dataset.answer) {
-          const { data } = await supabase
-            .storage
-            .from(BUCKET)
-            .download(item.response_path);
+        const ext    = document.createElement('span');
+        ext.textContent = item.file_ext;
 
-          icon.dataset.answer = data ? await data.text() : 'Ответ недоступен';
-        }
+        const status = document.createElement('span');
+        status.className = 'status';
+        status.textContent = item.status;
 
-        const overlay = document.createElement('div');
-        overlay.className = 'tooltip-overlay';
-        const modal = document.createElement('div');
-        modal.className = 'tooltip-modal';
-        const close = document.createElement('button');
-        close.className = 'ans5-close';
-        close.textContent = '×';
-        close.addEventListener('click', () => { document.body.classList.remove('tooltip-open'); overlay.remove(); });
-        const content = document.createElement('div');
-        content.className = 'messages_container-content';
-        content.textContent = icon.dataset.answer;
-        modal.appendChild(close);
-        modal.appendChild(content);
-        overlay.appendChild(modal);
-        overlay.addEventListener('click', (e) => { if (!modal.contains(e.target)) { document.body.classList.remove('tooltip-open'); overlay.remove(); } });
-        document.body.classList.add('tooltip-open');
-        document.body.appendChild(overlay);
-      });
-
-      if (isDone) {
-        const doneIcon = document.createElement('span');
-        doneIcon.className = 'done-icon spec-done-icon';
-        doneIcon.textContent = '✓';
-        row.append(left, doneIcon, icon);
-      } else {
-        row.append(left, icon);
-      }
-      historyList.appendChild(row);
+        row.append(num, user, time, name, ext, status);
+        historyList.appendChild(row);
     });
-  }
+}
 
   await loadHistory();
 }
