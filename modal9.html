@@ -399,7 +399,7 @@ if (upErr) {
   async function loadBlock1() {
     const { data, error } = await supabase
       .from(BLOCK1_TABLE)
-      .select('order as number, name as title, qty, param, value')
+      .select('number:order, title:name, qty, param, value')
       .order('id');
 
     if (error) { console.error(error); return; }
