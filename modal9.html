@@ -181,26 +181,28 @@
       <div class="block1-wrapper">
         <table class="block1-table">
           <thead>
-            <tr>
-              <th>номер</th>
-              <th>наименование из ТЗ</th>
-              <th>количество</th>
-              <th>параметр соответствия</th>
-              <th>требуемое значение</th>
-            </tr>
-          </thead>
+  <tr>
+    <th>№ файла</th><th>логин</th><th>имя файла</th>
+    <th>ID поз.</th><th>№ спецификации</th>
+    <th>№ в ТЗ</th><th>наименование</th><th>кол-во</th><th>атрибуты</th>
+  </tr>
+</thead>
           <tbody class="block1-list"></tbody>
         </table>
       </div>
-      <template id="block1-row-template">
-        <tr>
-          <td data-field="number"></td>
-          <td data-field="title"></td>
-          <td data-field="qty"></td>
-          <td data-field="param"></td>
-          <td data-field="value"></td>
-        </tr>
-      </template>
+    <template id="block1-row-template">
+  <tr>
+    <td data-field="file_number"></td>
+    <td data-field="user_login"></td>
+    <td data-field="file_name"></td>
+    <td data-field="id"></td>
+    <td data-field="spec_id"></td>
+    <td data-field="pos_number"></td>
+    <td data-field="name"></td>
+    <td data-field="qty"></td>
+    <td data-field="attrs"></td>
+  </tr>
+</template>
     </div>
   </div>
 </div>
@@ -211,8 +213,8 @@ export async function initModal9() {
   const supabase = window.supabase;
   const BUCKET = 'modal9-page1-uploads';
   const TABLE = 'modal9_page1_uploads_registry';
+  const POS_TABLE = 'modal9_page1_positions';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
-  const BLOCK1_TABLE = 'modal9_page1_block1';
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -365,9 +367,9 @@ if (upErr) {
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
-        .from(TABLE)
-        .select('file_number, user_login, created_at, file_name, file_ext, status')
-        .order('created_at', { ascending: false });
+  .from(POS_TABLE)
+  .select('id, spec_id, file_number, user_login, file_name, pos_number, name, qty, attrs')
+  .order('id', { ascending: false });
 
     if (error) { console.error(error); return; }
     history = data || [];
@@ -411,11 +413,16 @@ if (upErr) {
     block1List.innerHTML = '';
     block1Rows.forEach(row => {
       const fragment = block1RowTemplate.content.cloneNode(true);
-      fragment.querySelector('[data-field="number"]').textContent = row.number || '';
-      fragment.querySelector('[data-field="title"]').textContent = row.title || '';
-      fragment.querySelector('[data-field="qty"]').textContent = row.qty || '';
-      fragment.querySelector('[data-field="param"]').textContent = row.param || '';
-      fragment.querySelector('[data-field="value"]').textContent = row.value || '';
+      fragment.querySelector('[data-field="file_number"]').textContent = row.file_number;
+fragment.querySelector('[data-field="user_login"]').textContent  = row.user_login;
+fragment.querySelector('[data-field="file_name"]').textContent   = row.file_name;
+fragment.querySelector('[data-field="id"]').textContent          = row.id;
+fragment.querySelector('[data-field="spec_id"]').textContent     = row.spec_id;
+fragment.querySelector('[data-field="pos_number"]').textContent  = row.pos_number;
+fragment.querySelector('[data-field="name"]').textContent        = row.name;
+fragment.querySelector('[data-field="qty"]').textContent         = row.qty;
+fragment.querySelector('[data-field="attrs"]').textContent       = row.attrs;
+
       block1List.appendChild(fragment);
     });
   }
