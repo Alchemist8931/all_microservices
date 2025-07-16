@@ -213,7 +213,7 @@ export async function initModal9() {
   const supabase = window.supabase;
   const BUCKET = 'modal9-page1-uploads';
   const TABLE = 'modal9_page1_uploads_registry';
-  const POS_TABLE = 'modal9_page1_positions';
+  const POS_TABLE = 'modal9_page1_positions'; 
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
 
   const root = document.getElementById('modal9-container');
@@ -367,9 +367,12 @@ if (upErr) {
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
-  .from(POS_TABLE)
-  .select('id, spec_id, file_number, user_login, file_name, pos_number, name, qty, attrs')
-  .order('id', { ascending: false });
+      .from(POS_TABLE)                                // ← заменили константу
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, name, qty, attrs'
+      )
+      .order('id', { ascending: false });
 
     if (error) { console.error(error); return; }
     history = data || [];
@@ -400,9 +403,12 @@ if (upErr) {
   let block1Rows = [];
   async function loadBlock1() {
     const { data, error } = await supabase
-      .from(BLOCK1_TABLE)
-      .select('number:order, title:name, qty, param, value')
-      .order('id');
+      .from(POS_TABLE)                                // ← заменили константу
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, name, qty, attrs'
+      )
+      .order('id', { ascending: false });
 
     if (error) { console.error(error); return; }
     block1Rows = data || [];
