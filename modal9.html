@@ -374,8 +374,7 @@ if (upErr) {
     const { data, error } = await supabase
       .from(TABLE)
       .select('file_number, user_login, created_at, file_name, file_ext, status')
-      .order('spec_id', { ascending: true })
-      .order('pos_number', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) { console.error(error); return; }
     history = data || [];
