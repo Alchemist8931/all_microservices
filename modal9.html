@@ -126,6 +126,11 @@
     .block1-wrapper { max-height:60vh; overflow-y:auto; }
     .block1-table { width:100%; border-collapse:collapse; }
     .block1-table th, .block1-table td { border:1px solid #ccc; padding:4px; }
+
+    .block1-table .sys-col { display:none; }
+    .spec-group { background:#f0f0f0; cursor:pointer; font-weight:700; }
+    .pos-row   { display:none; }
+    .group-close { float:right; background:none; border:none; cursor:pointer; }
       
   </style>
   <div class="modal9-window">
@@ -182,8 +187,8 @@
         <table class="block1-table">
           <thead>
   <tr>
-    <th>№ файла</th><th>логин</th><th>имя файла</th>
-    <th>ID поз.</th><th>№ спецификации</th>
+    <th class="sys-col">№ файла</th><th class="sys-col">логин</th><th class="sys-col">имя файла</th>
+    <th>ID поз.</th><th class="sys-col">№ спецификации</th>
     <th>№ в ТЗ</th><th>наименование</th><th>кол-во</th><th>атрибуты</th>
   </tr>
 </thead>
@@ -191,12 +196,12 @@
         </table>
       </div>
     <template id="block1-row-template">
-  <tr>
-    <td data-field="file_number"></td>
-    <td data-field="user_login"></td>
-    <td data-field="file_name"></td>
+  <tr class="pos-row">
+    <td data-field="file_number" class="sys-col"></td>
+    <td data-field="user_login" class="sys-col"></td>
+    <td data-field="file_name" class="sys-col"></td>
     <td data-field="id"></td>
-    <td data-field="spec_id"></td>
+    <td data-field="spec_id" class="sys-col"></td>
     <td data-field="pos_number"></td>
     <td data-field="name"></td>
     <td data-field="qty"></td>
@@ -369,7 +374,8 @@ if (upErr) {
     const { data, error } = await supabase
       .from(TABLE)
       .select('file_number, user_login, created_at, file_name, file_ext, status')
-      .order('id', { ascending: false });
+      .order('spec_id', { ascending: true })
+      .order('pos_number', { ascending: true });
 
     if (error) { console.error(error); return; }
     history = data || [];
@@ -414,20 +420,50 @@ if (upErr) {
 
   function renderBlock1() {
     block1List.innerHTML = '';
-    block1Rows.forEach(row => {
-      const fragment = block1RowTemplate.content.cloneNode(true);
-      fragment.querySelector('[data-field="file_number"]').textContent = row.file_number;
-fragment.querySelector('[data-field="user_login"]').textContent  = row.user_login;
-fragment.querySelector('[data-field="file_name"]').textContent   = row.file_name;
-fragment.querySelector('[data-field="id"]').textContent          = row.id;
-fragment.querySelector('[data-field="spec_id"]').textContent     = row.spec_id;
-fragment.querySelector('[data-field="pos_number"]').textContent  = row.pos_number;
-fragment.querySelector('[data-field="name"]').textContent        = row.name;
-fragment.querySelector('[data-field="qty"]').textContent         = row.qty;
-fragment.querySelector('[data-field="attrs"]').textContent       = row.attrs;
-
-      block1List.appendChild(fragment);
+    const groups = {};
+    block1Rows.forEach(r => {
+      (groups[r.spec_id] = groups[r.spec_id] || []).push(r);
     });
+    const ids = Object.keys(groups).sort((a,b) => Number(a) - Number(b));
+    ids.forEach(id => {
+      const header = document.createElement('tr');
+      header.className = 'spec-group';
+      header.dataset.specId = id;
+      header.innerHTML = `<td colspan="9">Спецификация ${id}<button class="group-close ans5-close" style="display:none">×</button></td>`;
+      const btn = header.querySelector('.group-close');
+      btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
+      header.addEventListener('click', () => openGroup(id));
+      block1List.appendChild(header);
+      groups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
+        const fragment = block1RowTemplate.content.cloneNode(true);
+        const tr = fragment.querySelector('tr');
+        tr.dataset.specId = id;
+        fragment.querySelector('[data-field="file_number"]').textContent = row.file_number;
+        fragment.querySelector('[data-field="user_login"]').textContent  = row.user_login;
+        fragment.querySelector('[data-field="file_name"]').textContent   = row.file_name;
+        fragment.querySelector('[data-field="id"]').textContent          = row.id;
+        fragment.querySelector('[data-field="spec_id"]').textContent     = row.spec_id;
+        fragment.querySelector('[data-field="pos_number"]').textContent  = row.pos_number;
+        fragment.querySelector('[data-field="name"]').textContent        = row.name;
+        fragment.querySelector('[data-field="qty"]').textContent         = row.qty;
+        fragment.querySelector('[data-field="attrs"]').textContent       = row.attrs;
+        block1List.appendChild(fragment);
+      });
+    });
+  }
+
+  function openGroup(id) {
+    block1List.querySelectorAll('.pos-row').forEach(r => r.style.display = 'none');
+    block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
+    block1List.querySelectorAll(`tr.pos-row[data-spec-id="${id}"]`).forEach(r => r.style.display = 'table-row');
+    const btn = block1List.querySelector(`tr.spec-group[data-spec-id="${id}"] .group-close`);
+    if (btn) btn.style.display = 'inline';
+  }
+
+  function closeGroup(id) {
+    block1List.querySelectorAll(`tr.pos-row[data-spec-id="${id}"]`).forEach(r => r.style.display = 'none');
+    const btn = block1List.querySelector(`tr.spec-group[data-spec-id="${id}"] .group-close`);
+    if (btn) btn.style.display = 'none';
   }
 
   await loadHistory();
