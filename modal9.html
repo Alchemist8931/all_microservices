@@ -367,11 +367,8 @@ if (upErr) {
   let history = [];
   async function loadHistory() {
     const { data, error } = await supabase
-      .from(POS_TABLE)                                // ← заменили константу
-      .select(
-        'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, name, qty, attrs'
-      )
+      .from(TABLE)
+      .select('file_number, user_login, created_at, file_name, file_ext, status')
       .order('id', { ascending: false });
 
     if (error) { console.error(error); return; }
