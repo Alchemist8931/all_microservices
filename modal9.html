@@ -131,6 +131,8 @@
     .spec-group { background:#f0f0f0; cursor:pointer; font-weight:700; }
     .pos-row   { display:none; }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
+
+    .block1-table td[data-field="attrs"] { white-space: pre-line; }
       
   </style>
   <div class="modal9-window">
@@ -445,7 +447,8 @@ if (upErr) {
         fragment.querySelector('[data-field="pos_number"]').textContent  = row.pos_number;
         fragment.querySelector('[data-field="name"]').textContent        = row.name;
         fragment.querySelector('[data-field="qty"]').textContent         = row.qty;
-        fragment.querySelector('[data-field="attrs"]').textContent       = row.attrs;
+        const attrsCell = fragment.querySelector('[data-field="attrs"]');
+        attrsCell.textContent = (row.attrs || '').replace(/\s*\|\s*/g, '\n');
         block1List.appendChild(fragment);
       });
     });
