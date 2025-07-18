@@ -373,15 +373,9 @@ if (upErr) {
         return;
       }
 
-      uploadStatus.textContent = 'GPT обрабатывает…';
-      await supabase.functions.invoke('modal9-parser', {
-       // headers НЕ передаём – SDK сам проставит нужное
-       body: { request_id: insertedRow.id }
-      });
-      uploadStatus.textContent = 'Файл сохранён';
-        await loadHistory();
-        await loadBlock1();
-        uploadProgress.style.display = 'none';
+     uploadStatus.textContent = 'Файл поставлен в очередь';
+      await loadHistory();
+      uploadProgress.style.display = 'none';
   });
 
   let history = [];
