@@ -425,7 +425,7 @@ if (upErr) {
     block1Rows.forEach(r => {
       (groups[r.spec_id] = groups[r.spec_id] || []).push(r);
     });
-    const ids = Object.keys(groups).sort((a,b) => Number(a) - Number(b));
+    const ids = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
     ids.forEach(id => {
       const header = document.createElement('tr');
       header.className = 'spec-group';
