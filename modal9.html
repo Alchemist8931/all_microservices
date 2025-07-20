@@ -268,6 +268,18 @@
           <div class="attrs modalColumn"></div>
         </div>
       </template>
+      <template id="spec-attr-template">
+        <div class="modalRow">
+          <div class="input-container">
+            <input type="text" class="styled_input_bar param-input" readonly>
+            <label class="input-label">параметр</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar value-input" readonly>
+            <label class="input-label">значение</label>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </div>
@@ -296,6 +308,7 @@ export async function initModal9() {
   const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
   const posTemplate = root.querySelector('#spec-pos-template');
+  const attrPairTemplate = root.querySelector('#spec-attr-template');
 
   const DELIM = window.__DELIM || "###";
 
@@ -501,32 +514,18 @@ if (upErr) {
           pair = pair.trim();
           if(!pair) return;
           const [p, v] = pair.split(/[:=]/);
-          const pairRow = document.createElement('div');
-          pairRow.className = 'modalRow';
-          const pCont = document.createElement('div');
-          pCont.className = 'input-container';
-          const pInp = document.createElement('input');
-          pInp.className = 'styled_input_bar';
-          pInp.value = p || '';
-          pInp.readOnly = true;
-          const pLab = document.createElement('label');
-          pLab.className = 'input-label';
-          pLab.textContent = 'параметр';
-          pCont.append(pInp, pLab);
-
-          const vCont = document.createElement('div');
-          vCont.className = 'input-container';
-          const vInp = document.createElement('input');
-          vInp.className = 'styled_input_bar';
-          vInp.value = v || '';
-          vInp.readOnly = true;
-          const vLab = document.createElement('label');
-          vLab.className = 'input-label';
-          vLab.textContent = 'значение';
-          vCont.append(vInp, vLab);
-
-          pairRow.append(pCont, vCont);
-          attrsWrap.appendChild(pairRow);
+          const fragPair = attrPairTemplate.content.cloneNode(true);
+          const pInp = fragPair.querySelector('.param-input');
+          const vInp = fragPair.querySelector('.value-input');
+          if(pInp) {
+            pInp.value = p || '';
+            pInp.readOnly = true;
+          }
+          if(vInp) {
+            vInp.value = v || '';
+            vInp.readOnly = true;
+          }
+          attrsWrap.appendChild(fragPair);
         });
         content.appendChild(pf);
       });
