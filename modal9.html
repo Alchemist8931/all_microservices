@@ -104,7 +104,7 @@
       display: flex;
       padding: 6px;
       border-radius: 6px;
-      background: #fff;
+      background: transparent;
       border: 1px solid #ccc;
     }
     .iconTYPE1 { font-size:18px; cursor:pointer; color:#007bff; }
@@ -265,7 +265,7 @@
             <input type="text" class="styled_input_bar" data-field="qty" readonly>
             <label class="input-label">кол-во</label>
           </div>
-          <div class="attrs modalRow"></div>
+          <div class="attrs modalColumn"></div>
         </div>
       </template>
     </div>
@@ -500,7 +500,9 @@ if (upErr) {
         (row.attrs || '').split('|').forEach(pair => {
           pair = pair.trim();
           if(!pair) return;
-          const [p,v] = pair.split(/[:=]/);
+          const [p, v] = pair.split(/[:=]/);
+          const pairRow = document.createElement('div');
+          pairRow.className = 'modalRow';
           const pCont = document.createElement('div');
           pCont.className = 'input-container';
           const pInp = document.createElement('input');
@@ -510,7 +512,7 @@ if (upErr) {
           const pLab = document.createElement('label');
           pLab.className = 'input-label';
           pLab.textContent = 'параметр';
-          pCont.append(pInp,pLab);
+          pCont.append(pInp, pLab);
 
           const vCont = document.createElement('div');
           vCont.className = 'input-container';
@@ -521,9 +523,10 @@ if (upErr) {
           const vLab = document.createElement('label');
           vLab.className = 'input-label';
           vLab.textContent = 'значение';
-          vCont.append(vInp,vLab);
+          vCont.append(vInp, vLab);
 
-          attrsWrap.append(pCont,vCont);
+          pairRow.append(pCont, vCont);
+          attrsWrap.appendChild(pairRow);
         });
         content.appendChild(pf);
       });
