@@ -435,11 +435,9 @@ if (upErr) {
       await loadHistory();
       uploadProgress.style.display = 'none';
 
-    const fd = new FormData();
-      fd.append('file', selectedFile);
-      supabase.functions
-        .invoke('modal9-parser', { body: fd })
-        .catch(err => console.error('modal9-parser error:', err));
+     supabase.functions
+      .invoke('modal9-parser', { body: { request_id: insertedRow.id } })
+      .catch(err => console.error('modal9-parser error:', err));
 
       selectedFile = null;
       fileInput.value = '';
