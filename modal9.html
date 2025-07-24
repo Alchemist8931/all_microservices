@@ -437,7 +437,8 @@ if (upErr) {
 
     const fd = new FormData();
       fd.append('file', selectedFile);
-      fetch(PARSER_URL, { method: 'POST', body: fd })
+      supabase.functions
+        .invoke('modal9-parser', { body: fd })
         .catch(err => console.error('modal9-parser error:', err));
 
       selectedFile = null;
