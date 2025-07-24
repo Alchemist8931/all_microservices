@@ -288,7 +288,8 @@ export async function initModal9() {
   const supabase = window.supabase;
   const BUCKET = 'modal9-page1-uploads';
   const TABLE = 'modal9_page1_uploads_registry';
-  const POS_TABLE = 'modal9_page1_positions'; 
+  const POS_TABLE = 'modal9_page1_positions';
+  const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
 
   const root = document.getElementById('modal9-container');
@@ -433,6 +434,15 @@ if (upErr) {
      uploadStatus.textContent = 'Файл поставлен в очередь';
       await loadHistory();
       uploadProgress.style.display = 'none';
+
+    const fd = new FormData();
+      fd.append('file', selectedFile);
+      fetch(PARSER_URL, { method: 'POST', body: fd })
+        .catch(err => console.error('modal9-parser error:', err));
+
+      selectedFile = null;
+      fileInput.value = '';
+      renderFileList();
   });
 
   let history = [];
