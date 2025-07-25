@@ -450,7 +450,7 @@ if (upErr) {
   async function loadHistory() {
     const { data, error } = await supabase
       .from(TABLE)
-      .select('file_number, user_login, created_at, file_name, file_ext, status')
+      .select('id, file_number, user_login, created_at, file_name, file_ext, status')
       .order('created_at', { ascending: false });
 
     if (error) { console.error(error); return; }
@@ -463,6 +463,8 @@ if (upErr) {
     historyList.innerHTML = '';
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
+        const rowEl = fragment.querySelector('.history-item');
+        rowEl.dataset.specId = item.id;
         fragment.querySelectorAll('input').forEach(inp => {
           const field = inp.dataset.field;
           let val = item[field];
@@ -475,11 +477,45 @@ if (upErr) {
             showCopyTip(inp);
           });
         });
+      const specRows = specGroups[item.id] || [];
+        if (specRows.length) {
+          const specFrag = specTemplate.content.cloneNode(true);
+          const container = specFrag.querySelector('.spec-container');
+          container.dataset.specId = item.id;
+          const header = specFrag.querySelector('.spec-header');
+          const btn = specFrag.querySelector('.group-close');
+          const content = specFrag.querySelector('.spec-content');
+          header.querySelector('.spec-id').textContent = item.id;
+          content.dataset.specId = item.id;
+          header.addEventListener('click', () => openRowGroup(item.id));
+          btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
+          specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
+            const pf = posTemplate.content.cloneNode(true);
+            pf.querySelector('[data-field="pos_number"]').value = r.pos_number;
+            pf.querySelector('[data-field="name"]').value = r.name;
+            pf.querySelector('[data-field="qty"]').value = r.qty;
+            const attrsWrap = pf.querySelector('.attrs');
+            (r.attrs || '').split('|').forEach(pair => {
+              pair = pair.trim();
+              if(!pair) return;
+              const [p,v] = pair.split(/[:=]/);
+              const fragPair = attrPairTemplate.content.cloneNode(true);
+              const pInp = fragPair.querySelector('.param-input');
+              const vInp = fragPair.querySelector('.value-input');
+              if(pInp){ pInp.value = p || ''; pInp.readOnly = true; }
+              if(vInp){ vInp.value = v || ''; vInp.readOnly = true; }
+              attrsWrap.appendChild(fragPair);
+            });
+            content.appendChild(pf);
+          });
+          fragment.appendChild(specFrag);
+        }
         historyList.appendChild(fragment);
     });
   }
 
   let block1Rows = [];
+  let specGroups = {};
   async function loadBlock1() {
     const { data, error } = await supabase
       .from(POS_TABLE)                                // ← заменили константу
@@ -491,16 +527,16 @@ if (upErr) {
 
     if (error) { console.error(error); return; }
     block1Rows = data || [];
+    specGroups = {};
+    block1Rows.forEach(r => {
+      (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
+    });
     renderBlock1();
   }
 
   function renderBlock1() {
     block1List.innerHTML = '';
-    const groups = {};
-    block1Rows.forEach(r => {
-      (groups[r.spec_id] = groups[r.spec_id] || []).push(r);
-    });
-    const ids = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
+    const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
     ids.forEach(id => {
       const frag = specTemplate.content.cloneNode(true);
       const container = frag.querySelector('.spec-container');
@@ -513,7 +549,7 @@ if (upErr) {
       header.addEventListener('click', () => openGroup(id));
       btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
       
-      groups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
+      specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
         const pf = posTemplate.content.cloneNode(true);
         pf.querySelector('[data-field="pos_number"]').value = row.pos_number;
         pf.querySelector('[data-field="name"]').value = row.name;
@@ -558,8 +594,23 @@ if (upErr) {
     if (btn) btn.style.display = 'none';
   }
 
-  await loadHistory();
+  function openRowGroup(id) {
+    historyList.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
+    historyList.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
+    const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
+    const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    if (cont) cont.style.display = 'block';
+    if (btn) btn.style.display = 'inline';
+  }
+
+  function closeRowGroup(id) {
+    const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
+    const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    if (cont) cont.style.display = 'none';
+    if (btn) btn.style.display = 'none';
+  }
   await loadBlock1();
+  await loadHistory();
 }
 initModal9();
 </script>
