@@ -237,6 +237,10 @@
             <input type="text" class="styled_input_bar" data-field="status" style="width: 110px; text-transform: uppercase; text-align: center;" readonly placeholder="uploaded">
             <label class="input-label">статус</label>
           </div>
+          <div class="input-container">
+           <input type="text" class="styled_input_bar" data-field="spec_name" style="width: 280px;" readonly placeholder="файл еще в работе">
+            <label class="input-label">спецификация</label>
+          </div>
         </div>
       </template>
     </div>
@@ -450,7 +454,7 @@ if (upErr) {
   async function loadHistory() {
     const { data, error } = await supabase
       .from(TABLE)
-      .select('file_number, user_login, created_at, file_name, file_ext, status')
+      .select('file_number, user_login, created_at, file_name, file_ext, status, spec_id, spec_name')
       .order('created_at', { ascending: false });
 
     if (error) { console.error(error); return; }
@@ -463,12 +467,17 @@ if (upErr) {
     historyList.innerHTML = '';
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
-        fragment.querySelectorAll('input').forEach(inp => {
+        const rowEl = fragment.querySelector('.history-item');
+        rowEl.dataset.specId = item.spec_id || '';
+        rowEl.dataset.specName = item.spec_name || '';
+        rowEl.addEventListener('click', () => toggleSpec(rowEl));
+        rowEl.querySelectorAll('input').forEach(inp => {
           const field = inp.dataset.field;
           let val = item[field];
           if (field === 'created_at') {
             val = new Date(item.created_at).toLocaleString();
           }
+          if (field === 'spec_name' && !val) val = 'файл еще в работе';
           inp.value = val || '';
           inp.addEventListener('click', () => {
             navigator.clipboard.writeText(inp.value || '');
@@ -477,6 +486,51 @@ if (upErr) {
         });
         historyList.appendChild(fragment);
     });
+  }
+
+  async function toggleSpec(rowEl) {
+    const specId = rowEl.dataset.specId;
+    historyList.querySelectorAll('.spec-container').forEach(c => c.remove());
+    if (!specId) {
+      const stub = document.createElement('div');
+      stub.className = 'spec-container';
+      stub.textContent = 'файл еще в работе';
+      rowEl.insertAdjacentElement('afterend', stub);
+      return;
+    }
+    const { data, error } = await supabase
+      .from(POS_TABLE)
+      .select('pos_number, name, qty, attrs')
+      .eq('spec_id', specId)
+      .order('id');
+    if (error || !data?.length) {
+      const stub = document.createElement('div');
+      stub.className = 'spec-container';
+      stub.textContent = 'файл еще в работе';
+      rowEl.insertAdjacentElement('afterend', stub);
+      return;
+    }
+    const frag = specTemplate.content.cloneNode(true);
+    frag.querySelector('.spec-id').textContent = rowEl.dataset.specName || specId;
+    const cont = frag.querySelector('.spec-content');
+    data.forEach(row => {
+      const pf = posTemplate.content.cloneNode(true);
+      pf.querySelector('[data-field="pos_number"]').value = row.pos_number;
+      pf.querySelector('[data-field="name"]').value = row.name;
+      pf.querySelector('[data-field="qty"]').value = row.qty;
+      const attrsWrap = pf.querySelector('.attrs');
+      (row.attrs || '').split('|').forEach(pair => {
+        pair = pair.trim();
+        if (!pair) return;
+        const [p, v] = pair.split(/[:=]/);
+        const pairFrag = attrPairTemplate.content.cloneNode(true);
+        pairFrag.querySelector('.param-input').value = p || '';
+        pairFrag.querySelector('.value-input').value = v || '';
+        attrsWrap.appendChild(pairFrag);
+      });
+      cont.appendChild(pf);
+    });
+    rowEl.insertAdjacentElement('afterend', frag);
   }
 
   let block1Rows = [];
