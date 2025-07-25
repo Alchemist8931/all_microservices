@@ -247,9 +247,10 @@
 
     <div class="page spec-page" data-page="2">
       <div class="block1-wrapper"></div>
-          <template id="spec-template">
+        <template id="spec-template">
         <div class="spec-container">
-          <div class="spec-header">Спецификация
+          <div class="spec-header">
+            <span class="spec-title">Спецификация</span>
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
           <div class="spec-content messages_container-content"></div>
@@ -476,10 +477,14 @@ if (upErr) {
             val = new Date(item.created_at).toLocaleString();
           }
           inp.value = val || '';
-          inp.addEventListener('click', () => {
-            navigator.clipboard.writeText(inp.value || '');
-            showCopyTip(inp);
-          });
+          if (field === 'id') {
+            inp.addEventListener('click', () => openRowGroup(item.id));
+          } else {
+            inp.addEventListener('click', () => {
+              navigator.clipboard.writeText(inp.value || '');
+              showCopyTip(inp);
+            });
+          }
         });
       const specRows = specGroups[item.id] || [];
         if (specRows.length) {
@@ -489,8 +494,9 @@ if (upErr) {
           const header = specFrag.querySelector('.spec-header');
           const btn = specFrag.querySelector('.group-close');
           const content = specFrag.querySelector('.spec-content');
+          const title = specFrag.querySelector('.spec-title');
+          if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
-          header.addEventListener('click', () => openRowGroup(item.id));
           btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
           specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
             const pf = posTemplate.content.cloneNode(true);
