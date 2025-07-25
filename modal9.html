@@ -454,7 +454,7 @@ if (upErr) {
   async function loadHistory() {
     const { data, error } = await supabase
       .from(TABLE)
-      .select('id, spec_id, spec_name, file_number, user_login, created_at, file_name, file_ext, status')
+      .select('id, file_number, user_login, created_at, file_name, file_ext, status')
       .order('created_at', { ascending: false });
 
     if (error) { console.error(error); return; }
@@ -468,7 +468,7 @@ if (upErr) {
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
         const rowEl = fragment.querySelector('.history-item');
-        rowEl.dataset.specId = item.spec_id || item.id;
+        rowEl.dataset.specId = item.id;
         rowEl.dataset.specName = item.spec_name || '';
         rowEl.addEventListener('click', () => toggleSpec(rowEl));
         rowEl.querySelectorAll('input').forEach(inp => {
