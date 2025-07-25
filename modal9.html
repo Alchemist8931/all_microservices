@@ -176,16 +176,7 @@
     .js-dropzone.drag { background: rgba(255,255,255,0.1); }
     .file__input-label { cursor:pointer; color:#fff; }
     .file-upload__list { list-style:none; margin:0; padding:0; color:#fff; }
-
-     /* --- блок результатов --- */
-    .block1-wrapper{
-      height:100%;
-      overflow-y:auto;
-      overflow-x:hidden;
-    }
-    .block1-wrapper::-webkit-scrollbar{ width:2.5px; background-color:var(--scrollbar-color); height:90%; }
-    .block1-wrapper::-webkit-scrollbar-thumb{ background-color:var(--black-color); border-radius:30px; }
-    .block1-wrapper::-webkit-scrollbar-track{ background-color:var(--scrollbar-color); }
+   
     .spec-container { margin-bottom:10px; }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
     .spec-content { display:none; }
@@ -210,7 +201,6 @@
       </div>
       <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
-      <div class="history-list spec-history-list"></div>
       <template id="history-row-template">
         <div class="history-item spec-history-item input-row" style="display: flex; flex-direction: row">
           <div class="input-container">
@@ -246,7 +236,7 @@
     </div>
 
     <div class="page spec-page" data-page="2">
-      <div class="block1-wrapper"></div>
+      <div class="history-list spec-history-list"></div>
       <template id="spec-template">
         <div class="spec-container">
           <div class="spec-header">Спецификация <span class="spec-id"></span>
@@ -310,7 +300,6 @@ export async function initModal9() {
   const uploadBtn = root.querySelector('.upload-btn');
   const uploadProgress = root.querySelector('.upload-progress');
   const uploadStatus = root.querySelector('.upload-status');
-  const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
   const posTemplate = root.querySelector('#spec-pos-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
@@ -353,7 +342,7 @@ export async function initModal9() {
       tab.classList.add('active');
       root.querySelector(`.page[data-page="${tab.dataset.page}"]`).classList.add('active');
       slider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
-      if (tab.dataset.page === '2') loadBlock1();
+      if (tab.dataset.page === '2') loadHistory();
     });
   });
 
@@ -533,87 +522,8 @@ if (upErr) {
     rowEl.insertAdjacentElement('afterend', frag);
   }
 
-  let block1Rows = [];
-  async function loadBlock1() {
-    const { data, error } = await supabase
-      .from(POS_TABLE)                                // ← заменили константу
-      .select(
-        'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, name, qty, attrs'
-      )
-      .order('id', { ascending: false });
-
-    if (error) { console.error(error); return; }
-    block1Rows = data || [];
-    renderBlock1();
-  }
-
-  function renderBlock1() {
-    block1List.innerHTML = '';
-    const groups = {};
-    block1Rows.forEach(r => {
-      (groups[r.spec_id] = groups[r.spec_id] || []).push(r);
-    });
-    const ids = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
-    ids.forEach(id => {
-      const frag = specTemplate.content.cloneNode(true);
-      const container = frag.querySelector('.spec-container');
-      container.dataset.specId = id;
-      const header = frag.querySelector('.spec-header');
-      const btn = frag.querySelector('.group-close');
-      const content = frag.querySelector('.spec-content');
-      header.querySelector('.spec-id').textContent = id;
-      content.dataset.specId = id;
-      header.addEventListener('click', () => openGroup(id));
-      btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
-      
-      groups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
-        const pf = posTemplate.content.cloneNode(true);
-        pf.querySelector('[data-field="pos_number"]').value = row.pos_number;
-        pf.querySelector('[data-field="name"]').value = row.name;
-        pf.querySelector('[data-field="qty"]').value = row.qty;
-        const attrsWrap = pf.querySelector('.attrs');
-        (row.attrs || '').split('|').forEach(pair => {
-          pair = pair.trim();
-          if(!pair) return;
-          const [p, v] = pair.split(/[:=]/);
-          const fragPair = attrPairTemplate.content.cloneNode(true);
-          const pInp = fragPair.querySelector('.param-input');
-          const vInp = fragPair.querySelector('.value-input');
-          if(pInp) {
-            pInp.value = p || '';
-            pInp.readOnly = true;
-          }
-          if(vInp) {
-            vInp.value = v || '';
-            vInp.readOnly = true;
-          }
-          attrsWrap.appendChild(fragPair);
-        });
-        content.appendChild(pf);
-      });
-      block1List.appendChild(frag);
-    });
-  }
-
-  function openGroup(id) {
-    block1List.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
-    block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
-    const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
-    const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    if (cont) cont.style.display = 'block';
-    if (btn) btn.style.display = 'inline';
-  }
-
-  function closeGroup(id) {
-    const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
-    const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    if (cont) cont.style.display = 'none';
-    if (btn) btn.style.display = 'none';
-  }
-
   await loadHistory();
-  await loadBlock1();
+
 }
 initModal9();
 </script>
