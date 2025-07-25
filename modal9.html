@@ -237,15 +237,19 @@
             <input type="text" class="styled_input_bar" data-field="status" style="width: 110px; text-transform: uppercase; text-align: center;" readonly placeholder="uploaded">
             <label class="input-label">статус</label>
           </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="id" style="width: 120px;" readonly placeholder="1">
+            <label class="input-label">Спецификация №</label>
+          </div>
         </div>
       </template>
     </div>
 
     <div class="page spec-page" data-page="2">
       <div class="block1-wrapper"></div>
-      <template id="spec-template">
+          <template id="spec-template">
         <div class="spec-container">
-          <div class="spec-header">Спецификация <span class="spec-id"></span>
+          <div class="spec-header">Спецификация
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
           <div class="spec-content messages_container-content"></div>
@@ -485,7 +489,6 @@ if (upErr) {
           const header = specFrag.querySelector('.spec-header');
           const btn = specFrag.querySelector('.group-close');
           const content = specFrag.querySelector('.spec-content');
-          header.querySelector('.spec-id').textContent = item.id;
           content.dataset.specId = item.id;
           header.addEventListener('click', () => openRowGroup(item.id));
           btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
@@ -544,7 +547,6 @@ if (upErr) {
       const header = frag.querySelector('.spec-header');
       const btn = frag.querySelector('.group-close');
       const content = frag.querySelector('.spec-content');
-      header.querySelector('.spec-id').textContent = id;
       content.dataset.specId = id;
       header.addEventListener('click', () => openGroup(id));
       btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
