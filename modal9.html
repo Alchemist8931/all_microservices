@@ -191,7 +191,11 @@
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
     .spec-content { display:none; }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
-      
+
+    .dynamic-modals { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+    .modal-block { background:#fff; border:1px solid #ccc; border-radius:6px; padding:6px; max-height:32px; overflow:hidden; transition:max-height 0.3s ease; }
+    .modal-block.open,
+    .modal-block:hover { max-height:1000px; }
       
   </style>
   <div class="modal9-window">
@@ -251,10 +255,26 @@
             <span class="spec-title">Спецификация</span>
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
-          <div class="spec-content messages_container-content"></div>
+          <div class="spec-content messages_container-content">
+            <div class="dynamic-modals">
+              <div class="modal-block block1">
+                <div class="modal-title">1 BLOCK</div>
+                <div class="modal-content"></div>
+              </div>
+              <div class="modal-block block2">
+                <div class="modal-title">2 BLOCK</div>
+                <div class="modal-content"></div>
+              </div>
+              <div class="modal-block block21">
+                <div class="modal-title">2.1 BLOCK</div>
+                <div class="modal-content"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
-      <template id="spec-pos-template">
+      
+      <template id="spec-block1-template">
         <div class="modalCONTEINERpost modalRow">
           <div class="input-container" style="margin-top: 10px;">
             <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="pos_number" readonly>
@@ -271,6 +291,24 @@
           <div class="attrs modalColumn" style="gap: 0px;"></div>
         </div>
       </template>
+      
+      <template id="spec-block2-template">
+        <div class="modalRow">
+          <div class="input-container">
+            <input type="text" class="styled_input_bar model-input" placeholder="модель">
+            <label class="input-label">модель</label>
+          </div>
+        </div>
+      </template>
+      <template id="spec-block21-template">
+        <div class="modalRow">
+          <div class="input-container">
+            <input type="text" class="styled_input_bar price-input" placeholder="цена">
+            <label class="input-label">цена</label>
+          </div>
+        </div>
+      </template>
+      
       <template id="spec-attr-template" style="margin-top: 18px;">
         <div class="modalRow" style="margin-top: 2px;">
           <div class="input-container">
@@ -311,8 +349,10 @@ export async function initModal9() {
   const uploadStatus = root.querySelector('.upload-status');
   const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
-  const posTemplate = root.querySelector('#spec-pos-template');
-  const attrPairTemplate = root.querySelector('#spec-attr-template');
+    const block1Template = root.querySelector('#spec-block1-template');
+    const block2Template = root.querySelector('#spec-block2-template');
+    const block21Template = root.querySelector('#spec-block21-template');
+    const attrPairTemplate = root.querySelector('#spec-attr-template');
 
   const DELIM = window.__DELIM || "###";
 
@@ -495,9 +535,14 @@ if (upErr) {
           const title = specFrag.querySelector('.spec-title');
           if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
+          const block1 = content.querySelector('.block1');
+          const block1Cont = block1.querySelector('.modal-content');
+          const block2Cont = content.querySelector('.block2 .modal-content');
+          const block21Cont = content.querySelector('.block21 .modal-content');
+          block1.classList.add('open');
           btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
           specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
-            const pf = posTemplate.content.cloneNode(true);
+            const pf = block1Template.content.cloneNode(true);
             pf.querySelector('[data-field="pos_number"]').value = r.pos_number;
             pf.querySelector('[data-field="name"]').value = r.name;
             pf.querySelector('[data-field="qty"]').value = r.qty;
@@ -513,7 +558,9 @@ if (upErr) {
               if(vInp){ vInp.value = v || ''; vInp.readOnly = true; }
               attrsWrap.appendChild(fragPair);
             });
-            content.appendChild(pf);
+            block1Cont.appendChild(pf);
+            if(block2Cont) block2Cont.appendChild(block2Template.content.cloneNode(true));
+            if(block21Cont) block21Cont.appendChild(block21Template.content.cloneNode(true));
           });
           fragment.appendChild(specFrag);
         }
@@ -542,46 +589,53 @@ if (upErr) {
   }
 
   function renderBlock1() {
-    block1List.innerHTML = '';
-    const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
-    ids.forEach(id => {
-      const frag = specTemplate.content.cloneNode(true);
-      const container = frag.querySelector('.spec-container');
-      container.dataset.specId = id;
-      const header = frag.querySelector('.spec-header');
-      const btn = frag.querySelector('.group-close');
-      const content = frag.querySelector('.spec-content');
-      content.dataset.specId = id;
-      header.addEventListener('click', () => openGroup(id));
-      btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
-      
-      specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
-        const pf = posTemplate.content.cloneNode(true);
-        pf.querySelector('[data-field="pos_number"]').value = row.pos_number;
-        pf.querySelector('[data-field="name"]').value = row.name;
-        pf.querySelector('[data-field="qty"]').value = row.qty;
-        const attrsWrap = pf.querySelector('.attrs');
-        (row.attrs || '').split('|').forEach(pair => {
-          pair = pair.trim();
-          if(!pair) return;
-          const [p, v] = pair.split(/[:=]/);
-          const fragPair = attrPairTemplate.content.cloneNode(true);
-          const pInp = fragPair.querySelector('.param-input');
-          const vInp = fragPair.querySelector('.value-input');
-          if(pInp) {
-            pInp.value = p || '';
-            pInp.readOnly = true;
-          }
-          if(vInp) {
-            vInp.value = v || '';
-            vInp.readOnly = true;
-          }
-          attrsWrap.appendChild(fragPair);
+      block1List.innerHTML = '';
+      const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
+      ids.forEach(id => {
+        const frag = specTemplate.content.cloneNode(true);
+        const container = frag.querySelector('.spec-container');
+        container.dataset.specId = id;
+        const header = frag.querySelector('.spec-header');
+        const btn = frag.querySelector('.group-close');
+        const content = frag.querySelector('.spec-content');
+        const block1 = content.querySelector('.block1');
+        const block1Cont = block1.querySelector('.modal-content');
+        const block2Cont = content.querySelector('.block2 .modal-content');
+        const block21Cont = content.querySelector('.block21 .modal-content');
+        block1.classList.add('open');
+        content.dataset.specId = id;
+        header.addEventListener('click', () => openGroup(id));
+        btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
+
+        specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
+          const pf = block1Template.content.cloneNode(true);
+          pf.querySelector('[data-field="pos_number"]').value = row.pos_number;
+          pf.querySelector('[data-field="name"]').value = row.name;
+          pf.querySelector('[data-field="qty"]').value = row.qty;
+          const attrsWrap = pf.querySelector('.attrs');
+          (row.attrs || '').split('|').forEach(pair => {
+            pair = pair.trim();
+            if(!pair) return;
+            const [p, v] = pair.split(/[:=]/);
+            const fragPair = attrPairTemplate.content.cloneNode(true);
+            const pInp = fragPair.querySelector('.param-input');
+            const vInp = fragPair.querySelector('.value-input');
+            if(pInp) {
+              pInp.value = p || '';
+              pInp.readOnly = true;
+            }
+            if(vInp) {
+              vInp.value = v || '';
+              vInp.readOnly = true;
+            }
+            attrsWrap.appendChild(fragPair);
+          });
+          block1Cont.appendChild(pf);
+          if(block2Cont) block2Cont.appendChild(block2Template.content.cloneNode(true));
+          if(block21Cont) block21Cont.appendChild(block21Template.content.cloneNode(true));
         });
-        content.appendChild(pf);
+        block1List.appendChild(frag);
       });
-      block1List.appendChild(frag);
-    });
   }
 
   function openGroup(id) {
