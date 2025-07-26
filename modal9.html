@@ -192,10 +192,58 @@
     .spec-content { display:none; }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
 
-    .dynamic-modals { display:flex; flex-direction:row; gap:8px; margin-top:6px; }
-    .modal-block { background:#fff; border:1px solid #ccc; border-radius:6px; padding:6px; max-height:32px; overflow:hidden; transition:max-height 0.3s ease; }
-    .modal-block.open,
-    .modal-block:hover { max-height:1000px; }
+    .dynamic-modals {
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      width:max-content;
+      user-select:none;
+      margin-left:5px;
+    }
+    .modal-block {
+      position:relative;
+      width:50px;
+      min-height:100%;
+      max-height:max-content;
+      border:1px solid #212121;
+      border-radius:6px;
+      background:#fff;
+      overflow:hidden;
+      transition:width 0.3s;
+      box-sizing:border-box;
+    }
+    .modal-title {
+      position:absolute;
+      top:8px;
+      left:50%;
+      transform:translateX(-50%) rotate(180deg);
+      writing-mode:vertical-rl;
+      text-orientation:mixed;
+      font:600 14px/1 Arial, sans-serif;
+      color:#333;
+      pointer-events:none;
+      transition:0.3s;
+    }
+    .modal-content {
+      opacity:0;
+      padding:0;
+      transition:0.5s;
+      box-sizing:border-box;
+    }
+    .modal-block.open {
+      width:100%;
+      border:none;
+    }
+    .modal-block.open .modal-content { opacity:1; }
+    .modal-block.open .modal-title { opacity:0.15; }
+    .dynamic-modals .modal-block { width:50px; }
+    .dynamic-modals:hover .modal-block { width:50px; }
+    .dynamic-modals:hover .modal-block:hover {
+      width:100%;
+      border:none;
+    }
+    .dynamic-modals:hover .modal-block:hover .modal-content { opacity:1; }
+    .dynamic-modals:hover .modal-block:hover .modal-title { opacity:0.15; }
       
   </style>
   <div class="modal9-window">
@@ -272,6 +320,10 @@
           <div class="input-container" style="margin-top: 10px;">
             <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="qty" readonly>
             <label class="input-label">кол-во</label>
+          </div>
+          <div class="input-container" style="margin-top: 10px;">
+            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" readonly>
+            <label class="input-label">ед. изм.</label>
           </div>
           <div class="dynamic-modals">
             <div class="modal-block block1">
