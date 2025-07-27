@@ -237,6 +237,8 @@
     .modal-block.open .modal-content { opacity:1; }
     .modal-block.open .modal-title { opacity:0.15; }
     .dynamic-modals .modal-block { width:50px; }
+    /* раскрытие блоков только по двойному клику, убираем ховер-эффекты */
+    /*
     .dynamic-modals:hover .modal-block { width:50px; }
     .dynamic-modals:hover .modal-block:hover {
       width:100%;
@@ -244,7 +246,7 @@
     }
     .dynamic-modals:hover .modal-block:hover .modal-content { opacity:1; }
     .dynamic-modals:hover .modal-block:hover .modal-title { opacity:0.15; }
-      
+    */
   </style>
   <div class="modal9-window">
     
@@ -622,6 +624,7 @@ if (upErr) {
         }
         historyList.appendChild(fragment);
     });
+    setupDynamicBlocks(historyList);
   }
 
   let block1Rows = [];
@@ -690,6 +693,7 @@ if (upErr) {
         });
         block1List.appendChild(frag);
       });
+    setupDynamicBlocks(block1List);
   }
 
   function openGroup(id) {
@@ -697,14 +701,20 @@ if (upErr) {
     block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    if (cont) cont.style.display = 'block';
+    if (cont) {
+      cont.style.display = 'block';
+      resetDynamicBlocks(cont);
+    }
     if (btn) btn.style.display = 'inline';
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    if (cont) cont.style.display = 'none';
+    if (cont) {
+      cont.style.display = 'block';
+      resetDynamicBlocks(cont);
+    }
     if (btn) btn.style.display = 'none';
   }
 
@@ -723,6 +733,35 @@ if (upErr) {
     if (cont) cont.style.display = 'none';
     if (btn) btn.style.display = 'none';
   }
+
+  function resetDynamicBlocks(scope) {
+    scope.querySelectorAll('.dynamic-modals').forEach(dm => {
+      const blocks = dm.querySelectorAll('.modal-block');
+      blocks.forEach((b, i) => {
+        if (i === 0) b.classList.add('open');
+        else b.classList.remove('open');
+      });
+    });
+  }
+
+  function setupDynamicBlocks(scope) {
+    scope.querySelectorAll('.dynamic-modals').forEach(dm => {
+      const blocks = dm.querySelectorAll('.modal-block');
+      let current = dm.querySelector('.modal-block.open') || blocks[0];
+      if (current && !current.classList.contains('open')) {
+        current.classList.add('open');
+      }
+      blocks.forEach(block => {
+        block.addEventListener('dblclick', () => {
+          if (block === current) return;
+          if (current) current.classList.remove('open');
+          block.classList.add('open');
+          current = block;
+        });
+      });
+    });
+  }
+  
   await loadBlock1();
   await loadHistory();
 }
