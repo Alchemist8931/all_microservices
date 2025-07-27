@@ -264,6 +264,7 @@
       <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
       <div class="history-list spec-history-list"></div>
+      
       <template id="history-row-template">
         <div class="history-item spec-history-item input-row" style="display: flex; flex-direction: row">
           <div class="input-container">
@@ -296,11 +297,13 @@
           </div>
         </div>
       </template>
+      
     </div>
 
     <div class="page spec-page" data-page="2">
       <div class="block1-wrapper"></div>
-        <template id="spec-template">
+      
+      <template id="spec-template">
         <div class="spec-container">
           <div class="spec-header">
             <span class="spec-title">Спецификация</span>
@@ -354,7 +357,7 @@
       </template>
       
       <template id="spec-block2-template">
-        <div class="modalCONTEINERpost modalRow">
+        <div class="modalRow">
           <div class="input-container">
             <input type="text" class="styled_input_bar model-input" placeholder="модель">
             <label class="input-label">модель</label>
@@ -362,7 +365,7 @@
         </div>
       </template>
       <template id="spec-block21-template">
-        <div class="modalCONTEINERpost modalRow">
+        <div class="modalRow">
           <div class="input-container">
             <input type="text" class="styled_input_bar price-input" placeholder="цена">
             <label class="input-label">цена</label>
@@ -371,17 +374,18 @@
       </template>
       
       <template id="spec-attr-template" style="margin-top: 18px;">
-          <div class="modalCONTEINERpost modalRow" style="margin-top: 2px;">
-            <div class="input-container">
-              <input type="text" style="width: 460px;" class="styled_input_bar param-input" placeholder="параметр" readonly>
-              <label class="input-label">параметр</label>
-            </div>
+        <div class="modalRow" style="margin-top: 2px;">
           <div class="input-container">
-            <input type="text" style="width: 210px;" class="styled_input_bar value-input" placeholder="значение" readonly>
+            <input type="text" style="width: 460px;" class="styled_input_bar model-input" placeholder="параметр" readonly>
+            <label class="input-label">параметр</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 210px;" class="styled_input_bar model-input" placeholder="значение" readonly>
             <label class="input-label">значение</label>
           </div>
         </div>
       </template>
+      
     </div>
   </div>
 </div>
