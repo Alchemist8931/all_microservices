@@ -231,13 +231,13 @@
       box-sizing:border-box;
     }
     .modal-block.open {
-      width:100%;
+      width:max-content;
       border:none;
     }
     .modal-block.open .modal-content { opacity:1; }
     .modal-block.open .modal-title { opacity:0.15; }
     .dynamic-modals .modal-block { width:50px; }
-    .dynamic-modals .modal-block.open { width:100%; border:none; }
+    .dynamic-modals .modal-block.open { width:max-content; border:none; }
     /* раскрытие блоков только по двойному клику, убираем ховер-эффекты */
     /*
     .dynamic-modals:hover .modal-block { width:50px; }
@@ -331,7 +331,7 @@
             <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" readonly>
             <label class="input-label">ед. изм.</label>
           </div>
-          <div class="dynamic-modals" style="width: 1600px;">
+          <div class="dynamic-modals">
             <div class="modal-block block1">
               <div class="modal-title">1 BLOCK</div>
               <div class="modal-content"></div>
