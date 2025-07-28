@@ -5,11 +5,22 @@
     .spec-modal {
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      height: 100vh;
+      height: 100%;
       margin: 0;
-      padding: 10px;
+      padding: 20px 10px;
+      box-sizing: border-box;
+    }
+
+    .modal9-top-window {
+      background: var(--fon, #f5f5f5);
+      color: var(--black-color, #000);
+      border-radius: 10px;
+      width: 2000px;
+      max-width: 90vw;
+      height: 180px;
+      padding: 20px;
       box-sizing: border-box;
     }
     .spec-tabs,
@@ -153,7 +164,8 @@
       border-radius:10px;
       width:2000px;
       max-width:90vw;
-      height: 96%;
+      flex:1;
+      margin-top:30px;
       padding:20px;
       overflow-y:auto;
       overflow-x:hidden;
@@ -249,20 +261,20 @@
     .dynamic-modals:hover .modal-block:hover .modal-title { opacity:0.15; }
     */
   </style>
-  <div class="modal9-window">
-    
-
-    <div class="page spec-page active" data-page="1">
-        <div class="file-upload__modal">
-        <div class="file-upload__form js-dropzone">
-          <input type="file" class="file__input js-file__input" hidden>
-          <label class="file__input-label">Выберите файл</label>
-        </div>
-        <button type="button" class="upload-btn">Загрузить</button>
-        <ul class="file-upload__list"></ul>
+  <div class="modal9-top-window">
+    <div class="file-upload__modal">
+      <div class="file-upload__form js-dropzone">
+        <input type="file" class="file__input js-file__input" hidden>
+        <label class="file__input-label">Выберите файл</label>
       </div>
-      <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+      <button type="button" class="upload-btn">Загрузить</button>
+      <ul class="file-upload__list"></ul>
+    </div>
+    <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
+  </div>
+  <div class="modal9-window">
+    <div class="page spec-page active" data-page="1">
       <div class="history-list spec-history-list"></div>
       
       <template id="history-row-template">
