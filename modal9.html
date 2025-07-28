@@ -656,7 +656,12 @@ const { data: last } = await supabase
 
      supabase.functions
       .invoke('modal9-parser', { body: { request_id: insertedRow.id } })
-      .catch(err => console.error('modal9-parser error:', err));
+      .then(() =>
+        supabase.functions.invoke('modal9-selector', {
+          body: { spec_id: insertedRow.id },
+        })
+      )
+      .catch(err => console.error('modal9-parser/selector error:', err));
 
       selectedFile = null;
       fileInput.value = '';
