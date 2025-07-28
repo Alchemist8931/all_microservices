@@ -491,6 +491,7 @@ export async function initModal9() {
   const BUCKET = 'modal9-page1-uploads';
   const TABLE = 'modal9_page1_uploads_registry';
   const POS_TABLE = 'modal9_page1_positions';
+  const SELECT_TABLE = 'modal9_page1_selections';
   const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
 
@@ -733,7 +734,18 @@ const { data: last } = await supabase
               attrsWrap.appendChild(fragPair);
             });
             const b2 = rf.querySelector('.block2 .modal-content');
-            if(b2) b2.appendChild(block2Template.content.cloneNode(true));
+            if (b2) {
+              const b2Frag = block2Template.content.cloneNode(true);
+              const sel = selectionMap[r.id];
+              if (sel) {
+                const inputs = b2Frag.querySelectorAll('input');
+                if (inputs[0]) inputs[0].value = sel.article || '';
+                if (inputs[1]) inputs[1].value = sel.model_name || '';
+                if (inputs[2]) inputs[2].value = sel.qty || '';
+                if (inputs[3]) inputs[3].value = sel.unit || '';
+              }
+              b2.appendChild(b2Frag);
+            }
             const b21 = rf.querySelector('.block21 .modal-content');
             if(b21) b21.appendChild(block21Template.content.cloneNode(true));
             rf.querySelector('.block1').classList.add('open');
@@ -748,6 +760,7 @@ const { data: last } = await supabase
 
   let block1Rows = [];
   let specGroups = {};
+  let selectionMap = {};
   async function loadBlock1() {
     const { data, error } = await supabase
       .from(POS_TABLE)                                // ← заменили константу
@@ -759,6 +772,18 @@ const { data: last } = await supabase
 
     if (error) { console.error(error); return; }
     block1Rows = data || [];
+    const posIds = block1Rows.map(r => r.id);
+    selectionMap = {};
+    if (posIds.length) {
+      const { data: sels, error: selErr } = await supabase
+        .from(SELECT_TABLE)
+        .select('pos_id, article, model_name, qty, unit')
+        .in('pos_id', posIds);
+      if (selErr) console.error(selErr);
+      (sels || []).forEach(s => {
+        selectionMap[s.pos_id] = s;
+      });
+    }
     specGroups = {};
     block1Rows.forEach(r => {
       (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
@@ -804,7 +829,18 @@ const { data: last } = await supabase
             attrsWrap.appendChild(fragPair);
           });
           const b2 = rf.querySelector('.block2 .modal-content');
-          if(b2) b2.appendChild(block2Template.content.cloneNode(true));
+          if (b2) {
+            const b2Frag = block2Template.content.cloneNode(true);
+            const sel = selectionMap[row.id];
+            if (sel) {
+              const inputs = b2Frag.querySelectorAll('input');
+              if (inputs[0]) inputs[0].value = sel.article || '';
+              if (inputs[1]) inputs[1].value = sel.model_name || '';
+              if (inputs[2]) inputs[2].value = sel.qty || '';
+              if (inputs[3]) inputs[3].value = sel.unit || '';
+            }
+            b2.appendChild(b2Frag);
+          }
           const b21 = rf.querySelector('.block21 .modal-content');
           if(b21) b21.appendChild(block21Template.content.cloneNode(true));
           rf.querySelector('.block1').classList.add('open');
