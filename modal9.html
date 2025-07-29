@@ -736,16 +736,20 @@ const { data: last } = await supabase
             });
             const b2 = rf.querySelector('.block2 .modal-content');
             if (b2) {
-              const b2Frag = block2Template.content.cloneNode(true);
-              const sel = selectionMap[r.id];
-              if (sel) {
-                const inputs = b2Frag.querySelectorAll('input');
-                if (inputs[0]) inputs[0].value = sel.article || '';
-                if (inputs[1]) inputs[1].value = sel.model_name || '';
-                if (inputs[2]) inputs[2].value = sel.qty || '';
-                if (inputs[3]) inputs[3].value = sel.unit || '';
+              const sels = selectionMap[r.id] || [];
+              if (sels.length) {
+                sels.forEach(sel => {
+                  const b2Frag = block2Template.content.cloneNode(true);
+                  const inputs = b2Frag.querySelectorAll('input');
+                  if (inputs[0]) inputs[0].value = sel.article || '';
+                  if (inputs[1]) inputs[1].value = sel.model_name || '';
+                  if (inputs[2]) inputs[2].value = sel.qty || '';
+                  if (inputs[3]) inputs[3].value = sel.unit || '';
+                  b2.appendChild(b2Frag);
+                });
+              } else {
+                b2.appendChild(block2Template.content.cloneNode(true));
               }
-              b2.appendChild(b2Frag);
             }
             const b21 = rf.querySelector('.block21 .modal-content');
             if(b21) b21.appendChild(block21Template.content.cloneNode(true));
@@ -782,7 +786,7 @@ const { data: last } = await supabase
         .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
-        selectionMap[s.pos_id] = s;
+        (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s);
       });
     }
     specGroups = {};
@@ -831,16 +835,20 @@ const { data: last } = await supabase
           });
           const b2 = rf.querySelector('.block2 .modal-content');
           if (b2) {
-            const b2Frag = block2Template.content.cloneNode(true);
-            const sel = selectionMap[row.id];
-            if (sel) {
-              const inputs = b2Frag.querySelectorAll('input');
-              if (inputs[0]) inputs[0].value = sel.article || '';
-              if (inputs[1]) inputs[1].value = sel.model_name || '';
-              if (inputs[2]) inputs[2].value = sel.qty || '';
-              if (inputs[3]) inputs[3].value = sel.unit || '';
+            const sels = selectionMap[row.id] || [];
+            if (sels.length) {
+              sels.forEach(sel => {
+                const b2Frag = block2Template.content.cloneNode(true);
+                const inputs = b2Frag.querySelectorAll('input');
+                if (inputs[0]) inputs[0].value = sel.article || '';
+                if (inputs[1]) inputs[1].value = sel.model_name || '';
+                if (inputs[2]) inputs[2].value = sel.qty || '';
+                if (inputs[3]) inputs[3].value = sel.unit || '';
+                b2.appendChild(b2Frag);
+              });
+            } else {
+              b2.appendChild(block2Template.content.cloneNode(true));
             }
-            b2.appendChild(b2Frag);
           }
           const b21 = rf.querySelector('.block21 .modal-content');
           if(b21) b21.appendChild(block21Template.content.cloneNode(true));
