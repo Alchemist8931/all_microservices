@@ -157,6 +157,36 @@
       background-color: var(--scrollbar-color);
     }
 
+    .status-display {
+      width: auto;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #212121;
+      border-radius: 8px;
+      background-color: transparent;
+      color: #212121;
+      box-sizing: border-box;
+      text-align: left;
+      transition: opacity 1s, filter 1s;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .status-display.dots::after {
+      content: '...';
+      display: inline-block;
+      overflow: hidden;
+      width: 0;
+      margin-left: 4px;
+      animation: dots 1s steps(4, end) infinite;
+    }
+    .status-display.fade {
+      opacity: 0;
+      filter: blur(2px);
+    }
+    @keyframes dots {
+      to { width: 1em; }
+    }
+
     /* ---- окно модалки ---- */
     .modal9-window {
       background:var(--fon, #f5f5f5);
@@ -361,7 +391,7 @@
             <label class="input-label">ext</label>
           </div>
           <div class="input-container">
-            <input type="text" class="styled_input_bar" data-field="status" style="width: 160px; text-transform: uppercase; text-align: center;" readonly placeholder="uploaded">
+            <div class="status-display" data-field="status" style="width: 160px; text-transform: uppercase; text-align: center;">uploaded</div>
             <label class="input-label">статус</label>
           </div>
           <div class="input-container">
@@ -514,6 +544,7 @@ export async function initModal9() {
   const block2Template = root.querySelector('#spec-block2-template');
   const block21Template = root.querySelector('#spec-block21-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
+  let realtimeSub = null;
 
   const DELIM = window.__DELIM || "###";
 
@@ -571,6 +602,25 @@ export async function initModal9() {
     tip.style.left = r.left + r.width / 2 - tip.offsetWidth / 2 + 'px';
     tip.style.top = r.top - tip.offsetHeight - 6 + 'px';
     setTimeout(() => tip.remove(), 1000);
+  }
+
+  function applyDots(el, status) {
+    if (!el) return;
+    if (/(парсинг|селекция)/i.test(status)) {
+      el.classList.add('dots');
+    } else {
+      el.classList.remove('dots');
+    }
+  }
+
+  function animateStatus(el, newStatus) {
+    if (!el) return;
+    el.classList.add('fade');
+    setTimeout(() => {
+      el.textContent = newStatus || '';
+      applyDots(el, newStatus);
+      el.classList.remove('fade');
+    }, 1000);
   }
 
   function startBtnLoad() {
@@ -672,6 +722,8 @@ const { data: last } = await supabase
 
   let history = [];
   async function loadHistory() {
+    const oldMap = {};
+    history.forEach(h => (oldMap[h.id] = h.status));
     const { data, error } = await supabase
       .from(TABLE)
       .select('id, file_number, user_login, created_at, file_name, file_ext, status')
@@ -679,30 +731,41 @@ const { data: last } = await supabase
 
     if (error) { console.error(error); return; }
     history = data || [];
-    renderHistory();
-}
+    renderHistory(oldMap);
+  }
 
 
-  function renderHistory() {
+
+  function renderHistory(oldMap = {}) {
     historyList.innerHTML = '';
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
         const rowEl = fragment.querySelector('.history-item');
         rowEl.dataset.specId = item.id;
-        fragment.querySelectorAll('input').forEach(inp => {
-          const field = inp.dataset.field;
+        fragment.querySelectorAll('[data-field]').forEach(el => {
+          const field = el.dataset.field;
           let val = item[field];
           if (field === 'created_at') {
             val = new Date(item.created_at).toLocaleString();
           }
-          inp.value = val || '';
-          if (field === 'id') {
-            inp.addEventListener('click', () => openRowGroup(item.id));
+          if (el.tagName === 'INPUT') {
+            el.value = val || '';
           } else {
-            inp.addEventListener('click', () => {
-              navigator.clipboard.writeText(inp.value || '');
-              showCopyTip(inp);
+            el.textContent = val || '';
+          }
+          if (field === 'id') {
+            el.addEventListener('click', () => openRowGroup(item.id));
+          } else {
+            el.addEventListener('click', () => {
+              navigator.clipboard.writeText(el.value || el.textContent || '');
+              showCopyTip(el);
             });
+          }
+          if (field === 'status') {
+            applyDots(el, val);
+            if (oldMap[item.id] && oldMap[item.id] !== val) {
+              animateStatus(el, val);
+            }
           }
         });
       const specRows = specGroups[item.id] || [];
@@ -925,9 +988,39 @@ const { data: last } = await supabase
       });
     });
   }
+  function setupRealtime() {
+    if (!supabase) return;
+    realtimeSub = supabase
+      .channel('modal9-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, payload => {
+        if (payload.new) {
+          const idx = history.findIndex(h => h.id === payload.new.id);
+          if (idx >= 0) history[idx] = { ...history[idx], ...payload.new };
+          else history.unshift(payload.new);
+        }
+        loadHistory();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => {
+        loadBlock1();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => {
+        loadBlock1();
+      })
+      .subscribe();
+  }
+
+  function cleanupRealtime() {
+    if (realtimeSub) {
+      realtimeSub.unsubscribe();
+      realtimeSub = null;
+    }
+  }
+
+  window.cleanupRealtime = cleanupRealtime;
   
   await loadBlock1();
   await loadHistory();
+  setupRealtime();
 }
 initModal9();
 </script>
