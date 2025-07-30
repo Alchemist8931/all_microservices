@@ -442,7 +442,7 @@
             <label class="input-label">кол-во</label>
           </div>
           <div class="input-container" style="margin-top: 10px;">
-            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" readonly>
+            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="unit" readonly>
             <label class="input-label">ед. изм.</label>
           </div>
           <div class="dynamic-modals">
@@ -843,7 +843,7 @@ const { data: last } = await supabase
       .from(POS_TABLE)                                // ← заменили константу
       .select(
         'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, name, qty, attrs'
+        'pos_number, name, qty, unit, attrs'
       )
       .order('id', { ascending: false });
 
@@ -887,6 +887,8 @@ const { data: last } = await supabase
           rf.querySelector('[data-field="pos_number"]').value = row.pos_number;
           rf.querySelector('[data-field="name"]').value = row.name;
           rf.querySelector('[data-field="qty"]').value = row.qty;
+          const unitInput = rf.querySelector('[data-field="unit"]');
+          if (unitInput) unitInput.value = row.unit || '';
           const attrsWrap = rf.querySelector('.block1 .modal-content');
           (row.attrs || '').split('|').forEach(pair => {
             pair = pair.trim();
