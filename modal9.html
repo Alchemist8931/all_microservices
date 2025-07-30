@@ -183,6 +183,17 @@
       opacity: 0;
       filter: blur(2px);
     }
+    .status-display + .input-label {
+      top: -2px;
+      left: 10px;
+      font-size: 13px;
+      color: grey;
+      background-color: #f5f5f5;
+      padding: 0 8px;
+    }
+    .input-container:hover .status-display + .input-label {
+      color: #212121;
+    }
     @keyframes dots {
       to { width: 1em; }
     }
@@ -733,8 +744,6 @@ const { data: last } = await supabase
     history = data || [];
     renderHistory(oldMap);
   }
-
-
 
   function renderHistory(oldMap = {}) {
     historyList.innerHTML = '';
