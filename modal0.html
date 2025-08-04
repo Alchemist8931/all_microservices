@@ -36,6 +36,7 @@
           <tr>
             <th>Login</th>
             <th>Email</th>
+            <th>Password</th>
             <th>Access</th>
             <th>Actions</th>
           </tr>
@@ -44,6 +45,7 @@
           <tr>
             <td><input type="text" value="user1"></td>
             <td><input type="email" value="user1@example.com"></td>
+            <td><input type="password"></td>
             <td>
               <label><input type="checkbox">PAGE 1</label>
               <label><input type="checkbox">PAGE 2</label>
@@ -152,6 +154,7 @@ export async function initModal0() {
     row.innerHTML = `
       <td><input type="text" class="emp-login" value="${emp.login || ''}"></td>
       <td><input type="email" class="emp-email" value="${emp.email || ''}"></td>
+      <td><input type="password" class="emp-pass" value=""></td>
       <td class="levels-cell"></td>
       <td>
         <button class="save-user">Save</button>
@@ -191,19 +194,27 @@ export async function initModal0() {
       const id = row.dataset.id;
       const login = row.querySelector('.emp-login').value.trim();
       const email = row.querySelector('.emp-email').value.trim();
+      const passRaw = row.querySelector('.emp-pass').value;
+      const passHashed = passRaw ? await window.hashPassword(passRaw) : '';
       const levels = getLevelsFromRow(row);
       if (id) {
+        const updateData = { login, email, menu_levels: levels };
+        if (passRaw) updateData.pass = passHashed;
         await window.supabase
           .from('employees')
-          .update({ login, email, menu_levels: levels })
+          .update(updateData)
           .eq('id', id);
       } else {
+        if (!passRaw) return;
         const { data } = await window.supabase
           .from('employees')
-          .insert({ login, email, menu_levels: levels, company_id: window.companyId })
+          .insert({ login, email, pass: passHashed, menu_levels: levels, company_id: window.companyId 
           .select('*')
           .single();
-        if (data) row.dataset.id = data.id;
+        if (data) {
+          row.dataset.id = data.id;
+          await window.supabase.auth.admin.createUser({ email, password: passRaw });
+        }
       }
     }
   });
