@@ -888,7 +888,14 @@ const { data: last } = await supabase
   let block1Rows = [];
   let specGroups = {};
   let selectionMap = {};
+  let loadingBlock1 = false;
+  let pendingLoad = false;
   async function loadBlock1() {
+    if (loadingBlock1) {
+      pendingLoad = true;
+      return;
+    }
+    loadingBlock1 = true;
     const { data, error } = await supabase
       .from(POS_TABLE)                                // ← заменили константу
       .select(
@@ -897,7 +904,7 @@ const { data: last } = await supabase
       )
       .order('id', { ascending: false });
 
-    if (error) { console.error(error); return; }
+    if (error) { console.error(error); loadingBlock1 = false; if (pendingLoad) { pendingLoad = false; loadBlock1(); } return; }
     block1Rows = data || [];
     const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
@@ -916,6 +923,11 @@ const { data: last } = await supabase
       (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
     });
     renderBlock1();
+    loadingBlock1 = false;
+    if (pendingLoad) {
+      pendingLoad = false;
+      loadBlock1();
+    }
   }
 
   function renderBlock1() {
