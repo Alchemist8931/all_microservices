@@ -935,7 +935,10 @@ const { data: last } = await supabase
       const openBlock = el.querySelector('.modal-block.open');
       if (openBlock) {
         const cls = Array.from(openBlock.classList).find(c => c.startsWith('block'));
-        if (cls) block1OpenBlocks[el.dataset.specId] = cls;
+        const posInput = openBlock.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
+        if (cls && posInput) {
+          block1OpenBlocks[el.dataset.specId] = { block: cls, pos: posInput.value };
+        }
       }
     });
     const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
@@ -952,11 +955,7 @@ const { data: last } = await supabase
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
         header.addEventListener('click', () => {
-          if (block1OpenBlocks[id]) {
-            openGroup(id, block1OpenBlocks[id]);
-          } else {
-            openGroup(id);
-          }
+          openGroup(id, block1OpenBlocks[id]);
         });
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
 
@@ -1022,26 +1021,43 @@ const { data: last } = await supabase
     });
   }
 
-  function openGroup(id, blockClass) {
+  function openGroup(id, saved) {
     block1List.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
       cont.style.display = 'block';
-      if (blockClass) {
-        const target = cont.querySelector(`.modal-block.${blockClass}`);
-        if (target) {
-          cont.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
-          target.classList.add('open');
+      let current = null;
+      let posInput = null;
+      if (saved && saved.pos) {
+        const rowInput = cont.querySelector(`[data-field="pos_number"][value="${saved.pos}"]`);
+        const row = rowInput ? rowInput.closest('.modalCONTEINERpost') : null;
+        if (row) {
+          posInput = rowInput;
+          if (saved.block) {
+            row.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
+            const target = row.querySelector(`.modal-block.${saved.block}`);
+            if (target) target.classList.add('open');
+            else resetDynamicBlocks(row);
+          } else {
+            resetDynamicBlocks(row);
+          }
+          current = row.querySelector('.modal-block.open');
+        } else {
+          resetDynamicBlocks(cont);
+          current = cont.querySelector('.modal-block.open');
+          posInput = current?.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
         }
       } else {
         resetDynamicBlocks(cont);
+        current = cont.querySelector('.modal-block.open');
+        posInput = current?.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
       }
-      const current = cont.querySelector('.modal-block.open');
-      if (current) {
+      if (current && (posInput || saved?.pos)) {
         const cls = Array.from(current.classList).find(c => c.startsWith('block'));
-        if (cls) block1OpenBlocks[id] = cls;
+        const pos = posInput ? posInput.value : saved.pos;
+        if (cls && pos) block1OpenBlocks[id] = { block: cls, pos };
       }
     }
     if (btn) btn.style.display = 'inline';
@@ -1051,7 +1067,7 @@ const { data: last } = await supabase
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
-      cont.style.display = 'block';
+      cont.style.display = 'none';
       resetDynamicBlocks(cont);
     }
     if (btn) btn.style.display = 'none';
@@ -1131,7 +1147,10 @@ const { data: last } = await supabase
           current = block;
           const specId = block.closest('.spec-content')?.dataset.specId;
           const cls = Array.from(block.classList).find(c => c.startsWith('block'));
-          if (specId && cls) block1OpenBlocks[specId] = cls;
+          const posInput = block.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
+          if (specId && cls && posInput) {
+            block1OpenBlocks[specId] = { block: cls, pos: posInput.value };
+          }
         });
       });
     });
