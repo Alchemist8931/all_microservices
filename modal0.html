@@ -88,13 +88,10 @@ export async function initModal0() {
   let adminPages = window.ADMIN_PAGES ||
     Array.from(document.querySelectorAll('.navbar__item'))
       .filter(item => item.id !== 'settingsMenuItem')
-      .map(item => {
-        const titleEl = item.querySelector('.title');
-        return {
-          code: item.dataset.levels,
-          title: titleEl ? titleEl.textContent.trim() : item.dataset.levels
-        };
-      });
+      .map(item => ({
+        code: item.dataset.levels,
+        title: item.querySelector('.title')?.textContent.trim() || item.dataset.levels
+      }));
   console.log('[modal0] adminPages BEFORE filter:', adminPages);
 
   if (adminLevels.length) {
@@ -211,7 +208,7 @@ export async function initModal0() {
         if (!passRaw) return;
         const { data } = await window.supabase
           .from('employees')
-          .insert({ login, email, pass: passHashed, menu_levels: levels, company_id: window.companyId 
+          .insert({ login, email, pass: passHashed, menu_levels: levels, company_id: window.companyId })
           .select('*')
           .single();
         if (data) {
