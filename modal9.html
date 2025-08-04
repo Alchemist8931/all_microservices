@@ -1028,6 +1028,7 @@ const { data: last } = await supabase
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
+      resetDynamicBlocks(cont);
       cont.style.display = 'block';
       let current = null;
       let posInput = null;
@@ -1040,18 +1041,13 @@ const { data: last } = await supabase
             row.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
             const target = row.querySelector(`.modal-block.${saved.block}`);
             if (target) target.classList.add('open');
-            else resetDynamicBlocks(row);
-          } else {
-            resetDynamicBlocks(row);
           }
           current = row.querySelector('.modal-block.open');
         } else {
-          resetDynamicBlocks(cont);
           current = cont.querySelector('.modal-block.open');
           posInput = current?.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
         }
       } else {
-        resetDynamicBlocks(cont);
         current = cont.querySelector('.modal-block.open');
         posInput = current?.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
       }
