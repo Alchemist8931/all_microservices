@@ -1192,21 +1192,24 @@ const { data: last } = await supabase
     scope.querySelectorAll('textarea.styled_input_bar').forEach(inp => {
       inp.style.transition = 'height 0.3s ease';
       inp.addEventListener('mouseenter', () => {
+        inp.style.zIndex = '10';
+        const content = inp.closest('.spec-content');
+        if (content) {
+          const onLeave = () => {
+            inp.style.height = '';
+            inp.style.zIndex = '';
+            content.classList.remove('expanded');
+            content.style.height = '';
+            content.removeEventListener('mouseleave', onLeave);
+          };
+          content.addEventListener('mouseleave', onLeave);
+        }
         if (inp.scrollHeight > inp.clientHeight) {
           inp.style.height = inp.scrollHeight + 'px';
-          const content = inp.closest('.spec-content');
           if (content) {
             content.classList.add('expanded');
             content.style.height = content.scrollHeight + 'px';
           }
-        }
-      });
-      inp.addEventListener('mouseleave', () => {
-        inp.style.height = '';
-        const content = inp.closest('.spec-content');
-        if (content) {
-          content.classList.remove('expanded');
-          content.style.height = '';
         }
       });
     });
