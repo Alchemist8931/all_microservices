@@ -1172,15 +1172,21 @@ const { data: last } = await supabase
   }
   function setupOverflowTooltips(scope) {
     scope.querySelectorAll('.styled_input_bar').forEach(input => {
+      const updateOverflow = () => {
+        const container = input.closest('.input-container');
+        if (!container) return;
+        if (input.scrollWidth > input.clientWidth) container.classList.add('overflow');
+        else container.classList.remove('overflow');
+      };
+      updateOverflow();
+      input.addEventListener('input', updateOverflow);
       input.addEventListener('mouseenter', () => {
         if (input.scrollWidth > input.clientWidth) {
           input.setAttribute('title', input.value || input.textContent || '');
-          input.closest('.input-container')?.classList.add('overflow');
         }
       });
       input.addEventListener('mouseleave', () => {
         input.removeAttribute('title');
-        input.closest('.input-container')?.classList.remove('overflow');
       });
     });
   }
