@@ -951,7 +951,13 @@ const { data: last } = await supabase
         const btn = frag.querySelector('.group-close');
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
-        header.addEventListener('click', () => openGroup(id, block1OpenBlocks[id]));
+        header.addEventListener('click', () => {
+          if (block1OpenBlocks[id]) {
+            openGroup(id, block1OpenBlocks[id]);
+          } else {
+            openGroup(id);
+          }
+        });
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
 
         specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
