@@ -402,7 +402,7 @@
             <label class="input-label">ext</label>
           </div>
           <div class="input-container">
-            <div class="status-display" data-field="status" style="width: 160px; text-transform: uppercase; text-align: center;">uploaded</div>
+            <div class="status-display" data-field="status" style="width: 160px; text-transform: uppercase; text-align: center;">загружено</div>
             <label class="input-label">статус</label>
           </div>
           <div class="input-container">
@@ -701,7 +701,7 @@ const { data: last } = await supabase
             file_path: filePath,
             file_name: selectedFile.name,
             file_ext: ext,
-            status: 'uploaded'
+             status: 'загружено'
         })
         .select('*')
         .single();
@@ -717,14 +717,31 @@ const { data: last } = await supabase
       uploadProgress.style.display = 'none';
       stopBtnLoad();
 
-     supabase.functions
-      .invoke('modal9-parser', { body: { request_id: insertedRow.id } })
-      .then(() =>
-        supabase.functions.invoke('modal9-selector', {
-          body: { spec_id: insertedRow.id },
-        })
-      )
-      .catch(err => console.error('modal9-parser/selector error:', err));
+     try {
+       await supabase
+         .from(TABLE)
+         .update({ status: 'парсинг' })
+         .eq('id', insertedRow.id);
+       await loadHistory();
+       await supabase.functions.invoke('modal9-parser', {
+         body: { request_id: insertedRow.id },
+       });
+       await supabase
+         .from(TABLE)
+         .update({ status: 'селекция' })
+         .eq('id', insertedRow.id);
+       await loadHistory();
+       await supabase.functions.invoke('modal9-selector', {
+         body: { spec_id: insertedRow.id },
+       });
+       await supabase
+         .from(TABLE)
+         .update({ status: 'обработан' })
+         .eq('id', insertedRow.id);
+       await loadHistory();
+     } catch (err) {
+       console.error('modal9-parser/selector error:', err);
+     }
 
       selectedFile = null;
       fileInput.value = '';
