@@ -556,6 +556,8 @@ export async function initModal9() {
   const block21Template = root.querySelector('#spec-block21-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
   let realtimeSub = null;
+  const block1OpenBlocks = {};
+  const historyOpenBlocks = {};
 
   const DELIM = window.__DELIM || "###";
 
@@ -765,6 +767,13 @@ const { data: last } = await supabase
   }
 
   function renderHistory(oldMap = {}) {
+    historyList.querySelectorAll('.spec-content').forEach(el => {
+      const openBlock = el.querySelector('.modal-block.open');
+      if (openBlock) {
+        const cls = Array.from(openBlock.classList).find(c => c.startsWith('block'));
+        if (cls) historyOpenBlocks[el.dataset.specId] = cls;
+      }
+    });
     const openIds = Array.from(historyList.querySelectorAll('.spec-content'))
       .filter(el => window.getComputedStyle(el).display !== 'none')
       .map(el => el.dataset.specId);
@@ -785,7 +794,7 @@ const { data: last } = await supabase
             el.textContent = val || '';
           }
           if (field === 'id') {
-            el.addEventListener('click', () => openRowGroup(item.id));
+            el.addEventListener('click', () => openRowGroup(item.id, historyOpenBlocks[item.id]));
           } else {
             el.addEventListener('click', () => {
               navigator.clipboard.writeText(el.value || el.textContent || '');
@@ -857,7 +866,7 @@ const { data: last } = await supabase
     setupDynamicBlocks(historyList);
     openIds.forEach(id => {
       if (historyList.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
-        openRowGroup(id);
+       openRowGroup(id, historyOpenBlocks[id]);
       }
     });
   }
@@ -896,6 +905,13 @@ const { data: last } = await supabase
   }
 
   function renderBlock1() {
+    block1List.querySelectorAll('.spec-content').forEach(el => {
+      const openBlock = el.querySelector('.modal-block.open');
+      if (openBlock) {
+        const cls = Array.from(openBlock.classList).find(c => c.startsWith('block'));
+        if (cls) block1OpenBlocks[el.dataset.specId] = cls;
+      }
+    });
     const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
         .filter(el => window.getComputedStyle(el).display !== 'none')
         .map(el => el.dataset.specId);
@@ -909,7 +925,7 @@ const { data: last } = await supabase
         const btn = frag.querySelector('.group-close');
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
-        header.addEventListener('click', () => openGroup(id));
+        header.addEventListener('click', () => openGroup(id, block1OpenBlocks[id]));
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
 
         specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
@@ -964,19 +980,32 @@ const { data: last } = await supabase
     setupDynamicBlocks(block1List);
     openIds.forEach(id => {
       if (block1List.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
-        openGroup(id);
+        openGroup(id, block1OpenBlocks[id]);
       }
     });
   }
 
-  function openGroup(id) {
+  function openGroup(id, blockClass) {
     block1List.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
       cont.style.display = 'block';
-      resetDynamicBlocks(cont);
+      if (blockClass) {
+        const target = cont.querySelector(`.modal-block.${blockClass}`);
+        if (target) {
+          cont.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
+          target.classList.add('open');
+        }
+      } else {
+        resetDynamicBlocks(cont);
+      }
+      const current = cont.querySelector('.modal-block.open');
+      if (current) {
+        const cls = Array.from(current.classList).find(c => c.startsWith('block'));
+        if (cls) block1OpenBlocks[id] = cls;
+      }
     }
     if (btn) btn.style.display = 'inline';
   }
@@ -991,12 +1020,26 @@ const { data: last } = await supabase
     if (btn) btn.style.display = 'none';
   }
 
-  function openRowGroup(id) {
+  function openRowGroup(id, blockClass) {
     historyList.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     historyList.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    if (cont) cont.style.display = 'block';
+    if (cont) {
+      cont.style.display = 'block';
+      if (blockClass) {
+        const target = cont.querySelector(`.modal-block.${blockClass}`);
+        if (target) {
+          cont.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
+          target.classList.add('open');
+        }
+      }
+      const current = cont.querySelector('.modal-block.open');
+      if (current) {
+        const cls = Array.from(current.classList).find(c => c.startsWith('block'));
+        if (cls) historyOpenBlocks[id] = cls;
+      }
+    }
     if (btn) btn.style.display = 'inline';
   }
 
