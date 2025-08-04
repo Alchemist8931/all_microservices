@@ -764,7 +764,7 @@ const { data: last } = await supabase
 
   function renderHistory(oldMap = {}) {
     const openIds = Array.from(historyList.querySelectorAll('.spec-content'))
-      .filter(el => el.style.display !== 'none')
+      .filter(el => window.getComputedStyle(el).display !== 'none')
       .map(el => el.dataset.specId);
     historyList.innerHTML = '';
     history.forEach(item => {
@@ -895,7 +895,7 @@ const { data: last } = await supabase
 
   function renderBlock1() {
     const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
-        .filter(el => el.style.display !== 'none')
+        .filter(el => window.getComputedStyle(el).display !== 'none')
         .map(el => el.dataset.specId);
       block1List.innerHTML = '';
       const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
