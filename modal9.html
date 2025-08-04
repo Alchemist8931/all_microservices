@@ -1061,6 +1061,7 @@ const { data: last } = await supabase
   function openRowGroup(id, blockClass) {
     historyList.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     historyList.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
+    historyList.querySelectorAll('.spec-close-btn').forEach(b => b.remove());
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
@@ -1079,13 +1080,30 @@ const { data: last } = await supabase
       }
     }
     if (btn) btn.style.display = 'inline';
+    
+    const row = historyList.querySelector(`.history-item[data-spec-id="${id}"]`);
+    if (row) {
+      const specCont = row.querySelector('[data-field="id"]').closest('.input-container');
+      if (specCont) {
+        const extraBtn = document.createElement('button');
+        extraBtn.textContent = '×';
+        extraBtn.className = 'group-close ans5-close spec-close-btn';
+        extraBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          closeRowGroup(id);
+        });
+        specCont.insertAdjacentElement('afterend', extraBtn);
+      }
+    }
   }
 
   function closeRowGroup(id) {
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
     if (cont) cont.style.display = 'none';
     if (btn) btn.style.display = 'none';
+    if (extra) extra.remove();
   }
 
   function resetDynamicBlocks(scope) {
