@@ -726,6 +726,7 @@ const { data: last } = await supabase
        await supabase.functions.invoke('modal9-parser', {
          body: { request_id: insertedRow.id },
        });
+       await loadBlock1();
        await supabase
          .from(TABLE)
          .update({ status: 'селекция' })
@@ -734,6 +735,7 @@ const { data: last } = await supabase
        await supabase.functions.invoke('modal9-selector', {
          body: { spec_id: insertedRow.id },
        });
+       await loadBlock1();
        await supabase
          .from(TABLE)
          .update({ status: 'обработан' })
