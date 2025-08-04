@@ -295,18 +295,9 @@
     .block1-wrapper::-webkit-scrollbar{ width:2.5px; background-color:var(--scrollbar-color); height:90%; }
     .block1-wrapper::-webkit-scrollbar-thumb{ background-color:var(--black-color); border-radius:30px; }
     .block1-wrapper::-webkit-scrollbar-track{ background-color:var(--scrollbar-color); }
-    .spec-container { margin-bottom:10px; position:relative; }
+    .spec-container { margin-bottom:10px; }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
-    .spec-content {
-      display:none;
-      position:relative;
-      z-index:1;
-      width:100%;
-      height:0;
-      overflow:hidden;
-      transition:height 0.3s ease;
-    }
-    .spec-content.expanded { height:auto; }
+    .spec-content { display:none; }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
 
     .dynamic-modals {
@@ -452,7 +443,7 @@
             <label class="input-label">№ в ТЗ</label>
           </div>
           <div class="input-container" style="margin-top: 10px;">
-            <textarea rows="1" style="width: 400px; text-align: left;" class="styled_input_bar" data-field="name" readonly></textarea>
+            <input type="text" style="width: 400px; text-align: left;" class="styled_input_bar" data-field="name" readonly>
             <label class="input-label">наименование</label>
           </div>
           <div class="input-container" style="margin-top: 10px;">
@@ -491,11 +482,11 @@
       <template id="spec-block2-template">
         <div class="modalRow">
           <div class="input-container">
-            <textarea rows="1" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly></textarea>
+            <input type="text" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
             <label class="input-label">артикул</label>
           </div>
           <div class="input-container">
-            <textarea rows="1" style="width: 300px;" class="styled_input_bar value-input" placeholder="наименование" readonly></textarea>
+            <input type="text" style="width: 300px;" class="styled_input_bar value-input" placeholder="наименование" readonly>
             <label class="input-label">наименование</label>
           </div>
           <div class="input-container">
@@ -520,7 +511,7 @@
       <template id="spec-block21-template">
         <div class="modalRow">
           <div class="input-container">
-            <textarea rows="1" style="width: 870px;" class="styled_input_bar price-input" placeholder="цена"></textarea>
+            <input type="text" style="width: 870px;" class="styled_input_bar price-input" placeholder="цена">
             <label class="input-label">цена</label>
           </div>
         </div>
@@ -529,11 +520,11 @@
       <template id="spec-attr-template">
         <div class="modalRow">
           <div class="input-container">
-            <textarea rows="1" style="width: 580px;" class="styled_input_bar param-input" placeholder="параметр" readonly></textarea>
+            <input type="text" style="width: 580px;" class="styled_input_bar param-input" placeholder="параметр" readonly>
             <label class="input-label">параметр</label>
           </div>
           <div class="input-container">
-            <textarea rows="1" style="width: 280px;" class="styled_input_bar value-input" placeholder="значение" readonly></textarea>
+            <input type="text" style="width: 280px;" class="styled_input_bar value-input" placeholder="значение" readonly>
             <label class="input-label">значение</label>
           </div>
         </div>
@@ -806,7 +797,7 @@ const { data: last } = await supabase
           if (field === 'created_at') {
             val = new Date(item.created_at).toLocaleString();
           }
-          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          if (el.tagName === 'INPUT') {
             el.value = val || '';
           } else {
             el.textContent = val || '';
@@ -863,7 +854,7 @@ const { data: last } = await supabase
                   const b2Frag = block2Template.content.cloneNode(true);
                   const b2El = b2Frag.firstElementChild;
                   if (b2El) b2El.classList.add('fade-in');
-                  const inputs = b2Frag.querySelectorAll('textarea');
+                  const inputs = b2Frag.querySelectorAll('input');
                   if (inputs[0]) inputs[0].value = sel.article || '';
                   if (inputs[1]) inputs[1].value = sel.model_name || '';
                   if (inputs[2]) inputs[2].value = sel.qty || '';
@@ -887,7 +878,6 @@ const { data: last } = await supabase
         historyList.appendChild(fragment);
     });
     setupDynamicBlocks(historyList);
-    setupExpandableInputs(historyList);
     openIds.forEach(id => {
       if (historyList.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
        openRowGroup(id, historyOpenBlocks[id]);
@@ -1001,7 +991,7 @@ const { data: last } = await supabase
               sels.forEach(sel => {
                 const b2Frag = block2Template.content.cloneNode(true);
                 const b2El = b2Frag.firstElementChild;
-                const inputs = b2Frag.querySelectorAll('textarea');
+                const inputs = b2Frag.querySelectorAll('input');
                 if (inputs[0]) inputs[0].value = sel.article || '';
                 if (inputs[1]) inputs[1].value = sel.model_name || '';
                 if (inputs[2]) inputs[2].value = sel.qty || '';
@@ -1025,7 +1015,6 @@ const { data: last } = await supabase
         block1List.appendChild(frag);
       });
     setupDynamicBlocks(block1List);
-    setupExpandableInputs(block1List);
     openIds.forEach(id => {
       if (block1List.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
         openGroup(id, block1OpenBlocks[id]);
@@ -1034,19 +1023,13 @@ const { data: last } = await supabase
   }
 
   function openGroup(id, saved) {
-    block1List.querySelectorAll('.spec-content').forEach(c => {
-      c.classList.remove('expanded');
-      c.style.display = 'none';
-      c.style.height = '0';
-    });
+    block1List.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
-      cont.classList.add('expanded');
-      cont.style.height = cont.scrollHeight + 'px';
       let current = null;
       let posInput = null;
       if (saved && saved.pos) {
@@ -1081,30 +1064,20 @@ const { data: last } = await supabase
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
-      cont.classList.remove('expanded');
-      cont.style.height = '0';
-      cont.addEventListener('transitionend', () => {
-        cont.style.display = 'none';
-        resetDynamicBlocks(cont);
-      }, { once: true });
+      cont.style.display = 'none';
+      resetDynamicBlocks(cont);
     }
     if (btn) btn.style.display = 'none';
     delete block1OpenBlocks[id];
   }
 
   function openRowGroup(id, blockClass) {
-    historyList.querySelectorAll('.spec-content').forEach(c => {
-      c.classList.remove('expanded');
-      c.style.display = 'none';
-      c.style.height = '0';
-    });
+    historyList.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
     historyList.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
       cont.style.display = 'block';
-      cont.classList.add('expanded');
-      cont.style.height = cont.scrollHeight + 'px';
       if (blockClass) {
         const targets = cont.querySelectorAll(`.modal-block.${blockClass}`);
         if (targets.length) {
@@ -1149,13 +1122,7 @@ const { data: last } = await supabase
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
-    if (cont) {
-      cont.classList.remove('expanded');
-      cont.style.height = '0';
-      cont.addEventListener('transitionend', () => {
-        cont.style.display = 'none';
-      }, { once: true });
-    }
+    if (cont) cont.style.display = 'none';
     if (btn) btn.style.display = 'none';
     if (extra) extra.remove();
   }
@@ -1185,32 +1152,6 @@ const { data: last } = await supabase
             block1OpenBlocks[specId] = { block: cls, pos: posInput.value };
           }
         });
-      });
-    });
-  }
-  function setupExpandableInputs(scope) {
-    scope.querySelectorAll('textarea.styled_input_bar').forEach(inp => {
-      inp.style.transition = 'height 0.3s ease';
-      inp.addEventListener('mouseenter', () => {
-        inp.style.zIndex = '10';
-        const content = inp.closest('.spec-content');
-        if (content) {
-          const onLeave = () => {
-            inp.style.height = '';
-            inp.style.zIndex = '';
-            content.classList.remove('expanded');
-            content.style.height = '';
-            content.removeEventListener('mouseleave', onLeave);
-          };
-          content.addEventListener('mouseleave', onLeave);
-        }
-        if (inp.scrollHeight > inp.clientHeight) {
-          inp.style.height = inp.scrollHeight + 'px';
-          if (content) {
-            content.classList.add('expanded');
-            content.style.height = content.scrollHeight + 'px';
-          }
-        }
       });
     });
   }
