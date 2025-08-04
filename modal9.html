@@ -1001,6 +1001,7 @@ const { data: last } = await supabase
               });
             } else {
               const b2Frag = block2Template.content.cloneNode(true);
+              const b2El = b2Frag.firstElementChild;
               if (b2El) b2El.classList.add('fade-in');
               b2.appendChild(b2Frag);
               if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
