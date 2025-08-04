@@ -763,6 +763,9 @@ const { data: last } = await supabase
   }
 
   function renderHistory(oldMap = {}) {
+    const openIds = Array.from(historyList.querySelectorAll('.spec-content'))
+      .filter(el => el.style.display !== 'none')
+      .map(el => el.dataset.specId);
     historyList.innerHTML = '';
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
@@ -850,6 +853,11 @@ const { data: last } = await supabase
         historyList.appendChild(fragment);
     });
     setupDynamicBlocks(historyList);
+    openIds.forEach(id => {
+      if (historyList.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
+        openRowGroup(id);
+      }
+    });
   }
 
   let block1Rows = [];
@@ -886,6 +894,9 @@ const { data: last } = await supabase
   }
 
   function renderBlock1() {
+    const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
+        .filter(el => el.style.display !== 'none')
+        .map(el => el.dataset.specId);
       block1List.innerHTML = '';
       const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
       ids.forEach(id => {
@@ -949,6 +960,11 @@ const { data: last } = await supabase
         block1List.appendChild(frag);
       });
     setupDynamicBlocks(block1List);
+    openIds.forEach(id => {
+      if (block1List.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
+        openGroup(id);
+      }
+    });
   }
 
   function openGroup(id) {
