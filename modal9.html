@@ -991,19 +991,19 @@ const { data: last } = await supabase
               sels.forEach(sel => {
                 const b2Frag = block2Template.content.cloneNode(true);
                 const b2El = b2Frag.firstElementChild;
-                if (b2El) b2El.classList.add('fade-in');
                 const inputs = b2Frag.querySelectorAll('input');
                 if (inputs[0]) inputs[0].value = sel.article || '';
                 if (inputs[1]) inputs[1].value = sel.model_name || '';
                 if (inputs[2]) inputs[2].value = sel.qty || '';
                 if (inputs[3]) inputs[3].value = sel.unit || '';
                 b2.appendChild(b2Frag);
+                if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
               });
             } else {
               const b2Frag = block2Template.content.cloneNode(true);
-              const b2El = b2Frag.firstElementChild;
               if (b2El) b2El.classList.add('fade-in');
               b2.appendChild(b2Frag);
+              if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
             }
           }
           const b21 = rf.querySelector('.block21 .modal-content');
