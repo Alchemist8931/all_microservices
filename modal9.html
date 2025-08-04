@@ -1104,6 +1104,9 @@ const { data: last } = await supabase
           if (current) current.classList.remove('open');
           block.classList.add('open');
           current = block;
+          const specId = block.closest('.spec-content')?.dataset.specId;
+          const cls = Array.from(block.classList).find(c => c.startsWith('block'));
+          if (specId && cls) block1OpenBlocks[specId] = cls;
         });
       });
     });
