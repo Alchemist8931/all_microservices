@@ -50,6 +50,16 @@
       position: relative;
       width: auto;
     }
+    .input-container.overflow::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to left, var(--fon, #f5f5f5), rgba(245,245,245,0));
+    }
     .styled_input_bar {
       width: auto;
       padding: 10px;
@@ -62,6 +72,9 @@
       transition: all 0.3s ease;
       box-sizing: border-box;
       text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .styled_input_bar::placeholder { color: grey; transition: all 0.3s ease; }
     .styled_input_bar:hover { border-color: grey; }
@@ -883,6 +896,7 @@ const { data: last } = await supabase
        openRowGroup(id, historyOpenBlocks[id]);
       }
     });
+    setupOverflowTooltips(historyList);
   }
 
   let block1Rows = [];
@@ -1020,6 +1034,7 @@ const { data: last } = await supabase
         openGroup(id, block1OpenBlocks[id]);
       }
     });
+    setupOverflowTooltips(block1List);
   }
 
   function openGroup(id, saved) {
@@ -1152,6 +1167,20 @@ const { data: last } = await supabase
             block1OpenBlocks[specId] = { block: cls, pos: posInput.value };
           }
         });
+      });
+    });
+  }
+  function setupOverflowTooltips(scope) {
+    scope.querySelectorAll('.styled_input_bar').forEach(input => {
+      input.addEventListener('mouseenter', () => {
+        if (input.scrollWidth > input.clientWidth) {
+          input.setAttribute('title', input.value || input.textContent || '');
+          input.closest('.input-container')?.classList.add('overflow');
+        }
+      });
+      input.addEventListener('mouseleave', () => {
+        input.removeAttribute('title');
+        input.closest('.input-container')?.classList.remove('overflow');
       });
     });
   }
