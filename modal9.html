@@ -1140,16 +1140,11 @@ const { data: last } = await supabase
   function setupDynamicBlocks(scope) {
     scope.querySelectorAll('.dynamic-modals').forEach(dm => {
       const blocks = dm.querySelectorAll('.modal-block');
-      let current = dm.querySelector('.modal-block.open') || blocks[0];
-      if (current && !current.classList.contains('open')) {
-        current.classList.add('open');
-      }
+      (dm.querySelector('.modal-block.open') || blocks[0])?.classList.add('open');
       blocks.forEach(block => {
         block.addEventListener('dblclick', () => {
-          if (block === current) return;
-          if (current) current.classList.remove('open');
+          dm.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
           block.classList.add('open');
-          current = block;
           const specId = block.closest('.spec-content')?.dataset.specId;
           const cls = Array.from(block.classList).find(c => c.startsWith('block'));
           const posInput = block.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
