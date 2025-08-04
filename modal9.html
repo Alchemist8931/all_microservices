@@ -1083,11 +1083,15 @@ const { data: last } = await supabase
     if (cont) {
       cont.style.display = 'block';
       if (blockClass) {
-        const target = cont.querySelector(`.modal-block.${blockClass}`);
-        if (target) {
+        const targets = cont.querySelectorAll(`.modal-block.${blockClass}`);
+        if (targets.length) {
           cont.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
-          target.classList.add('open');
+          targets.forEach(t => t.classList.add('open'));
+        } else {
+          resetDynamicBlocks(cont);
         }
+      } else {
+        resetDynamicBlocks(cont);
       }
       const current = cont.querySelector('.modal-block.open');
       if (current) {
