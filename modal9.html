@@ -1049,6 +1049,7 @@ const { data: last } = await supabase
       resetDynamicBlocks(cont);
     }
     if (btn) btn.style.display = 'none';
+    delete block1OpenBlocks[id];
   }
 
   function openRowGroup(id, blockClass) {
