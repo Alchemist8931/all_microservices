@@ -15,7 +15,8 @@
       --loader-line-color: #ffffff;
       --loader-line-width: 10px;
       --loader-line-height: 70px;
-      --fon: #f5f5f5;
+      --fon: #2C2B2C;
+      --content-color: #F4F3F0;
     }
     * {
       margin: 0;
@@ -27,9 +28,19 @@
       width: 100vw;
       height: 100vh;
       background: var(--fon);
+      color: var(--content-color);
       overflow: hidden;
       position: relative;
     }
+
+    .glass3d {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 12px;
+    }
+
     /* Прелоадер (основной, при старте страницы) */ 
     #preloader {
       position: fixed;
@@ -48,7 +59,7 @@
     .line {
       width: var(--loader-line-width);
       height: var(--loader-line-height);
-      background-color: #212121;
+      background-color: var(--content-color);
       animation: bounce 1.5s infinite ease-in-out;
       border-radius: 4px;
     }
@@ -72,10 +83,8 @@
       height: calc(100vh - 40px);
       width: 70px;
       z-index: 1200;
-      background-color: #f5f5f5;
       border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.10);
-      box-shadow: 6px 6px 16px rgba(22,20,19,0.4);
+      border: 1px solid var(--content-color);
     }
     .navigation ul {
       position: absolute;
@@ -99,7 +108,7 @@
       align-items: center;
       width: 100%;
       text-align: center;
-      color: #212121;
+      color: var(--content-color);
       font-weight: 500;
       text-decoration: none;
     }
@@ -115,8 +124,7 @@
       top: 7px;
     }
     .navigation ul li.active a .icon {
-      color: #212121;
-      box-shadow: -2px -2px -2px -2px rgba(0,0,0,0.3);
+      color: var(--content-color);
     }
     .navigation ul li a .icon i {
       font-size: 32px;
@@ -130,8 +138,7 @@
       transform: translateY(-50%);
       padding: 6px 6px;
       border-radius: 6px;
-      border: 1px solid #212121;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      border: 1px solid var(--content-color);
       opacity: 0;
       transition: opacity 0.5s;
       pointer-events: none;
@@ -185,8 +192,7 @@
       transform: translate(-50%, -50%);
       background: #f5f5f5;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      border: 1px solid #212121;
+      border: 1px solid var(--content-color);
       transition: background 0.5s ease;
     }
 
@@ -206,7 +212,6 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 2px 10px 40px rgba(22,20,19,0.4);
       border-radius: 10px;
       border: 1px solid rgba(0,0,0,0.1);
       overflow: hidden;
@@ -301,7 +306,7 @@
       font-weight: 500;
       text-align: center;
       text-transform: uppercase;
-      color: #212121;
+      color: var(--content-color);
       margin: 0;
     }
     .inputField {
@@ -310,7 +315,7 @@
       font-size: 14px;
       font-weight: 500;
       border-radius: 10px;
-      outline: 1px solid #212121;
+      outline: 1px solid var(--content-color);
       border: 0;
       background-color: var(--fon);
       outline-offset: 3px;
@@ -320,8 +325,8 @@
     .button-submit {
       width: 100%;
       padding: 12px;
-      background-color: #212121;
-      border: 1px solid #212121;
+      background-color: var(--content-color);
+      border: 1px solid var(--content-color);
       color: var(--fon);
       font-size: 14px;
       font-weight: 600;
@@ -331,14 +336,14 @@
       transition: all 0.4s;
     }
     .button-submit:hover {
-      color: #212121;
+      color: var(--content-color);
       background-color: var(--fon);
     }
     .button-submit2 {
       padding: 12px;
       background-color: var(--fon);
       border: 1px solid var(--fon);
-      color: #212121;
+      color: var(--content-color);
       font-size: 14px;
       font-weight: 600;
       border-radius: 10px;
@@ -350,7 +355,7 @@
     }
     .button-submit2:hover {
       color: var(--fon);
-      background-color: #212121;
+      background-color: var(--content-color);
     }
 
     /* Правое модальное окно (контейнер для подгрузки страниц) */
@@ -393,7 +398,7 @@
     .lineLM {
       width: 10px;
       height: 70px;
-      background-color: #212121;
+      background-color: var(--content-color);
       animation: bounce2 1.5s infinite ease-in-out;
       border-radius: 4px;
     }
@@ -500,7 +505,7 @@
 
    <!-- Меню (скрыто до логина) -->
   <div id="side-menu">
-    <div class="navigation">
+    <div class="navigation glass3d">
       <ul>
         <li class="navbar__item active" data-levels="PAGE1" data-modal="modal1">
           <a href="#">
