@@ -229,25 +229,26 @@
       flex:1;
       margin-top:30px;
       border-radius:10px;
-      overflow:hidden;
+      overflow-y:auto;
+      overflow-x:hidden;
+      padding-right:10px;
+      height:100%;
       box-sizing:border-box;
     }
+    .modal9-scroll-wrapper::-webkit-scrollbar{width:6px;}
+    .modal9-scroll-wrapper::-webkit-scrollbar-track{background:transparent;}
+    .modal9-scroll-wrapper::-webkit-scrollbar-thumb{background:var(--content-color);border-radius:10px;}
 
     .modal9-window {
       color:var(--black-color, var(--content-color));
       width:100%;
       padding:20px;
       padding-right:36px;
-      margin-right:-16px;
-      overflow-y:auto;
+      margin-right:0;
       overflow-x:hidden;
       box-sizing:border-box;
       height:100%;
     }
-
-    .modal9-window::-webkit-scrollbar{width:6px;}
-    .modal9-window::-webkit-scrollbar-track{background:transparent;}
-    .modal9-window::-webkit-scrollbar-thumb{background:var(--content-color);border-radius:10px;}
 
       /* ---- навигация nav_copy ---- */
     nav.nav_copy { position:relative; background:#333; border-radius:6px; overflow:hidden; width: 400px; }
