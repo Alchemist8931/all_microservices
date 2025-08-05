@@ -85,7 +85,7 @@
       top: 10px;
       transform: translateY(-50%);
       font-size: 10px;
-      background:none;
+      background-color: transparent;
       color: var(--content-color);
       pointer-events: none;
       transition: all 0.3s ease;
@@ -96,7 +96,7 @@
       left: 10px;
       font-size: 13px;
       color: var(--content-color);
-      background-color: #f5f5f5;
+      background-color: transparent;
       padding: 0 8px;
     }
     .styled_input_bar:not(:hover):not(:placeholder-shown) + .input-label { color: grey; }
@@ -396,7 +396,7 @@
     <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
       <div class="upload-status"></div>
   </div>
- <div class="modal9-window" style="border: 1px solid var(--content-color);">
+ <div class="modal9-window" style="border: 1px solid var(--content-color); padding-top: 5px;">
     <div class="page spec-page active" data-page="1">
       <div class="history-list spec-history-list"></div>
       
