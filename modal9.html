@@ -650,7 +650,7 @@ export async function initModal9() {
 
   let selectedFile = null;
   myFilesToggle.addEventListener('change', async () => {
-    toggleText.textContent = myFilesToggle.checked ? 'Мои файлы' : 'Все файлы';
+    toggleText.textContent = myFilesToggle.checked ? 'демонстрация только моих файлов' : 'демонстрация файлов компании';
     await loadHistory();
   });
   fileInput.addEventListener('change', () => {
