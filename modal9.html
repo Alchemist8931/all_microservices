@@ -197,6 +197,14 @@
       opacity: 0;
       filter: blur(2px);
     }
+    .fade-toggle {
+      transition: opacity 0.5s, filter 0.5s;
+    }
+    .fade-toggle.hidden {
+      opacity: 0;
+      filter: blur(2px);
+      pointer-events: none;
+    }
     .status-display + .input-label {
       top: -2px;
       left: 10px;
@@ -366,7 +374,7 @@
     .block1-wrapper::-webkit-scrollbar-track{ background-color:var(--scrollbar-color); }
     .spec-container { margin-bottom:10px; }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
-    .spec-content { display:none; }
+    .spec-content { }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
 
     .dynamic-modals {
@@ -873,13 +881,14 @@ const { data: last } = await supabase
       }
     });
     const openIds = Array.from(historyList.querySelectorAll('.spec-content'))
-      .filter(el => window.getComputedStyle(el).display !== 'none')
+      .filter(el => !el.classList.contains('hidden'))
       .map(el => el.dataset.specId);
     historyList.innerHTML = '';
     history.forEach(item => {
         const fragment = rowTemplate.content.cloneNode(true);
         const rowEl = fragment.querySelector('.history-item');
         rowEl.dataset.specId = item.id;
+        rowEl.classList.add('fade-in');
         fragment.querySelectorAll('[data-field]').forEach(el => {
           const field = el.dataset.field;
           let val = item[field];
@@ -917,6 +926,10 @@ const { data: last } = await supabase
           const title = specFrag.querySelector('.spec-title');
           if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
+          btn.classList.add('fade-toggle', 'hidden');
+          content.classList.add('fade-toggle', 'hidden');
+          btn.style.display = 'none';
+          content.style.display = 'none';
           btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
           specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
             const rf = specRowTemplate.content.cloneNode(true);
@@ -1032,7 +1045,7 @@ const { data: last } = await supabase
       }
     });
     const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
-        .filter(el => window.getComputedStyle(el).display !== 'none')
+        .filter(el => !el.classList.contains('hidden'))
         .map(el => el.dataset.specId);
       block1List.innerHTML = '';
       const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
@@ -1044,6 +1057,10 @@ const { data: last } = await supabase
         const btn = frag.querySelector('.group-close');
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
+        btn.classList.add('fade-toggle', 'hidden');
+        content.classList.add('fade-toggle', 'hidden');
+        btn.style.display = 'none';
+        content.style.display = 'none';
         header.addEventListener('click', () => {
           openGroup(id, block1OpenBlocks[id]);
         });
@@ -1114,13 +1131,25 @@ const { data: last } = await supabase
   }
 
   function openGroup(id, saved) {
-    block1List.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
-    block1List.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
+    block1List.querySelectorAll('.spec-content').forEach(c => {
+      if (c.dataset.specId !== String(id)) {
+        c.classList.add('hidden');
+        c.addEventListener('transitionend', () => { c.style.display = 'none'; }, { once: true });
+      }
+    });
+    block1List.querySelectorAll('.group-close').forEach(b => {
+      const sid = b.closest('.spec-container')?.dataset.specId;
+      if (sid !== String(id)) {
+        b.classList.add('hidden');
+        b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
+      }
+    });
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
+      requestAnimationFrame(() => cont.classList.remove('hidden'));
       let current = null;
       let posInput = null;
       if (saved && saved.pos) {
@@ -1148,27 +1177,45 @@ const { data: last } = await supabase
         if (cls && pos) block1OpenBlocks[id] = { block: cls, pos };
       }
     }
-    if (btn) btn.style.display = 'inline';
+    if (btn) {
+      btn.style.display = 'inline';
+      requestAnimationFrame(() => btn.classList.remove('hidden'));
+    }
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
-      cont.style.display = 'none';
+      cont.classList.add('hidden');
+      cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
       resetDynamicBlocks(cont);
     }
-    if (btn) btn.style.display = 'none';
+    if (btn) {
+      btn.classList.add('hidden');
+      btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
+    }
     delete block1OpenBlocks[id];
   }
 
   function openRowGroup(id, blockClass) {
-    historyList.querySelectorAll('.spec-content').forEach(c => c.style.display = 'none');
-    historyList.querySelectorAll('.group-close').forEach(b => b.style.display = 'none');
+    historyList.querySelectorAll('.spec-content').forEach(c => {
+      if (c.dataset.specId !== String(id)) {
+        c.classList.add('hidden');
+        c.addEventListener('transitionend', () => { c.style.display = 'none'; }, { once: true });
+      }
+    });
+    historyList.querySelectorAll('.group-close').forEach(b => {
+      const sid = b.closest('.spec-container')?.dataset.specId;
+      if (sid !== String(id)) {
+        b.classList.add('hidden');
+        b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
+      }
+    });
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
-      cont.style.display = 'block';
+      requestAnimationFrame(() => cont.classList.remove('hidden'));
       if (blockClass) {
         const targets = cont.querySelectorAll(`.modal-block.${blockClass}`);
         if (targets.length) {
@@ -1186,7 +1233,10 @@ const { data: last } = await supabase
         if (cls) historyOpenBlocks[id] = cls;
       }
     }
-    if (btn) btn.style.display = 'inline';
+    if (btn) {
+      btn.style.display = 'inline';
+      requestAnimationFrame(() => btn.classList.remove('hidden'));
+    }
     
     const row = historyList.querySelector(`.history-item[data-spec-id="${id}"]`);
     if (row) {
@@ -1213,8 +1263,14 @@ const { data: last } = await supabase
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
-    if (cont) cont.style.display = 'none';
-    if (btn) btn.style.display = 'none';
+    if (cont) {
+      cont.classList.add('hidden');
+      cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
+    }
+    if (btn) {
+      btn.classList.add('hidden');
+      btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
+    }
     if (extra) extra.remove();
   }
 
