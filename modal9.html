@@ -653,6 +653,7 @@ export async function initModal9() {
   let realtimeSub = null;
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
+  const hideTimers = new WeakMap();
 
   const DELIM = window.__DELIM || "###";
 
@@ -1205,6 +1206,13 @@ const { data: last } = await supabase
       if (c.dataset.specId !== String(id)) {
         c.classList.add('hidden');
         c.addEventListener('transitionend', () => { c.style.display = 'none'; }, { once: true });
+        const oldT = hideTimers.get(c);
+        if (oldT) clearTimeout(oldT);
+        const t = setTimeout(() => {
+          c.style.display = 'none';
+          hideTimers.delete(c);
+        }, 500);
+        hideTimers.set(c, t);
       }
     });
     historyList.querySelectorAll('.spec-close-btn').forEach(b => {
@@ -1213,6 +1221,11 @@ const { data: last } = await supabase
     });
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     if (cont) {
+      const oldT = hideTimers.get(cont);
+      if (oldT) {
+        clearTimeout(oldT);
+        hideTimers.delete(cont);
+      }
       cont.style.display = 'block';
       requestAnimationFrame(() => cont.classList.remove('hidden'));
       if (blockClass) {
@@ -1260,11 +1273,19 @@ const { data: last } = await supabase
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
     if (cont) {
       cont.classList.add('hidden');
-      cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
+      const t = setTimeout(() => {
+        cont.style.display = 'none';
+        hideTimers.delete(cont);
+      }, 500);
+      hideTimers.set(cont, t);
     }
     if (btn) {
       btn.classList.add('hidden');
-      btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
+      const t = setTimeout(() => {
+        btn.style.display = 'none';
+        hideTimers.delete(btn);
+      }, 500);
+      hideTimers.set(btn, t);
     }
     if (extra) extra.remove();
   }
