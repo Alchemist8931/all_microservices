@@ -654,6 +654,7 @@ export async function initModal9() {
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
+  let openedSpecId = null;
 
   const DELIM = window.__DELIM || "###";
 
@@ -1202,23 +1203,10 @@ const { data: last } = await supabase
   }
 
   function openRowGroup(id, blockClass) {
-    historyList.querySelectorAll('.spec-content').forEach(c => {
-      if (c.dataset.specId !== String(id)) {
-        c.classList.add('hidden');
-        c.addEventListener('transitionend', () => { c.style.display = 'none'; }, { once: true });
-        const oldT = hideTimers.get(c);
-        if (oldT) clearTimeout(oldT);
-        const t = setTimeout(() => {
-          c.style.display = 'none';
-          hideTimers.delete(c);
-        }, 500);
-        hideTimers.set(c, t);
-      }
-    });
-    historyList.querySelectorAll('.spec-close-btn').forEach(b => {
-      const sid = b.closest('.history-item')?.dataset.specId;
-      if (sid !== String(id)) b.remove();
-    });
+    if (openedSpecId && openedSpecId !== id) {
+      closeRowGroup(openedSpecId);
+    }
+    openedSpecId = id;
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     if (cont) {
       const oldT = hideTimers.get(cont);
@@ -1268,6 +1256,7 @@ const { data: last } = await supabase
   }
 
   function closeRowGroup(id) {
+    if (openedSpecId === id) openedSpecId = null;
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
