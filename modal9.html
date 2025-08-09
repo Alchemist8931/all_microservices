@@ -314,6 +314,47 @@
     .darkmatter-btn.loading .loader { display:block; }
     .darkmatter-btn.loading .button-text { visibility:hidden; }
 
+     /* --- переключатель истории --- */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #fff;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--content-color);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
      /* --- блок результатов --- */
     .block1-wrapper{
       height:100%;
@@ -397,7 +438,12 @@
           <input type="file" class="js-file__input" />
         </label>
       </form>
-      <div class="button-group" style="margin-top: 15px;">
+      <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
+        <label class="switch">
+          <input type="checkbox" id="my-files-toggle">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-text">Все файлы</span>
         <button type="button" class="darkmatter-btn upload-btn">
           <span class="button-text">Загрузить</span>
           <span class="loader"></span>
@@ -588,6 +634,8 @@ export async function initModal9() {
   const uploadBtn = root.querySelector('.upload-btn');
   const uploadProgress = root.querySelector('.upload-progress');
   const uploadStatus = root.querySelector('.upload-status');
+  const myFilesToggle = root.querySelector('#my-files-toggle');
+  const toggleText = root.querySelector('.toggle-text');
   const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
   const specRowTemplate = root.querySelector('#spec-row-template');
@@ -601,6 +649,10 @@ export async function initModal9() {
   const DELIM = window.__DELIM || "###";
 
   let selectedFile = null;
+  myFilesToggle.addEventListener('change', async () => {
+    toggleText.textContent = myFilesToggle.checked ? 'Мои файлы' : 'Все файлы';
+    await loadHistory();
+  });
   fileInput.addEventListener('change', () => {
     selectedFile = fileInput.files[0] || null;
     renderFileList();
@@ -795,10 +847,17 @@ const { data: last } = await supabase
   async function loadHistory() {
     const oldMap = {};
     history.forEach(h => (oldMap[h.id] = h.status));
-    const { data, error } = await supabase
+     let query = supabase
       .from(TABLE)
       .select('id, file_number, user_login, created_at, file_name, file_ext, status')
       .order('created_at', { ascending: false });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (myFilesToggle.checked && session?.user?.email) {
+      query = query.eq('user_login', session.user.email);
+    }
+
+    const { data, error } = await query;
 
     if (error) { console.error(error); return; }
     history = data || [];
