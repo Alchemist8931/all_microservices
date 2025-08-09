@@ -901,7 +901,12 @@ const { data: last } = await supabase
           } else {
             el.textContent = val || '';
           }
-          if (field !== 'id') {
+           if (field === 'id') {
+            el.addEventListener('click', e => {
+              e.stopPropagation();
+              openRowGroup(item.id, historyOpenBlocks[item.id]);
+            });
+          } else {
             el.addEventListener('click', e => {
               e.stopPropagation();
               navigator.clipboard.writeText(el.value || el.textContent || '');
