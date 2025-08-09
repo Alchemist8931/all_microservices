@@ -889,6 +889,7 @@ const { data: last } = await supabase
         const rowEl = fragment.querySelector('.history-item');
         rowEl.dataset.specId = item.id;
         rowEl.classList.add('fade-in');
+        rowEl.addEventListener('click', () => openRowGroup(item.id, historyOpenBlocks[item.id]));
         fragment.querySelectorAll('[data-field]').forEach(el => {
           const field = el.dataset.field;
           let val = item[field];
@@ -900,10 +901,9 @@ const { data: last } = await supabase
           } else {
             el.textContent = val || '';
           }
-          if (field === 'id') {
-            el.addEventListener('click', () => openRowGroup(item.id, historyOpenBlocks[item.id]));
-          } else {
-            el.addEventListener('click', () => {
+          if (field !== 'id') {
+            el.addEventListener('click', e => {
+              e.stopPropagation();
               navigator.clipboard.writeText(el.value || el.textContent || '');
               showCopyTip(el);
             });
