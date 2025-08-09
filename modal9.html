@@ -925,17 +925,14 @@ const { data: last } = await supabase
           const specFrag = specTemplate.content.cloneNode(true);
           const container = specFrag.querySelector('.spec-container');
           container.dataset.specId = item.id;
-          const header = specFrag.querySelector('.spec-header');
-          const btn = specFrag.querySelector('.group-close');
           const content = specFrag.querySelector('.spec-content');
           const title = specFrag.querySelector('.spec-title');
+          const btn = specFrag.querySelector('.group-close');
+          if (btn) btn.remove();
           if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
-          btn.classList.add('fade-toggle', 'hidden');
           content.classList.add('fade-toggle', 'hidden');
-          btn.style.display = 'none';
           content.style.display = 'none';
-          btn.addEventListener('click', e => { e.stopPropagation(); closeRowGroup(item.id); });
           specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
             const rf = specRowTemplate.content.cloneNode(true);
             rf.querySelector('[data-field="pos_number"]').value = r.pos_number;
@@ -1210,16 +1207,13 @@ const { data: last } = await supabase
         c.addEventListener('transitionend', () => { c.style.display = 'none'; }, { once: true });
       }
     });
-    historyList.querySelectorAll('.group-close').forEach(b => {
-      const sid = b.closest('.spec-container')?.dataset.specId;
-      if (sid !== String(id)) {
-        b.classList.add('hidden');
-        b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
-      }
+    historyList.querySelectorAll('.spec-close-btn').forEach(b => {
+      const sid = b.closest('.history-item')?.dataset.specId;
+      if (sid !== String(id)) b.remove();
     });
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
-    const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     if (cont) {
+      cont.style.display = 'block';
       requestAnimationFrame(() => cont.classList.remove('hidden'));
       if (blockClass) {
         const targets = cont.querySelectorAll(`.modal-block.${blockClass}`);
@@ -1237,10 +1231,6 @@ const { data: last } = await supabase
         const cls = Array.from(current.classList).find(c => c.startsWith('block'));
         if (cls) historyOpenBlocks[id] = cls;
       }
-    }
-    if (btn) {
-      btn.style.display = 'inline';
-      requestAnimationFrame(() => btn.classList.remove('hidden'));
     }
     
     const row = historyList.querySelector(`.history-item[data-spec-id="${id}"]`);
