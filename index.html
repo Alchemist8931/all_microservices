@@ -1102,8 +1102,6 @@
     };
   </script>
   <script src="https://unpkg.com/three@0.130.1/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.130.1/examples/js/renderers/CanvasRenderer.js"></script>
-  <script src="https://unpkg.com/three@0.130.1/examples/js/materials/SpriteCanvasMaterial.js"></script>
   <script>
     let camera, renderer, scene, particles;
 
@@ -1112,31 +1110,23 @@
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
       camera.position.z = 1000;
 
-      renderer = new THREE.CanvasRenderer({ alpha: true });
+      renderer = new THREE.WebGLRenderer({ alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       container.appendChild(renderer.domElement);
 
-      const material = new THREE.SpriteCanvasMaterial({
-        color: 0x211f3f,
-        program: function (context) {
-          context.beginPath();
-          context.arc(0, 0, 0.5, 0, Math.PI * 2, true);
-          context.fill();
-        }
-      });
-
-      particles = new THREE.Group();
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
       for (let i = 0; i < 500; i++) {
-        const sprite = new THREE.Sprite(material);
-        sprite.position.set(
+        positions.push(
           Math.random() * 2000 - 1000,
           Math.random() * 2000 - 1000,
           Math.random() * 2000 - 1000
         );
-        particles.add(sprite);
       }
-
-     scene.add(particles);
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({ color: 0x211f3f, size: 5 });
+      particles = new THREE.Points(geometry, material);
+      scene.add(particles);
 
       window.addEventListener('resize', onWindowResize);
     }
