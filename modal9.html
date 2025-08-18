@@ -486,6 +486,11 @@
         </label>
         <span class="toggle-text">демонстрация файлов компании</span>
       </div>
+      <div class="file-filter-container input-container" style="position: relative; margin-top: 10px; width: 200px;">
+        <input id="file-filter-input" class="styled_input_bar" style="width: 100%;" />
+        <label class="input-label">файл</label>
+        <button class="group-close ans5-close file-filter-clear" style="display:none;">×</button>
+      </div>
       <ul class="file-upload__list"></ul>
     </div>
     <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
@@ -673,6 +678,8 @@ export async function initModal9() {
   const uploadStatus = root.querySelector('.upload-status');
   const myFilesToggle = root.querySelector('#my-files-toggle');
   const toggleText = root.querySelector('.toggle-text');
+  const filterInput = root.querySelector('#file-filter-input');
+  const filterClear = root.querySelector('.file-filter-clear');
   const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
   const specRowTemplate = root.querySelector('#spec-row-template');
@@ -688,6 +695,16 @@ export async function initModal9() {
   const DELIM = window.__DELIM || "###";
 
   let selectedFile = null;
+  filterInput.addEventListener('input', () => {
+    applySecondFilter();
+    filterClear.style.display = filterInput.value ? 'block' : 'none';
+  });
+
+  filterClear.addEventListener('click', () => {
+    filterInput.value = '';
+    filterClear.style.display = 'none';
+    applySecondFilter();
+  });
   myFilesToggle.addEventListener('change', async () => {
     toggleText.textContent = myFilesToggle.checked ? 'демонстрация только моих файлов' : 'демонстрация файлов компании';
     await loadHistory();
@@ -1019,6 +1036,26 @@ const { data: last } = await supabase
       }
     });
     setupOverflowTooltips(historyList);
+    applySecondFilter();
+  }
+
+  function applySecondFilter() {
+    const q = filterInput.value.trim().toLowerCase();
+    filterClear.style.display = q ? 'block' : 'none';
+    historyList.querySelectorAll('.history-item').forEach(item => {
+      let visible = true;
+      if (q) {
+        visible = ['file_number','user_login','created_at','file_name','file_ext','status','id'].some(field => {
+          const el = item.querySelector(`[data-field="${field}"]`);
+          if (!el) return false;
+          const val = (el.value || el.textContent || '').toString().toLowerCase();
+          return val.includes(q);
+        });
+      }
+      item.style.display = visible ? '' : 'none';
+      const spec = historyList.querySelector(`.spec-container[data-spec-id="${item.dataset.specId}"]`);
+      if (spec) spec.style.display = visible ? '' : 'none';
+    });
   }
 
   let block1Rows = [];
