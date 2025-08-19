@@ -45,6 +45,7 @@
     .spec-upload-progress { width:100%; margin-top:6px; }
       .spec-upload-progress.running::-webkit-progress-value { transition: width 0.4s ease; background:#007bff; }
     .spec-upload-progress.done::-webkit-progress-value { background:#28a745; }
+    .fade-out { opacity:0; transition: opacity 1s; }
     /* ------- новые стили для полей истории ------- */
     .input-container {
       position: relative;
@@ -864,17 +865,35 @@ const { data: last } = await supabase
 
     uploadProgress.style.display = 'block';
     uploadProgress.value = 0;
-    uploadProgress.classList.remove('done');
+    uploadProgress.classList.remove('done', 'fade-out');
     uploadProgress.classList.add('running');
-    uploadStatus.textContent = 'Загружаю…';
+    uploadStatus.textContent = '0%';
 
-  const { error: upErr } = await supabase
-      .storage
-      .from(BUCKET)
-      .upload(filePath, selectedFile, { upsert: true });
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${window.SUPABASE_URL}/storage/v1/object/${BUCKET}/${filePath}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+    xhr.setRequestHeader('apikey', window.SUPABASE_ANON_KEY);
+    xhr.setRequestHeader('x-upsert', 'true');
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        uploadProgress.value = percent;
+        uploadStatus.textContent = percent + '%';
+      }
+    };
+    const uploadPromise = new Promise((resolve, reject) => {
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(xhr.statusText));
+      };
+      xhr.onerror = () => reject(new Error('Network error'));
+    });
+    xhr.send(selectedFile);
 
-    if (upErr) {
-      uploadStatus.textContent = 'Ошибка upload: ' + upErr.message;
+    try {
+      await uploadPromise;
+    } catch (e) {
+      uploadStatus.textContent = 'Ошибка upload: ' + e.message;
       stopBtnLoad();
       return;
     }
@@ -901,7 +920,12 @@ const { data: last } = await supabase
 
      uploadStatus.textContent = 'Файл поставлен в очередь';
       await loadHistory();
-      uploadProgress.style.display = 'none';
+      uploadProgress.classList.remove('running');
+      uploadProgress.classList.add('done', 'fade-out');
+      setTimeout(() => {
+        uploadProgress.style.display = 'none';
+        uploadProgress.classList.remove('done', 'fade-out');
+      }, 1000);
       stopBtnLoad();
 
      try {
