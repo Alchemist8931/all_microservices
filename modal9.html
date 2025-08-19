@@ -1149,6 +1149,7 @@ const { data: last } = await supabase
         const header = frag.querySelector('.spec-header');
         const btn = frag.querySelector('.group-close');
         const progress = header.querySelector('.spec-progress');
+        if (progress) progress.style.display = 'none';
         const startBtn = header.querySelector('.start-selector');
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
@@ -1270,8 +1271,15 @@ const { data: last } = await supabase
         b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
       }
     });
+    block1List.querySelectorAll('.spec-progress').forEach(p => {
+      const sid = p.closest('.spec-container')?.dataset.specId;
+      if (sid !== String(id)) {
+        p.style.display = 'none';
+      }
+    });
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    const prog = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-progress`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
@@ -1307,11 +1315,15 @@ const { data: last } = await supabase
       btn.style.display = 'inline';
       requestAnimationFrame(() => btn.classList.remove('hidden'));
     }
+    if (prog) {
+      prog.style.display = 'flex';
+    }
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    const prog = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-progress`);
     if (cont) {
       cont.classList.add('hidden');
       cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
@@ -1320,6 +1332,9 @@ const { data: last } = await supabase
     if (btn) {
       btn.classList.add('hidden');
       btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
+    }
+    if (prog) {
+      prog.style.display = 'none';
     }
     delete block1OpenBlocks[id];
   }
