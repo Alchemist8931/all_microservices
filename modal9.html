@@ -1030,6 +1030,13 @@ const { data: last } = await supabase
           const content = specFrag.querySelector('.spec-content');
           const title = specFrag.querySelector('.spec-title');
           const btn = specFrag.querySelector('.group-close');
+          const progressFrag = specProgressTemplate.content.cloneNode(true);
+          const progress = progressFrag.querySelector('.spec-progress');
+          progress.dataset.specId = item.id;
+          progress.classList.add('fade-toggle', 'hidden');
+          progress.style.display = 'none';
+          setProgress(progress, item.status);
+          container.insertBefore(progressFrag, content);
           if (btn) btn.remove();
           if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
@@ -1382,6 +1389,7 @@ const { data: last } = await supabase
     }
     openedSpecId = id;
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
+    const prog = historyList.querySelector(`.spec-progress[data-spec-id="${id}"]`);
     if (cont) {
       const oldT = hideTimers.get(cont);
       if (oldT) {
@@ -1407,6 +1415,26 @@ const { data: last } = await supabase
         if (cls) historyOpenBlocks[id] = cls;
       }
     }
+     if (prog) {
+      const oldT = hideTimers.get(prog);
+      if (oldT) {
+        clearTimeout(oldT);
+        hideTimers.delete(prog);
+      }
+      prog.style.display = 'flex';
+      requestAnimationFrame(() => prog.classList.remove('hidden'));
+    }
+
+    historyList.querySelectorAll('.spec-progress').forEach(p => {
+      if (p.dataset.specId !== String(id)) {
+        p.classList.add('hidden');
+        const t = setTimeout(() => {
+          p.style.display = 'none';
+          hideTimers.delete(p);
+        }, 500);
+        hideTimers.set(p, t);
+      }
+    });
     
     const row = historyList.querySelector(`.history-item[data-spec-id="${id}"]`);
     if (row) {
@@ -1434,6 +1462,7 @@ const { data: last } = await supabase
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
+    const prog = historyList.querySelector(`.spec-progress[data-spec-id="${id}"]`);
     if (cont) {
       cont.classList.add('hidden');
       const t = setTimeout(() => {
@@ -1449,6 +1478,14 @@ const { data: last } = await supabase
         hideTimers.delete(btn);
       }, 500);
       hideTimers.set(btn, t);
+    }
+    if (prog) {
+      prog.classList.add('hidden');
+      const t = setTimeout(() => {
+        prog.style.display = 'none';
+        hideTimers.delete(prog);
+      }, 500);
+      hideTimers.set(prog, t);
     }
     if (extra) extra.remove();
   }
