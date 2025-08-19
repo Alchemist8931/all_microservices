@@ -385,6 +385,24 @@
     .block1-wrapper::-webkit-scrollbar-thumb{ background-color:var(--black-color); border-radius:30px; }
     .block1-wrapper::-webkit-scrollbar-track{ background-color:var(--scrollbar-color); }
     .spec-container { margin-bottom:10px; }
+    .spec-progress.multistep {
+      display:flex;
+      gap:4px;
+      margin-left:10px;
+      flex:1;
+    }
+    .spec-progress.multistep .step {
+      flex:1;
+      height:6px;
+      background:#000;
+      opacity:0.25;
+      border-radius:2px;
+      transition:opacity 0.3s, box-shadow 0.3s;
+    }
+    .spec-progress.multistep .step.active {
+      opacity:1;
+      box-shadow:0 0 4px var(--content-color);
+    }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
     .spec-content { }
     .group-close { float:right; background:none; border:none; cursor:pointer; }
@@ -548,6 +566,15 @@
         <div class="spec-container">
           <div class="spec-header">
             <span class="spec-title">Спецификация</span>
+            <div class="spec-progress multistep">
+              <span class="step"></span>
+              <span class="step"></span>
+              <span class="step"></span>
+              <span class="step"></span>
+              <span class="step"></span>
+              <span class="step"></span>
+            </div>
+            <button class="darkmatter-btn start-selector" style="display:none">подбор</button>
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
           <div class="spec-content messages_container-content"></div>
@@ -885,18 +912,9 @@ const { data: last } = await supabase
          .update({ status: 'селекция' })
          .eq('id', insertedRow.id);
        await loadHistory();
-       await supabase.functions.invoke('modal9-selector', {
-         body: { spec_id: insertedRow.id },
-       });
-       await loadBlock1();
-       await supabase
-         .from(TABLE)
-         .update({ status: 'обработан' })
-         .eq('id', insertedRow.id);
-       await loadHistory();
-     } catch (err) {
-       console.error('modal9-parser/selector error:', err);
-     }
+       } catch (err) {
+        console.error('modal9-parser/selector error:', err);
+      }
 
       selectedFile = null;
       fileInput.value = '';
@@ -922,6 +940,7 @@ const { data: last } = await supabase
     if (error) { console.error(error); return; }
     history = data || [];
     renderHistory(oldMap);
+    renderBlock1();
   }
 
   function renderHistory(oldMap = {}) {
@@ -1129,16 +1148,49 @@ const { data: last } = await supabase
         container.dataset.specId = id;
         const header = frag.querySelector('.spec-header');
         const btn = frag.querySelector('.group-close');
+        const progress = header.querySelector('.spec-progress');
+        const startBtn = header.querySelector('.start-selector');
         const content = frag.querySelector('.spec-content');
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
         content.classList.add('fade-toggle', 'hidden');
         btn.style.display = 'none';
         content.style.display = 'none';
+        const specStatus = history.find(h => h.id === Number(id))?.status;
+        setProgress(progress, specStatus);
+        if (specStatus === 'селекция') {
+          startBtn.style.display = 'block';
+        }
         header.addEventListener('click', () => {
           openGroup(id, block1OpenBlocks[id]);
         });
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
+        startBtn.addEventListener('click', async e => {
+          e.stopPropagation();
+          startBtn.disabled = true;
+          try {
+            await supabase
+              .from(TABLE)
+              .update({ status: 'подбор' })
+              .eq('id', id);
+            await loadHistory();
+            setProgress(progress, 'подбор');
+            await supabase.functions.invoke('modal9-selector', {
+              body: { spec_id: id },
+            });
+            await loadBlock1();
+            await supabase
+              .from(TABLE)
+              .update({ status: 'обработан' })
+              .eq('id', id);
+            await loadHistory();
+            setProgress(progress, 'обработан');
+          } catch (err) {
+            console.error('modal9-selector error:', err);
+          }
+          startBtn.disabled = false;
+          startBtn.style.display = 'none';
+        });
 
         specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
           const rf = specRowTemplate.content.cloneNode(true);
@@ -1432,4 +1484,20 @@ const { data: last } = await supabase
   setupRealtime();
 }
 initModal9();
+  function setProgress(progressEl, status) {
+  if (!progressEl) return;
+  const map = {
+    'загружено': 1,
+    'парсинг': 3,
+    'селекция': 4,
+    'подбор': 5,
+    'обработан': 6,
+  };
+  const active = map[status] || 0;
+  const steps = progressEl.querySelectorAll('.step');
+  steps.forEach((step, idx) => {
+    if (idx < active) step.classList.add('active');
+    else step.classList.remove('active');
+  });
+}
 </script>
