@@ -389,8 +389,8 @@
     .spec-progress.multistep {
       display:flex;
       gap:4px;
-      margin-left:10px;
-      flex:1;
+      margin:0 10px;
+      width:calc(100% - 20px);
     }
     .spec-progress.multistep .step {
       flex:1;
@@ -1183,7 +1183,10 @@ const { data: last } = await supabase
         const content = frag.querySelector('.spec-content');
         const progressFrag = specProgressTemplate.content.cloneNode(true);
         const progress = progressFrag.querySelector('.spec-progress');
-        content.prepend(progressFrag);
+        progress.dataset.specId = id;
+        progress.classList.add('fade-toggle', 'hidden');
+        progress.style.display = 'none';
+        container.insertBefore(progressFrag, content);
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
         content.classList.add('fade-toggle', 'hidden');
@@ -1303,8 +1306,15 @@ const { data: last } = await supabase
         b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
       }
     });
+    block1List.querySelectorAll('.spec-progress').forEach(p => {
+      if (p.dataset.specId !== String(id)) {
+        p.classList.add('hidden');
+        p.addEventListener('transitionend', () => { p.style.display = 'none'; }, { once: true });
+      }
+    });
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    const prog = block1List.querySelector(`.spec-progress[data-spec-id="${id}"]`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
@@ -1340,11 +1350,16 @@ const { data: last } = await supabase
       btn.style.display = 'inline';
       requestAnimationFrame(() => btn.classList.remove('hidden'));
     }
+    if (prog) {
+      prog.style.display = 'flex';
+      requestAnimationFrame(() => prog.classList.remove('hidden'));
+    }
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
+    const prog = block1List.querySelector(`.spec-progress[data-spec-id="${id}"]`);
     if (cont) {
       cont.classList.add('hidden');
       cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
@@ -1353,6 +1368,10 @@ const { data: last } = await supabase
     if (btn) {
       btn.classList.add('hidden');
       btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
+    }
+    if (prog) {
+      prog.classList.add('hidden');
+      prog.addEventListener('transitionend', () => { prog.style.display = 'none'; }, { once: true });
     }
     delete block1OpenBlocks[id];
   }
