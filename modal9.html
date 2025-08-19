@@ -561,19 +561,22 @@
 
     <div class="page spec-page" data-page="2">
       <div class="block1-wrapper"></div>
+
+      <template id="spec-progress-template">
+        <div class="spec-progress multistep">
+          <span class="step"></span>
+          <span class="step"></span>
+          <span class="step"></span>
+          <span class="step"></span>
+          <span class="step"></span>
+          <span class="step"></span>
+        </div>
+      </template>
       
       <template id="spec-template">
         <div class="spec-container">
           <div class="spec-header">
             <span class="spec-title">Спецификация</span>
-            <div class="spec-progress multistep">
-              <span class="step"></span>
-              <span class="step"></span>
-              <span class="step"></span>
-              <span class="step"></span>
-              <span class="step"></span>
-              <span class="step"></span>
-            </div>
             <button class="darkmatter-btn start-selector" style="display:none">подбор</button>
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
@@ -713,6 +716,7 @@ export async function initModal9() {
   const filterClear = root.querySelector('.file-filter-clear');
   const block1List = root.querySelector('.block1-wrapper');
   const specTemplate = root.querySelector('#spec-template');
+  const specProgressTemplate = root.querySelector('#spec-progress-template');
   const specRowTemplate = root.querySelector('#spec-row-template');
   const block2Template = root.querySelector('#spec-block2-template');
   const block21Template = root.querySelector('#spec-block21-template');
@@ -1148,10 +1152,11 @@ const { data: last } = await supabase
         container.dataset.specId = id;
         const header = frag.querySelector('.spec-header');
         const btn = frag.querySelector('.group-close');
-        const progress = header.querySelector('.spec-progress');
-        if (progress) progress.style.display = 'none';
         const startBtn = header.querySelector('.start-selector');
         const content = frag.querySelector('.spec-content');
+        const progressFrag = specProgressTemplate.content.cloneNode(true);
+        const progress = progressFrag.querySelector('.spec-progress');
+        content.prepend(progressFrag);
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
         content.classList.add('fade-toggle', 'hidden');
@@ -1271,15 +1276,8 @@ const { data: last } = await supabase
         b.addEventListener('transitionend', () => { b.style.display = 'none'; }, { once: true });
       }
     });
-    block1List.querySelectorAll('.spec-progress').forEach(p => {
-      const sid = p.closest('.spec-container')?.dataset.specId;
-      if (sid !== String(id)) {
-        p.style.display = 'none';
-      }
-    });
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    const prog = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-progress`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
@@ -1315,15 +1313,11 @@ const { data: last } = await supabase
       btn.style.display = 'inline';
       requestAnimationFrame(() => btn.classList.remove('hidden'));
     }
-    if (prog) {
-      prog.style.display = 'flex';
-    }
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
-    const prog = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-progress`);
     if (cont) {
       cont.classList.add('hidden');
       cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
@@ -1332,9 +1326,6 @@ const { data: last } = await supabase
     if (btn) {
       btn.classList.add('hidden');
       btn.addEventListener('transitionend', () => { btn.style.display = 'none'; }, { once: true });
-    }
-    if (prog) {
-      prog.style.display = 'none';
     }
     delete block1OpenBlocks[id];
   }
