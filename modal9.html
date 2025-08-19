@@ -277,13 +277,15 @@
     nav.nav_copy .tab.active { color:var(--content-color); }
 
        /* ---- загрузка файлов ---- */
-    .file-upload__modal { display:flex; flex-direction:column; gap:5px;}
+    .file-upload__modal { display:flex; align-items:flex-start; }
     .file-upload-form { width:fit-content; height:fit-content; display:flex; align-items:center; justify-content:center; }
     .file-upload-label input { display:none; }
     .file-upload-label { cursor:pointer; background-color:#ddd; padding:20px 20px; border-radius:8px; border:1px dashed rgb(82,82,82); }
-    .file-upload-design { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:-60px; }
-    .browse-button { background-color:rgb(82,82,82); padding:5px 25px; border-radius:6px; color:white; transition:all 0.3s; }
-    .browse-button:hover { background-color:rgb(14,14,14); }
+    .file-upload-design { display:flex; flex-direction:column; align-items:center; justify-content:space-between; height:100%; }
+    .file-upload-design .darkmatter-btn { width:100%; }
+    .browse-button { width:100%; }
+    .drag-text { margin:0; }
+    .upload-status-wrapper { display:flex; flex-direction:column; align-items:flex-start; margin-left:10px; }
     .js-dropzone.drag { background: rgba(255,255,255,0.1); }
 
     .darkmatter-btn {
@@ -460,42 +462,44 @@
     }
     
   </style>
- <div class="modal9-top-window glass3d">
-    <div class="file-upload__modal">
-      <form class="file-upload-form js-dropzone">
-        <label class="file-upload-label">
-          <div class="file-upload-design" style="width: 200px; height: 50px;">
-            <p style="margin-top: -8px;">Drag and Drop</p>
-            <span class="browse-button" style="margin-top: 10px;">Browse file</span>
-          </div>
-          <input type="file" class="js-file__input" />
-        </label>
-      </form>
-      <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
-        <button type="button" class="darkmatter-btn upload-btn">
-          <span class="button-text">Загрузить</span>
-          <span class="loader"></span>
-          <div class="darkmatter-particle" style="--tx: -20px; --ty: -15px; left: 25%; top: 25%;"></div>
-          <div class="darkmatter-particle" style="--tx: 15px; --ty: -20px; left: 75%; top: 25%; animation-delay: 0.2s;"></div>
-          <div class="darkmatter-particle" style="--tx: -15px; --ty: 15px; left: 25%; top: 75%; animation-delay: 0.4s;"></div>
-          <div class="darkmatter-particle" style="--tx: 20px; --ty: 15px; left: 75%; top: 75%; animation-delay: 0.6s;"></div>
-        </button>
-        <div class="file-filter-container input-container" style="position: relative; margin-top: 0px; width: 300px;">
-          <input id="file-filter-input" class="styled_input_bar" style="width: 100%;" />
-          <label class="input-label">поиск совпадений</label>
-          <button class="group-close ans5-close file-filter-clear" style="display:none;">×</button>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="my-files-toggle">
-          <span class="slider"></span>
-        </label>
-        <span class="toggle-text">демонстрация файлов компании</span>
-      </div>
-      <ul class="file-upload__list"></ul>
-    </div>
-    <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
-      <div class="upload-status"></div>
-  </div>
+  <div class="modal9-top-window glass3d">
+   <div class="file-upload__modal">
+     <form class="file-upload-form js-dropzone">
+       <label class="file-upload-label">
+         <div class="file-upload-design" style="width: 200px; height: 50px;">
+           <p class="drag-text">Drag and Drop</p>
+           <button type="button" class="darkmatter-btn browse-button">Browse file</button>
+           <button type="button" class="darkmatter-btn upload-btn">
+             <span class="button-text">Загрузить</span>
+             <span class="loader"></span>
+             <div class="darkmatter-particle" style="--tx: -20px; --ty: -15px; left: 25%; top: 25%;"></div>
+             <div class="darkmatter-particle" style="--tx: 15px; --ty: -20px; left: 75%; top: 25%; animation-delay: 0.2s;"></div>
+             <div class="darkmatter-particle" style="--tx: -15px; --ty: 15px; left: 25%; top: 75%; animation-delay: 0.4s;"></div>
+             <div class="darkmatter-particle" style="--tx: 20px; --ty: 15px; left: 75%; top: 75%; animation-delay: 0.6s;"></div>
+           </button>
+         </div>
+         <input type="file" class="js-file__input" />
+       </label>
+     </form>
+     <div class="upload-status-wrapper">
+       <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
+       <div class="upload-status"></div>
+     </div>
+   </div>
+   <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
+     <div class="file-filter-container input-container" style="position: relative; margin-top: 0px; width: 300px;">
+       <input id="file-filter-input" class="styled_input_bar" style="width: 100%;" />
+       <label class="input-label">поиск совпадений</label>
+       <button class="group-close ans5-close file-filter-clear" style="display:none;">×</button>
+     </div>
+     <label class="switch">
+       <input type="checkbox" id="my-files-toggle">
+       <span class="slider"></span>
+     </label>
+     <span class="toggle-text">демонстрация файлов компании</span>
+   </div>
+   <ul class="file-upload__list"></ul>
+ </div>
  <div class="modal9-scroll-wrapper">
  <div class="modal9-window glass3d">
    <div class="modal9-content">
