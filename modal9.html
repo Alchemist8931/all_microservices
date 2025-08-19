@@ -708,6 +708,7 @@ export async function initModal9() {
   const fileInput = root.querySelector('.js-file__input');
   const fileList = root.querySelector('.file-upload__list');
   const uploadBtn = root.querySelector('.upload-btn');
+  const browseBtn = root.querySelector('.browse-button');
   const uploadProgress = root.querySelector('.upload-progress');
   const uploadStatus = root.querySelector('.upload-status');
   const myFilesToggle = root.querySelector('#my-files-toggle');
@@ -748,6 +749,8 @@ export async function initModal9() {
     selectedFile = fileInput.files[0] || null;
     renderFileList();
   });
+
+  browseBtn.addEventListener('click', () => fileInput.click());
 
   dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
