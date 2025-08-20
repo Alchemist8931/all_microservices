@@ -1,5 +1,8 @@
 <!-- ========= modal9.html (Проект 9) ========= -->
 <div id="modal9-container" class="spec-modal">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=indeterminate_check_box" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=done_all" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=refresh" rel="stylesheet">
   <style>
     /* ---- базовые стили из modal5 ---- */
     .spec-modal {
@@ -388,21 +391,46 @@
     .spec-container { margin-bottom:10px; margin-right:30px; padding-top:10px;}
     .spec-progress.multistep {
       display:flex;
-      gap:4px;
+      gap:10px;
       margin:0 10px;
       width:calc(100% - 20px);
     }
     .spec-progress.multistep .step {
       flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+    }
+    .spec-progress.multistep .bar {
+      width:100%;
       height:6px;
       background:#000;
       opacity:0.25;
       border-radius:2px;
       transition:opacity 0.3s, box-shadow 0.3s;
     }
-    .spec-progress.multistep .step.active {
+    .spec-progress.multistep .step.active .bar {
       opacity:1;
       box-shadow:0 0 4px var(--content-color);
+    }
+    .spec-progress.multistep .label {
+      font-size:12px;
+      text-align:center;
+    }
+    .spec-progress.multistep .icons {
+      display:flex;
+      gap:4px;
+      align-items:center;
+    }
+    .spec-progress.multistep .icons .material-symbols-outlined {
+      font-size:18px;
+      cursor:pointer;
+      color:var(--content-color);
+    }
+    .spec-progress.multistep .icons .refresh.disabled {
+      color:#b5b5b5;
+      pointer-events:none;
     }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
     .spec-content { }
@@ -565,12 +593,30 @@
 
       <template id="spec-progress-template">
         <div class="spec-progress multistep">
-          <span class="step"></span>
-          <span class="step"></span>
-          <span class="step"></span>
-          <span class="step"></span>
-          <span class="step"></span>
-          <span class="step"></span>
+          <div class="step">
+            <div class="bar"></div>
+            <div class="label">парсинг</div>
+            <div class="icons">
+              <span class="material-symbols-outlined status">indeterminate_check_box</span>
+              <span class="material-symbols-outlined refresh">refresh</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="bar"></div>
+            <div class="label">подбор</div>
+            <div class="icons">
+              <span class="material-symbols-outlined status">indeterminate_check_box</span>
+              <span class="material-symbols-outlined refresh">refresh</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="bar"></div>
+            <div class="label">обработан</div>
+            <div class="icons">
+              <span class="material-symbols-outlined status">indeterminate_check_box</span>
+              <span class="material-symbols-outlined refresh disabled">refresh</span>
+            </div>
+          </div>
         </div>
       </template>
       
@@ -1035,8 +1081,9 @@ const { data: last } = await supabase
           progress.dataset.specId = item.id;
           progress.classList.add('fade-toggle', 'hidden');
           progress.style.display = 'none';
-          setProgress(progress, item.status);
           container.insertBefore(progressFrag, content);
+          initProgressHandlers(progress, item.id);
+          setProgress(progress, item.status);
           if (btn) btn.remove();
           if (title) title.style.display = 'none';
           content.dataset.specId = item.id;
@@ -1194,6 +1241,7 @@ const { data: last } = await supabase
         progress.classList.add('fade-toggle', 'hidden');
         progress.style.display = 'none';
         container.insertBefore(progressFrag, content);
+        initProgressHandlers(progress, id);
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
         content.classList.add('fade-toggle', 'hidden');
@@ -1538,6 +1586,46 @@ const { data: last } = await supabase
       });
     });
   }
+  function initProgressHandlers(progress, specId) {
+    const icons = progress.querySelectorAll('.refresh');
+    if (icons[0]) icons[0].addEventListener('click', e => {
+      e.stopPropagation();
+      refreshParser(specId, progress);
+    });
+    if (icons[1]) icons[1].addEventListener('click', e => {
+      e.stopPropagation();
+      refreshSelector(specId, progress);
+    });
+  }
+
+  async function refreshParser(specId, progress) {
+    try {
+      await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
+      await supabase.from(POS_TABLE).delete().eq('spec_id', specId);
+      await supabase.from(TABLE).update({ status: 'парсинг' }).eq('id', specId);
+      setProgress(progress, 'парсинг');
+      await supabase.functions.invoke('modal9-parser', { body: { spec_id: specId } });
+      await loadBlock1();
+      await loadHistory();
+    } catch (err) {
+      console.error('refreshParser error:', err);
+    }
+  }
+
+  async function refreshSelector(specId, progress) {
+    try {
+      await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
+      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
+      setProgress(progress, 'подбор');
+      await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
+      await loadBlock1();
+      await supabase.from(TABLE).update({ status: 'обработан' }).eq('id', specId);
+      await loadHistory();
+      setProgress(progress, 'обработан');
+    } catch (err) {
+      console.error('refreshSelector error:', err);
+    }
+  }
   function setupRealtime() {
     if (!supabase) return;
     realtimeSub = supabase
@@ -1574,19 +1662,23 @@ const { data: last } = await supabase
 }
 initModal9();
   function setProgress(progressEl, status) {
-  if (!progressEl) return;
-  const map = {
-    'загружено': 1,
-    'парсинг': 3,
-    'селекция': 4,
-    'подбор': 5,
-    'обработан': 6,
-  };
-  const active = map[status] || 0;
-  const steps = progressEl.querySelectorAll('.step');
-  steps.forEach((step, idx) => {
-    if (idx < active) step.classList.add('active');
-    else step.classList.remove('active');
-  });
-}
+    if (!progressEl) return;
+    const map = {
+      'селекция': 0,
+      'подбор': 1,
+      'обработан': 2,
+    };
+    const active = map[status] ?? -1;
+    const steps = progressEl.querySelectorAll('.step');
+    steps.forEach((step, idx) => {
+      const icon = step.querySelector('.status');
+      if (idx <= active) {
+        step.classList.add('active');
+        if (icon) icon.textContent = 'done_all';
+      } else {
+        step.classList.remove('active');
+        if (icon) icon.textContent = 'indeterminate_check_box';
+      }
+    });
+  }
 </script>
