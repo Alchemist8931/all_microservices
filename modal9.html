@@ -706,7 +706,7 @@
       <template id="spec-block21-template">
         <div class="modalRow">
           <div class="input-container">
-            <input type="text" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
             <label class="input-label">артикул</label>
           </div>
           <div class="input-container">
@@ -717,7 +717,7 @@
               <span class="material-symbols-outlined status">link</span>
           </div>
           <div class="input-container">
-            <input type="text" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
             <label class="input-label">артикул</label>
           </div>
           <div class="input-container">
@@ -728,7 +728,7 @@
               <span class="material-symbols-outlined status">link</span>
           </div>
           <div class="input-container">
-            <input type="text" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
             <label class="input-label">артикул</label>
           </div>
           <div class="input-container">
@@ -738,7 +738,74 @@
           <div class="icons">
               <span class="material-symbols-outlined status">link</span>
           </div>
-  </div>
+       </div>
+      </template>
+
+      <template id="spec-block3-template">
+        <div class="modalRow">
+          <div class="input-container">
+            <input type="text" style="width: 140px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">артикул</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 300px;" class="styled_input_bar value-input" placeholder="наименование" readonly>
+            <label class="input-label">наименование</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 80px; text-align: center;" class="styled_input_bar value-input" placeholder="кол-во" readonly>
+            <label class="input-label">кол-во</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 80px; text-align: center;" class="styled_input_bar value-input" placeholder="ед. изм." readonly>
+            <label class="input-label">ед. изм.</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 110px; text-align: center;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
+            <label class="input-label">цена</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 110px; text-align: center;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
+            <label class="input-label">сумма</label>
+          </div>
+         </div>
+      </template>
+      
+      <template id="spec-block31-template">
+        <div class="modalRow">
+          <div class="input-container">
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">артикул</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">магазин</label>
+          </div>
+          <div class="icons">
+              <span class="material-symbols-outlined status">link</span>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">артикул</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">магазин</label>
+          </div>
+          <div class="icons">
+              <span class="material-symbols-outlined status">link</span>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">артикул</label>
+          </div>
+          <div class="input-container">
+            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
+            <label class="input-label">магазин</label>
+          </div>
+          <div class="icons">
+              <span class="material-symbols-outlined status">link</span>
+          </div>
+       </div>
       </template>
       
       <template id="spec-attr-template">
@@ -797,6 +864,8 @@ export async function initModal9() {
   const specRowTemplate = root.querySelector('#spec-row-template');
   const block2Template = root.querySelector('#spec-block2-template');
   const block21Template = root.querySelector('#spec-block21-template');
+  const block3Template = root.querySelector('#spec-block3-template');
+  const block31Template = root.querySelector('#spec-block31-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
   let realtimeSub = null;
   const block1OpenBlocks = {};
