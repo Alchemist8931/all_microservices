@@ -624,7 +624,6 @@
         <div class="spec-container">
           <div class="spec-header">
             <span class="spec-title">Спецификация</span>
-            <button class="darkmatter-btn start-selector" style="display:none">подбор</button>
             <button class="group-close ans5-close" style="display:none">×</button>
           </div>
           <div class="spec-content messages_container-content"></div>
@@ -1088,7 +1087,7 @@ const { data: last } = await supabase
          .eq('id', insertedRow.id);
        await loadHistory();
        } catch (err) {
-        console.error('modal9-parser/selector error:', err);
+        console.error('modal9-parser error:', err);
       }
 
       selectedFile = null;
@@ -1331,7 +1330,6 @@ const { data: last } = await supabase
         container.dataset.specId = id;
         const header = frag.querySelector('.spec-header');
         const btn = frag.querySelector('.group-close');
-        const startBtn = header.querySelector('.start-selector');
         const content = frag.querySelector('.spec-content');
         const progressFrag = specProgressTemplate.content.cloneNode(true);
         const progress = progressFrag.querySelector('.spec-progress');
@@ -1347,39 +1345,10 @@ const { data: last } = await supabase
         content.style.display = 'none';
         const specStatus = history.find(h => h.id === Number(id))?.status;
         setProgress(progress, specStatus);
-        if (specStatus === 'селекция') {
-          startBtn.style.display = 'block';
-        }
         header.addEventListener('click', () => {
           openGroup(id, block1OpenBlocks[id]);
         });
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
-        startBtn.addEventListener('click', async e => {
-          e.stopPropagation();
-          startBtn.disabled = true;
-          try {
-            await supabase
-              .from(TABLE)
-              .update({ status: 'подбор' })
-              .eq('id', id);
-            await loadHistory();
-            setProgress(progress, 'подбор');
-            await supabase.functions.invoke('modal9-selector', {
-              body: { spec_id: id },
-            });
-            await loadBlock1();
-            await supabase
-              .from(TABLE)
-              .update({ status: 'обработан' })
-              .eq('id', id);
-            await loadHistory();
-            setProgress(progress, 'обработан');
-          } catch (err) {
-            console.error('modal9-selector error:', err);
-          }
-          startBtn.disabled = false;
-          startBtn.style.display = 'none';
-        });
 
         specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
           const rf = specRowTemplate.content.cloneNode(true);
@@ -1704,6 +1673,8 @@ const { data: last } = await supabase
       setProgress(progress, 'парсинг');
       await supabase.functions.invoke('modal9-parser', { body: { spec_id: specId } });
       await loadBlock1();
+      await supabase.from(TABLE).update({ status: 'селекция' }).eq('id', specId);
+      setProgress(progress, 'селекция');
       await loadHistory();
     } catch (err) {
       console.error('refreshParser error:', err);
