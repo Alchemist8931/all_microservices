@@ -399,8 +399,24 @@
       flex:1;
       display:flex;
       flex-direction:column;
-      align-items:center;
+      align-items:flex-start;
       gap:2px;
+    }
+    .spec-progress.multistep .step-body {
+      display:flex;
+      gap:8px;
+      margin-left:20px;
+    }
+    .spec-progress.multistep .step-body .darkmatter-btn {
+      height:auto;
+      padding:0 5px;
+      width:245px;
+    }
+    .spec-progress.multistep .step-body .darkmatter-btn:disabled,
+    .spec-progress.multistep .step-body .darkmatter-btn.disabled {
+      opacity:0.5;
+      cursor:default;
+      pointer-events:none;
     }
     .spec-progress.multistep .bar {
       width:100%;
@@ -425,12 +441,7 @@
     }
     .spec-progress.multistep .icons .material-symbols-outlined {
       font-size:18px;
-      cursor:pointer;
       color:var(--content-color);
-    }
-    .spec-progress.multistep .icons .refresh.disabled {
-      color:#b5b5b5;
-      pointer-events:none;
     }
     .spec-header { background:transparent; cursor:pointer; font-weight:700; }
     .spec-content { }
@@ -596,30 +607,45 @@
     <!-- BLOCK 1 -->
     <div class="step" data-step="1">
       <div class="bar"></div>
-      <div class="label">BLOCK 1</div>
-      <div class="icons">
-        <span class="material-symbols-outlined status">indeterminate_check_box</span>
-        <span class="material-symbols-outlined refresh" title="Перезапустить парсер">refresh</span>
+      <div class="step-body">
+        <div class="label">BLOCK 1</div>
+        <div class="icons">
+          <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        </div>
+        <button class="darkmatter-btn refresh" title="Перезапустить парсер">
+          <span class="button-text">запуск шага</span>
+          <span class="loader"></span>
+        </button>
       </div>
     </div>
 
     <!-- BLOCK 2 / 2.1 -->
     <div class="step" data-step="2">
       <div class="bar"></div>
-      <div class="label">BLOCK 2 / 2.1</div>
-      <div class="icons">
-        <span class="material-symbols-outlined status">indeterminate_check_box</span>
-        <span class="material-symbols-outlined refresh" title="Перезапустить селектор">refresh</span>
+      <div class="step-body">
+        <div class="label">BLOCK 2 / 2.1</div>
+        <div class="icons">
+          <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        </div>
+        <button class="darkmatter-btn refresh" title="Перезапустить селектор">
+          <span class="button-text">запуск шага</span>
+          <span class="loader"></span>
+        </button>
       </div>
     </div>
 
     <!-- BLOCK 3 / 3.1 (пока без действий) -->
     <div class="step" data-step="3">
       <div class="bar"></div>
-      <div class="label">BLOCK 3 / 3.1</div>
-      <div class="icons">
-        <span class="material-symbols-outlined status">indeterminate_check_box</span>
-        <span class="material-symbols-outlined refresh disabled" title="Недоступно">refresh</span>
+      <div class="step-body">
+        <div class="label">BLOCK 3 / 3.1</div>
+        <div class="icons">
+          <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        </div>
+        <button class="darkmatter-btn refresh" title="Недоступно" disabled>
+          <span class="button-text">запуск шага</span>
+          <span class="loader"></span>
+        </button>
       </div>
     </div>
   </div>
@@ -1650,14 +1676,30 @@ const { data: last } = await supabase
     });
   }
   function initProgressHandlers(progress, specId) {
-    const icons = progress.querySelectorAll('.refresh');
-    if (icons[0]) icons[0].addEventListener('click', e => {
+    const buttons = progress.querySelectorAll('.refresh');
+    if (buttons[0]) buttons[0].addEventListener('click', async e => {
       e.stopPropagation();
-      refreshParser(specId, progress);
+      const btn = e.currentTarget;
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        await refreshParser(specId, progress);
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
     });
-    if (icons[1]) icons[1].addEventListener('click', e => {
+    if (buttons[1]) buttons[1].addEventListener('click', async e => {
       e.stopPropagation();
-      refreshSelector(specId, progress);
+      const btn = e.currentTarget;
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        await refreshSelector(specId, progress);
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
     });
   }
 
