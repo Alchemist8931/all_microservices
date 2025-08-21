@@ -1753,26 +1753,43 @@ const { data: last } = await supabase
       console.error('refreshSelector error:', err);
     }
   }
-  function setupRealtime() {
-    if (!supabase) return;
-    realtimeSub = supabase
-      .channel('modal9-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, payload => {
-        if (payload.new) {
-          const idx = history.findIndex(h => h.id === payload.new.id);
-          if (idx >= 0) history[idx] = { ...history[idx], ...payload.new };
-          else history.unshift(payload.new);
-        }
-        loadHistory();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => {
-        loadBlock1();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => {
-        loadBlock1();
-      })
-      .subscribe();
+
+  // --- автопамп воркера до статуса "обработан"
+const workerTimers = {};
+function startWorkerPump(specId) {
+  if (workerTimers[specId]) return;
+  const tick = async () => {
+    try {
+      await supabase.functions.invoke('modal9-selector', {
+        body: { mode: 'worker', vt: 60, batch: 3, budget_ms: 55000 }
+      });
+    } catch (e) { console.error('worker tick error:', e); }
+  };
+  workerTimers[specId] = setInterval(tick, 65000);
+  tick();
+}
+function stopWorkerPump(specId) {
+  if (workerTimers[specId]) {
+    clearInterval(workerTimers[specId]);
+    delete workerTimers[specId];
   }
+}
+  
+  function setupRealtime() {
+  if (!supabase) return;
+  realtimeSub = supabase
+    .channel('modal9-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, payload => {
+      if (payload?.new?.id && payload?.new?.status === 'обработан') {
+        stopWorkerPump(payload.new.id);
+      }
+      loadHistory();
+    })
+    // остальные подписки остаются без изменений
+    .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => loadBlock1())
+    .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => loadBlock1())
+    .subscribe();
+}
 
   function cleanupRealtime() {
     if (realtimeSub) {
@@ -1818,7 +1835,6 @@ async function getSelectorProgress(specId) {
     const done = new Set((doneRows || []).map(r => r.pos_id)).size;
     return { done, total: total || 0, remaining: Math.max(0, (total || 0) - done) };
   }
-
       const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
       async function pumpSelector(specId, progressEl) {
