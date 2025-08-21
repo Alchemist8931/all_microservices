@@ -591,44 +591,40 @@
     <div class="page spec-page" data-page="2">
       <div class="block1-wrapper"></div>
 
-      <template id="spec-progress-template">
-        <div class="spec-progress multistep">
-          <div class="step">
-            <div class="bar"></div>
-            <div class="label">BLOCK 1</div>
-            <div class="icons">
-              <span class="material-symbols-outlined status">indeterminate_check_box</span>
-              <span class="material-symbols-outlined refresh">refresh</span>
-            </div>
-          </div>
-          <div class="step">
-            <div class="bar"></div>
-            <div class="label">BLOCK 2 / 2.1</div>
-            <div class="icons">
-              <span class="material-symbols-outlined status">indeterminate_check_box</span>
-              <span class="material-symbols-outlined refresh">refresh</span>
-            </div>
-          </div>
-          <div class="step">
-            <div class="bar"></div>
-            <div class="label">BLOCK 3 / 3.1</div>
-            <div class="icons">
-              <span class="material-symbols-outlined status">indeterminate_check_box</span>
-              <span class="material-symbols-outlined refresh disabled">refresh</span>
-            </div>
-          </div>
-        </div>
-      </template>
-      
-      <template id="spec-template">
-        <div class="spec-container">
-          <div class="spec-header">
-            <span class="spec-title">Спецификация</span>
-            <button class="group-close ans5-close" style="display:none">×</button>
-          </div>
-          <div class="spec-content messages_container-content"></div>
-        </div>
-      </template>
+<template id="spec-progress-template">
+  <div class="spec-progress multistep">
+    <!-- BLOCK 1 -->
+    <div class="step" data-step="1">
+      <div class="bar"></div>
+      <div class="label">BLOCK 1</div>
+      <div class="icons">
+        <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        <span class="material-symbols-outlined refresh" title="Перезапустить парсер">refresh</span>
+      </div>
+    </div>
+
+    <!-- BLOCK 2 / 2.1 -->
+    <div class="step" data-step="2">
+      <div class="bar"></div>
+      <div class="label">BLOCK 2 / 2.1</div>
+      <div class="icons">
+        <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        <span class="material-symbols-outlined refresh" title="Перезапустить селектор">refresh</span>
+      </div>
+    </div>
+
+    <!-- BLOCK 3 / 3.1 (пока без действий) -->
+    <div class="step" data-step="3">
+      <div class="bar"></div>
+      <div class="label">BLOCK 3 / 3.1</div>
+      <div class="icons">
+        <span class="material-symbols-outlined status">indeterminate_check_box</span>
+        <span class="material-symbols-outlined refresh disabled" title="Недоступно">refresh</span>
+      </div>
+    </div>
+  </div>
+</template>
+
       
       <template id="spec-row-template">
         <div class="modalCONTEINERpost modalRow">
