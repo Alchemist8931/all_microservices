@@ -1737,14 +1737,18 @@ const { data: last } = await supabase
 
   async function refreshSelector(specId, progress) {
     try {
-      await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
-      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-      setProgress(progress, 'подбор');
-      await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
-      await loadBlock1();
-      await supabase.from(TABLE).update({ status: 'обработан' }).eq('id', specId);
-      await loadHistory();
-      setProgress(progress, 'обработан');
+      // 1) очистили прошлые варианты и пометили «подбор»
+    await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
+    await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
+    setProgress(progress, 'подбор');
+
+    // 2) запускаем ДВУХФАЗНЫЙ план + автопамп воркера
+    await supabase.functions.invoke('modal9-selector', {
+      body: { mode: 'kickoff', spec_id: specId, vt: 60, batch: 3, budget_ms: 55000, loops: 2 }
+    });
+    startWorkerPump(specId);   // см. новую функцию ниже
+
+    await loadBlock1();
     } catch (err) {
       console.error('refreshSelector error:', err);
     }
