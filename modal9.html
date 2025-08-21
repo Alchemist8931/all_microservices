@@ -1667,7 +1667,7 @@ const { data: last } = await supabase
       await supabase.from(POS_TABLE).delete().eq('spec_id', specId);
       await supabase.from(TABLE).update({ status: 'парсинг' }).eq('id', specId);
       setProgress(progress, 'парсинг');
-      await supabase.functions.invoke('modal9-parser', { body: { spec_id: specId } });
+      await supabase.functions.invoke('modal9-parser', { body: { request_id: specId } });
       await loadBlock1();
       await supabase.from(TABLE).update({ status: 'селекция' }).eq('id', specId);
       setProgress(progress, 'селекция');
