@@ -1696,6 +1696,8 @@ export async function initModal9() {
       btn.disabled = true;
       try {
         await refreshSelector(specId, progress);
+        } catch (err) {
+        console.error(err); // //двухфазный kickoff + startWorkerPump
       } finally {
         btn.classList.remove('loading');
         btn.disabled = false;
