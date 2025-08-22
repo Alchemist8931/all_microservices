@@ -1034,18 +1034,6 @@ export async function initModal9() {
       return;
     }
 
-const { data: last } = await supabase
-      .from(TABLE)
-      .select('file_number')
-      .order('id', { ascending: false })
-      .limit(1);
-
-    const nextNum = last?.[0]
-      ? parseInt(last[0].file_number.slice(3)) + 1
-      : 1;
-    const fileNumber = `AK-${String(nextNum).padStart(6, '0')}`;
-
-
     const safeName = sanitize(selectedFile.name);
     const safeFolder = sanitize(session.user.id);
     const filePath = `${safeFolder}/${Date.now()}_${safeName}`;
@@ -1089,7 +1077,6 @@ const { data: last } = await supabase
     const { data: insertedRow, error: regErr } = await supabase
         .from(TABLE)
         .insert({
-            file_number: fileNumber,
             user_login: window.USER_LOGIN || '',
             file_path: filePath,
             file_name: selectedFile.name,
@@ -1105,7 +1092,7 @@ const { data: last } = await supabase
         return;
       }
 
-     uploadStatus.textContent = 'Файл поставлен в очередь';
+     uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
       await loadHistory();
       uploadProgress.classList.remove('running');
       uploadProgress.classList.add('done', 'fade-out');
