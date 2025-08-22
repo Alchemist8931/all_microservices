@@ -1689,22 +1689,17 @@ export async function initModal9() {
       }
     });
     if (buttons[1]) buttons[1].addEventListener('click', async e => {
-  e.stopPropagation();
-  const btn = e.currentTarget;
-  btn.classList.add('loading');
-  btn.disabled = true;
-  try {
-    // ставим статус «подбор» и запускаем помпу
-    await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-    setProgress(progress, 'подбор');
-    await pumpSelector(specId, progress);
-  } catch (err) {
-    console.error('pumpSelector error:', err);
-  } finally {
-    btn.classList.remove('loading');
-    btn.disabled = false;
-  }
-});
+ e.stopPropagation();
+      const btn = e.currentTarget;
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        await refreshSelector(specId, progress);
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
   }
 
   async function refreshParser(specId, progress) {
@@ -1735,6 +1730,17 @@ export async function initModal9() {
     await loadBlock1();
     } catch (err) {
       console.error('refreshSelector error:', err);
+    }
+  }
+
+  // старый путь через pumpSelector сохраняем для возможного ручного вызова
+  async function legacyPumpSelector(specId, progress) {
+    try {
+      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
+      setProgress(progress, 'подбор');
+      await pumpSelector(specId, progress);
+    } catch (err) {
+      console.error('pumpSelector error:', err);
     }
   }
 
