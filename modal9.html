@@ -1207,7 +1207,7 @@ export async function initModal9() {
           content.dataset.specId = item.id;
           content.classList.add('fade-toggle', 'hidden');
           content.style.display = 'none';
-          specRows.sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(r => {
+         specRows.sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0)).forEach(r => {
             const rf = specRowTemplate.content.cloneNode(true);
             rf.querySelector('[data-field="pos_number"]').value = r.pos_number;
             rf.querySelector('[data-field="name"]').value = r.name;
@@ -1299,9 +1299,10 @@ export async function initModal9() {
       .from(POS_TABLE)                                // ← заменили константу
       .select(
         'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, name, qty, unit, attrs'
+        'pos_number, pos_number_int, name, qty, unit, attrs'
       )
-      .order('id', { ascending: false });
+     .order('spec_id', { ascending: false })
+      .order('pos_number_int', { ascending: true });
 
     if (error) { console.error(error); loadingBlock1 = false; if (pendingLoad) { pendingLoad = false; loadBlock1(); } return; }
     block1Rows = data || [];
@@ -1371,7 +1372,7 @@ export async function initModal9() {
         });
         btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
 
-        specGroups[id].sort((a,b)=>Number(a.pos_number)-Number(b.pos_number)).forEach(row => {
+       specGroups[id].sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0)).forEach(row => {
           const rf = specRowTemplate.content.cloneNode(true);
           rf.querySelector('[data-field="pos_number"]').value = row.pos_number;
           rf.querySelector('[data-field="name"]').value = row.name;
