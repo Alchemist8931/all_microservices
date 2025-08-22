@@ -1093,7 +1093,6 @@ export async function initModal9() {
       }
 
      uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
-      await loadHistory();
       uploadProgress.classList.remove('running');
       uploadProgress.classList.add('done', 'fade-out');
       setTimeout(() => {
@@ -1103,19 +1102,10 @@ export async function initModal9() {
       stopBtnLoad();
 
      try {
-       await supabase
-         .from(TABLE)
-         .update({ status: 'парсинг' })
-         .eq('id', insertedRow.id);
-       await loadHistory();
        await supabase.functions.invoke('modal9-parser', {
          body: { request_id: insertedRow.id },
        });
        await loadBlock1();
-       await supabase
-         .from(TABLE)
-         .update({ status: 'селекция' })
-         .eq('id', insertedRow.id);
        await loadHistory();
        } catch (err) {
         console.error('modal9-parser error:', err);
@@ -1721,12 +1711,8 @@ export async function initModal9() {
     try {
       await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
       await supabase.from(POS_TABLE).delete().eq('spec_id', specId);
-      await supabase.from(TABLE).update({ status: 'парсинг' }).eq('id', specId);
-      setProgress(progress, 'парсинг');
       await supabase.functions.invoke('modal9-parser', { body: { request_id: specId } });
       await loadBlock1();
-      await supabase.from(TABLE).update({ status: 'селекция' }).eq('id', specId);
-      setProgress(progress, 'селекция');
       await loadHistory();
     } catch (err) {
       console.error('refreshParser error:', err);
