@@ -129,6 +129,8 @@
     .modalRow { display:flex; gap:10px; margin-top:10px; }
     .modalColumn { display:flex; flex-direction:column; gap:10px; }
     .modalCollumn { display:flex; flex-direction:column; gap:10px; }
+    .registry-checkboxes { display:flex; flex-direction:column; margin-top:10px; }
+    .registry-checkboxes .checkbox-item { display:flex; align-items:center; gap:6px; }
     .modalCONTEINERpost {
       display: flex;
       border-radius: 6px;
@@ -664,21 +666,30 @@
       
       <template id="spec-row-template">
         <div class="modalCONTEINERpost modalRow">
-          <div class="input-container" style="margin-top: 10px;">
-            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="pos_number" readonly>
-            <label class="input-label">№ в ТЗ</label>
-          </div>
-          <div class="input-container" style="margin-top: 10px;">
-            <input type="text" style="width: 400px; text-align: left;" class="styled_input_bar" data-field="name" readonly>
-            <label class="input-label">наименование</label>
-          </div>
-          <div class="input-container" style="margin-top: 10px;">
-            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="qty" readonly>
-            <label class="input-label">кол-во</label>
-          </div>
-          <div class="input-container" style="margin-top: 10px;">
-            <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="unit" readonly>
-            <label class="input-label">ед. изм.</label>
+          <div class="modalColumn">
+            <div class="modalRow">
+              <div class="input-container" style="margin-top: 10px;">
+                <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="pos_number" readonly>
+                <label class="input-label">№ в ТЗ</label>
+              </div>
+              <div class="input-container" style="margin-top: 10px;">
+                <input type="text" style="width: 400px; text-align: left;" class="styled_input_bar" data-field="name" readonly>
+                <label class="input-label">наименование</label>
+              </div>
+              <div class="input-container" style="margin-top: 10px;">
+                <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="qty" readonly>
+                <label class="input-label">кол-во</label>
+              </div>
+              <div class="input-container" style="margin-top: 10px;">
+                <input type="text" style="width: 100px; text-align: center;" class="styled_input_bar" data-field="unit" readonly>
+                <label class="input-label">ед. изм.</label>
+              </div>
+            </div>
+            <div class="registry-checkboxes">
+              <label class="checkbox-item"><input type="checkbox" data-field="rpp_878"> присутствие в реестре РПП 878</label>
+              <label class="checkbox-item"><input type="checkbox" data-field="torp"> присутствие в реестре ТОРП</label>
+              <label class="checkbox-item"><input type="checkbox" data-field="rrpo_1875"> присутствие в реестре РРПО 1875</label>
+            </div>
           </div>
           <div class="dynamic-modals">
             <div class="modal-block block1">
