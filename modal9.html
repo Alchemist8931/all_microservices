@@ -1,8 +1,6 @@
 <!-- ========= modal9.html (Проект 9) ========= -->
 <div id="modal9-container" class="spec-modal">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=indeterminate_check_box" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=done_all" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon=refresh" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
     /* ---- базовые стили из modal5 ---- */
     .spec-modal {
@@ -352,7 +350,7 @@
       width: 0;
       height: 0;
     }
-    .slider {
+    .toggle-slider {
       position: absolute;
       cursor: pointer;
       top: 0;
@@ -363,7 +361,7 @@
       transition: .4s;
       border-radius: 34px;
     }
-    .slider:before {
+    .toggle-slider:before {
       position: absolute;
       content: "";
       height: 16px;
@@ -374,10 +372,10 @@
       transition: .4s;
       border-radius: 50%;
     }
-    input:checked + .slider {
+    input:checked + .toggle-slider {
       background-color: var(--content-color);
     }
-    input:checked + .slider:before {
+    input:checked + .toggle-slider:before {
       transform: translateX(20px);
     }
 
@@ -554,7 +552,7 @@
      </div>
      <label class="switch">
        <input type="checkbox" id="my-files-toggle">
-       <span class="slider"></span>
+       <span class="toggle-slider"></span>
      </label>
      <span class="toggle-text">демонстрация файлов компании</span>
    </div>
@@ -885,7 +883,7 @@ export async function initModal9() {
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
-  const slider = root.querySelector('.slider');
+  const navSlider = root.querySelector('nav.nav_copy .slider');
   const pages = root.querySelectorAll('.page');
   const historyList = root.querySelector('.history-list');
   const dropzone = root.querySelector('.js-dropzone');
@@ -968,7 +966,7 @@ export async function initModal9() {
       pages.forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       root.querySelector(`.page[data-page="${tab.dataset.page}"]`).classList.add('active');
-      slider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
+      if (navSlider) navSlider.style.left = tab.dataset.page === '1' ? '0%' : '50%';
       if (tab.dataset.page === '2') loadBlock1();
     });
   });
