@@ -1724,9 +1724,8 @@ export async function initModal9() {
 
     // 2) запускаем ДВУХФАЗНЫЙ план + автопамп воркера
     await supabase.functions.invoke('modal9-selector', {
-      body: { mode: 'kickoff', spec_id: specId, vt: 60, batch: 3, budget_ms: 55000, loops: 2 }
-    });
-    startWorkerPump(specId);   // см. новую функцию ниже
+  body: { mode: 'autorun', spec_id: specId, vt: 60, batch: 3, budget_ms: 55000, loops: 3, reset: true }
+});
 
     await loadBlock1();
     } catch (err) {
