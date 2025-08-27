@@ -1746,18 +1746,18 @@ export async function initModal9() {
 
   // --- автопамп воркера до статуса "обработан"
 const workerTimers = {};
+// --- автопамп воркера (ОТКЛЮЧЕНО) ---
 function startWorkerPump(specId) {
-  if (workerTimers[specId]) return;
-  const tick = async () => {
-    try {
-      await supabase.functions.invoke('modal9-selector', {
-        body: { mode: 'worker', vt: 60, batch: 3, budget_ms: 55000 }
-      });
-    } catch (e) { console.error('worker tick error:', e); }
-  };
-  workerTimers[specId] = setInterval(tick, 65000);
-  tick();
+  // Автопамп выключен: ничего не планируем и на всякий случай снимаем прежний таймер
+  try {
+    if (typeof workerTimers !== 'undefined' && workerTimers[specId]) {
+      clearInterval(workerTimers[specId]);
+      delete workerTimers[specId];
+    }
+  } catch (_) { /* no-op */ }
+  console.warn('[modal9] startWorkerPump() вызван, но автопамп отключён для предотвращения расходов. specId =', specId);
 }
+
 function stopWorkerPump(specId) {
   if (workerTimers[specId]) {
     clearInterval(workerTimers[specId]);
