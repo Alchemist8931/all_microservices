@@ -622,7 +622,7 @@
         <div class="icons">
           <span class="material-symbols-outlined status" style="font-size: 14px;">indeterminate_check_box</span>
         </div>
-        <button class="darkmatter-btn refresh" title="Перезапустить парсер" style="berder-radius: 4px;">
+        <button class="darkmatter-btn refresh" title="Перезапустить парсер" style="border-radius: 4px;">
           <span class="button-text">запуск шага</span>
           <span class="loader"></span>
         </button>
@@ -637,7 +637,7 @@
         <div class="icons">
           <span class="material-symbols-outlined status" style="font-size: 14px;">indeterminate_check_box</span>
         </div>
-        <button class="darkmatter-btn refresh" title="Перезапустить селектор" style="berder-radius: 4px;">
+        <button class="darkmatter-btn refresh" title="Перезапустить селектор" style="border-radius: 4px;">
           <span class="button-text">запуск шага</span>
           <span class="loader"></span>
         </button>
@@ -652,7 +652,7 @@
         <div class="icons">
           <span class="material-symbols-outlined status" style="font-size: 14px;">indeterminate_check_box</span>
         </div>
-        <button class="darkmatter-btn refresh" title="Недоступно" style="berder-radius: 4px;" disabled>
+        <button class="darkmatter-btn refresh" title="Недоступно" style="border-radius: 4px;" disabled>
           <span class="button-text">запуск шага</span>
           <span class="loader"></span>
         </button>
@@ -877,6 +877,7 @@ export async function initModal9() {
   const TABLE = 'modal9_page1_uploads_registry';
   const POS_TABLE = 'modal9_page1_positions';
   const SELECT_TABLE = 'modal9_page1_positions_select';
+  // URLs функций не используются напрямую; оставлены для совместимости
   const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
   const SELECTOR_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-selector';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
@@ -1688,14 +1689,14 @@ export async function initModal9() {
       }
     });
     if (buttons[1]) buttons[1].addEventListener('click', async e => {
- e.stopPropagation();
+      e.stopPropagation();
       const btn = e.currentTarget;
       btn.classList.add('loading');
       btn.disabled = true;
       try {
         await refreshSelector(specId, progress);
         } catch (err) {
-        console.error(err); // //двухфазный kickoff + startWorkerPump
+        console.error(err);
       } finally {
         btn.classList.remove('loading');
         btn.disabled = false;
@@ -1715,55 +1716,119 @@ export async function initModal9() {
     }
   }
 
+  // === НОВАЯ ДВУХФАЗНАЯ ЛОГИКА ДЛЯ BLOCK 2 / 2.1 ===
+  const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+  async function runWorkerBurst(opts, specId, progressEl) {
+    const { loops = 2, vt = 60, batch = 3, budget_ms = 35000 } = opts || {};
+    let lastDone = -1;
+
+    for (let i = 0; i < loops; i++) {
+      // запуск воркера (обрабатывает всё, что уже в очереди)
+      const { error: workerErr } = await supabase.functions.invoke('modal9-selector', {
+        body: { mode: 'worker', vt, batch, budget_ms }
+      });
+      if (workerErr) console.error('worker error', workerErr);
+
+      // обновим прогресс/статус
+      const { done, total, remaining } = await getSelectorProgress(specId);
+      await supabase.from(TABLE)
+        .update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' })
+        .eq('id', specId);
+      setProgress(progressEl, remaining ? 'подбор' : 'обработан');
+      await loadBlock1();
+
+      if (!remaining) break;
+      if (done <= lastDone) await delay(1200);
+      lastDone = done;
+    }
+  }
+
   async function refreshSelector(specId, progress) {
     try {
-      // 1) очистили прошлые варианты и пометили «подбор»
-    await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
-    await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-    setProgress(progress, 'подбор');
+      // 0) очистка прошлого выбора и установка статуса
+      await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
+      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
+      setProgress(progress, 'подбор');
 
-    // 2) запускаем ДВУХФАЗНЫЙ план + автопамп воркера
-    await supabase.functions.invoke('modal9-selector', {
-  body: { mode: 'autorun', spec_id: specId, vt: 60, batch: 3, budget_ms: 55000, loops: 3, reset: true }
-});
+      // A) постановка позиций в очередь без дублей
+      const { data: launchRes, error: launchErr } = await supabase.functions.invoke('modal9-selector', {
+        body: { mode: 'launch', spec_id: specId }
+      });
+      if (launchErr) throw launchErr;
 
-    await loadBlock1();
+      // B) короткий burst воркера
+      await runWorkerBurst({ loops: 2, vt: 60, batch: 3, budget_ms: 35000 }, specId, progress);
+
+      await loadBlock1();
+      await loadHistory();
     } catch (err) {
       console.error('refreshSelector error:', err);
     }
   }
 
-  // старый путь через pumpSelector сохраняем для возможного ручного вызова
-  async function legacyPumpSelector(specId, progress) {
+  // старый «ручной насос», приведён к mode:'worker' (на случай ручного вызова)
+  async function pumpSelector(specId, progressEl) {
+    if (pumpSelector._locks?.has(specId)) return;
+    pumpSelector._locks = pumpSelector._locks || new Set();
+    pumpSelector._locks.add(specId);
+
     try {
-      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-      setProgress(progress, 'подбор');
-      await pumpSelector(specId, progress);
-    } catch (err) {
-      console.error('pumpSelector error:', err);
+      let lastDone = -1;
+      let idleTries = 0;
+
+      for (let iter = 0; iter < 30; iter++) {
+        const { done, total, remaining } = await getSelectorProgress(specId);
+        await supabase.from(TABLE).update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' }).eq('id', specId);
+        setProgress(progressEl, remaining ? 'подбор' : 'обработан');
+        await loadBlock1();
+        if (!remaining) break;
+
+        const { error } = await supabase.functions.invoke('modal9-selector', {
+          body: { mode: 'worker', vt: 60, batch: 3, budget_ms: 35000 }
+        });
+        if (error) {
+          console.error('modal9-selector invoke error:', error);
+          idleTries++;
+          if (idleTries >= 3) break;
+        } else {
+          idleTries = 0;
+        }
+
+        const after = await getSelectorProgress(specId);
+        if (after.done <= lastDone) {
+          idleTries++;
+          if (idleTries >= 5) break;
+          await delay(1500);
+        } else {
+          idleTries = 0;
+          lastDone = after.done;
+        }
+        await delay(500);
+      }
+    } finally {
+      pumpSelector._locks.delete(specId);
+      await loadHistory();
     }
   }
 
-  // --- автопамп воркера до статуса "обработан"
-const workerTimers = {};
-// --- автопамп воркера (ОТКЛЮЧЕНО) ---
-function startWorkerPump(specId) {
-  // Автопамп выключен: ничего не планируем и на всякий случай снимаем прежний таймер
-  try {
-    if (typeof workerTimers !== 'undefined' && workerTimers[specId]) {
+  // --- автопамп воркера (оставлен отключённым) ---
+  const workerTimers = {};
+  function startWorkerPump(specId) {
+    try {
+      if (typeof workerTimers !== 'undefined' && workerTimers[specId]) {
+        clearInterval(workerTimers[specId]);
+        delete workerTimers[specId];
+      }
+    } catch (_) { /* no-op */ }
+    console.warn('[modal9] startWorkerPump() вызван, но автопамп отключён. specId =', specId);
+  }
+  function stopWorkerPump(specId) {
+    if (workerTimers[specId]) {
       clearInterval(workerTimers[specId]);
       delete workerTimers[specId];
     }
-  } catch (_) { /* no-op */ }
-  console.warn('[modal9] startWorkerPump() вызван, но автопамп отключён для предотвращения расходов. specId =', specId);
-}
-
-function stopWorkerPump(specId) {
-  if (workerTimers[specId]) {
-    clearInterval(workerTimers[specId]);
-    delete workerTimers[specId];
   }
-}
   
   function setupRealtime() {
   if (!supabase) return;
@@ -1775,7 +1840,6 @@ function stopWorkerPump(specId) {
       }
       loadHistory();
     })
-    // остальные подписки остаются без изменений
     .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => loadBlock1())
     .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => loadBlock1())
     .subscribe();
@@ -1817,7 +1881,7 @@ async function getSelectorProgress(specId) {
       .select('*', { count: 'exact', head: true })
       .eq('spec_id', specId);
 
-  const { data: doneRows, error: e2 } = await supabase
+  const { data: doneRows } = await supabase
       .from(SELECT_TABLE)
       .select('pos_id')
       .eq('spec_id', specId);
@@ -1825,59 +1889,8 @@ async function getSelectorProgress(specId) {
     const done = new Set((doneRows || []).map(r => r.pos_id)).size;
     return { done, total: total || 0, remaining: Math.max(0, (total || 0) - done) };
   }
-      const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
-      async function pumpSelector(specId, progressEl) {
-    // защитимся от повторных запусков по одной спецификации
-    if (pumpSelector._locks?.has(specId)) return;
-    pumpSelector._locks = pumpSelector._locks || new Set();
-    pumpSelector._locks.add(specId);
-
-      try {
-      let lastDone = -1;
-      let idleTries = 0;
-
-      for (let iter = 0; iter < 30; iter++) {       // «страховочный» предел итераций
-        const { done, total, remaining } = await getSelectorProgress(specId);
-
-        // отрисуем прогресс + статус
-        await supabase.from(TABLE).update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' }).eq('id', specId);
-        setProgress(progressEl, remaining ? 'подбор' : 'обработан');
-        await loadBlock1(); // обновим карточки
-
-        if (!remaining) break; // всё готово
-
-        // дергаем edge-функцию селектора на очередную порцию
-        const { error } = await supabase.functions.invoke('modal9-selector', {
-          body: { spec_id: specId, limit: 3, budget_ms: 35000 }
-        });
-        if (error) {
-          console.error('modal9-selector invoke error:', error);
-          // дадим второй шанс несколькими итерациями
-          idleTries++;
-          if (idleTries >= 3) break;
-        } else {
-          idleTries = 0;
-        }
-
-        // если прогресса нет — подождём чуть дольше
-        const after = await getSelectorProgress(specId);
-        if (after.done <= lastDone) {
-          idleTries++;
-          if (idleTries >= 5) break;
-          await delay(1500);
-        } else {
-          idleTries = 0;
-          lastDone = after.done;
-        }
-        await delay(500);
-      }
-      } finally {
-      pumpSelector._locks.delete(specId);
-      await loadHistory(); // добиваем UI
-    }
-  }
- await loadBlock1();
+  await loadBlock1();
   await loadHistory();
   setupRealtime();
 }
