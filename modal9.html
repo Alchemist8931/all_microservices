@@ -1719,18 +1719,17 @@ export async function initModal9() {
   // === НОВАЯ ДВУХФАЗНАЯ ЛОГИКА ДЛЯ BLOCK 2 / 2.1 ===
   const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
-  async function runWorkerBurst(opts, specId, progressEl) {
-  const { loops = 2, vt = 60, batch = 3, budget_ms = 35000 } = opts || {};
+  // //ручной «насос» воркера: по одному сообщению за итерацию
+async function runWorkerBurst(opts, specId, progressEl) {
+  const { loops = 3, vt = 45, budget_ms = 30000 } = opts || {};
   let lastDone = -1;
 
   for (let i = 0; i < loops; i++) {
-    // запуск воркера ТЕПЕРЬ с spec_id
-    const { error: workerErr } = await supabase.functions.invoke('modal9-selector', {
-      body: { mode: 'worker', spec_id: specId, vt, batch, budget_ms }
+    // запускаем воркер на одну позицию
+    await supabase.functions.invoke('modal9-selector', {
+      body: { mode: 'worker', spec_id: specId, vt, batch: 1, budget_ms }
     });
-    if (workerErr) console.error('worker error', workerErr);
 
-    // обновим прогресс/статус
     const { done, total, remaining } = await getSelectorProgress(specId);
     await supabase.from(TABLE)
       .update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' })
@@ -1744,29 +1743,28 @@ export async function initModal9() {
   }
 }
 
-  async function refreshSelector(specId, progress) {
-    if (!specId) { console.warn('[modal9] refreshSelector: no specId'); return; }
-    try {
-      // 0) очистка прошлого выбора и установка статуса
-      await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
-      await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-      setProgress(progress, 'подбор');
+  // //перезапуск селектора: сервер сам решит «первый запуск или повторный»
+// //и обеспечит последовательную очередь (по одной позиции)
+async function refreshSelector(specId, progress) {
+  try {
+    // выставим статус
+    await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
+    setProgress(progress, 'подбор');
 
-      // A) постановка позиций в очередь без дублей
-      const { data: launchRes, error: launchErr } = await supabase.functions.invoke('modal9-selector', {
-        body: { mode: 'launch', spec_id: specId }
-      });
-      if (launchErr) throw launchErr;
+    // сервер: launch_serial (или reset если ранее уже подбиралось)
+    await supabase.functions.invoke('modal9-selector', {
+      body: { mode: 'launch_serial', spec_id: specId }
+    });
 
-      // B) короткий burst воркера
-      await runWorkerBurst({ loops: 2, vt: 60, batch: 3, budget_ms: 35000 }, specId, progress);
+    // короткий «насос» воркера: по одному сообщению, несколько итераций
+    await runWorkerBurst({ loops: 4, vt: 45, budget_ms: 30000 }, specId, progress);
 
-      await loadBlock1();
-      await loadHistory();
-    } catch (err) {
-      console.error('refreshSelector error:', err);
-    }
+    await loadBlock1();
+    await loadHistory();
+  } catch (err) {
+    console.error('refreshSelector error:', err);
   }
+}
 
   // старый «ручной насос», приведён к mode:'worker' (на случай ручного вызова)
   async function pumpSelector(specId, progressEl) {
