@@ -1721,11 +1721,8 @@ async function runWorkerBurst(opts, specId, progressEl) {
       body: { mode: 'worker', spec_id: specId, vt, batch: 1, budget_ms }
     });
 
-    const { done, total, remaining } = await getSelectorProgress(specId);
-    await supabase.from(TABLE)
-      .update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' })
-      .eq('id', specId);
-    setProgress(progressEl, remaining ? 'подбор' : 'обработан');
+    const { done, found, total, remaining } = await getSelectorProgress(specId);
+    setProgress(progressEl, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
     await loadBlock1();
 
     if (!remaining) break;
@@ -1738,16 +1735,15 @@ async function runWorkerBurst(opts, specId, progressEl) {
 // //и обеспечит последовательную очередь (по одной позиции)
 async function refreshSelector(specId, progress) {
   try {
-    // выставим статус
-    await supabase.from(TABLE).update({ status: 'подбор' }).eq('id', specId);
-    setProgress(progress, 'подбор');
-
     // сервер: launch_serial (или reset если ранее уже подбиралось)
     await supabase.functions.invoke('modal9-selector', {
       body: { mode: 'launch_serial', spec_id: specId }
     });
 
     // короткий «насос» воркера: по одному сообщению, несколько итераций
+    const { done, found, total } = await getSelectorProgress(specId);
+    setProgress(progress, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
+
     await runWorkerBurst({ loops: 4, vt: 45, budget_ms: 30000 }, specId, progress);
 
     await loadBlock1();
@@ -1768,11 +1764,8 @@ async function refreshSelector(specId, progress) {
     let idleTries = 0;
 
     for (let iter = 0; iter < 30; iter++) {
-      const { done, total, remaining } = await getSelectorProgress(specId);
-      await supabase.from(TABLE)
-        .update({ status: remaining ? `подбор ${done}/${total}` : 'обработан' })
-        .eq('id', specId);
-      setProgress(progressEl, remaining ? 'подбор' : 'обработан');
+      const { done, found, total, remaining } = await getSelectorProgress(specId);
+      setProgress(progressEl, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
       await loadBlock1();
       if (!remaining) break;
 
@@ -1847,14 +1840,36 @@ async function refreshSelector(specId, progress) {
 
   window.cleanupRealtime = cleanupRealtime;
   
-  function setProgress(progressEl, status) {
+  function setProgress(progressEl, info) {
     if (!progressEl) return;
+    let status = '', done, found, total;
+    if (typeof info === 'string') status = info;
+    else if (info && typeof info === 'object') {
+      status = info.status || '';
+      done = info.done;
+      found = info.found;
+      total = info.total;
+    }
     const s = String(status || '').toLowerCase();
     let active = -1;
-    if (s.includes('селекция')) active = 0;
-    else if (s.includes('подбор')) active = 1;
-    else if (s.includes('обработан') || s.includes('done')) active = 2; // на всякий случай
-
+    const m2 = s.match(/block\\s*2\\s*\\(\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*\\)/i);
+    if (/block\\s*2/i.test(s)) {
+      if ((!Number.isFinite(done) || !Number.isFinite(total)) && m2) {
+        done = Number(m2[1]);
+        found = Number(m2[2]);
+        total = Number(m2[3]);
+      }
+      if (Number.isFinite(done) && Number.isFinite(total) && total > 0 && done >= total) active = 2;
+      else active = 1;
+    } else if (/block\\s*1/i.test(s)) {
+      if (/готово/.test(s)) active = 0;
+    } else if (s.includes('обработан') || s.includes('done')) {
+      active = 2;
+    } else if (s.includes('подбор')) {
+      active = 1;
+    } else if (s.includes('селекц')) {
+      active = 0;
+    }
     const steps = progressEl.querySelectorAll('.step');
     steps.forEach((step, idx) => {
       const icon = step.querySelector('.status');
@@ -1868,20 +1883,22 @@ async function refreshSelector(specId, progress) {
     });
   }
 
-async function getSelectorProgress(specId) {
+  async function getSelectorProgress(specId) {
     const { count: total } = await supabase
-      .from(POS_TABLE)
-      .select('*', { count: 'exact', head: true })
-      .eq('spec_id', specId);
+    .from(POS_TABLE)
+    .select('*', { count: 'exact', head: true })
+    .eq('spec_id', specId);
 
   const { data: doneRows } = await supabase
-      .from(SELECT_TABLE)
-      .select('pos_id')
-      .eq('spec_id', specId);
+    .from(SELECT_TABLE)
+    .select('pos_id, model_name')
+    .eq('spec_id', specId);
 
-    const done = new Set((doneRows || []).map(r => r.pos_id)).size;
-    return { done, total: total || 0, remaining: Math.max(0, (total || 0) - done) };
-  }
+  const covered = new Set((doneRows || []).map(r => r.pos_id));
+  const found = (doneRows || []).filter(r => (r.model_name || '').toUpperCase() !== 'НЕ НАЙДЕНО').length;
+  const done = covered.size;
+  return { done, found, total: total || 0, remaining: Math.max(0, (total || 0) - done) };
+}
 
   await loadBlock1();
   await loadHistory();
