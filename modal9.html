@@ -187,13 +187,8 @@
       text-transform: uppercase;
       text-align: center;
     }
-    .status-display.dots::after {
-      content: '...';
-      display: inline-block;
-      overflow: hidden;
-      width: 0;
-      margin-left: 4px;
-      animation: dots 1s steps(4, end) infinite;
+   .status-display.error {
+      border-color: red;
     }
     .status-display.fade {
       opacity: 0;
@@ -218,10 +213,6 @@
     .input-container:hover .status-display + .input-label {
       color: var(--content-color);
     }
-    @keyframes dots {
-      to { width: 1em; }
-    }
-
      .fade-in {
       animation: fadeIn 0.5s ease;
     }
@@ -988,22 +979,22 @@ export async function initModal9() {
     setTimeout(() => tip.remove(), 1000);
   }
 
-  function applyDots(el, status) {
-  if (!el) return;
-  const s = String(status || "").toLowerCase();
-  if (s.includes('парсинг') || s.includes('селекция') || s.includes('подбор')) {
-    el.classList.add('dots');
-  } else {
-    el.classList.remove('dots');
-  }
+  function updateStatus(el, status) {
+    if (!el) return;
+    const s = String(status || '');
+    el.textContent = s;
+    if (s.trim().endsWith('!!!')) {
+      el.classList.add('error');
+    } else {
+      el.classList.remove('error');
+    }
 }
 
   function animateStatus(el, newStatus) {
     if (!el) return;
     el.classList.add('fade');
     setTimeout(() => {
-      el.textContent = newStatus || '';
-      applyDots(el, newStatus);
+      updateStatus(el, newStatus);
       el.classList.remove('fade');
     }, 1000);
   }
@@ -1179,7 +1170,7 @@ export async function initModal9() {
             });
           }
           if (field === 'status') {
-            applyDots(el, val);
+            updateStatus(el, val);
             if (oldMap[item.id] && oldMap[item.id] !== val) {
               animateStatus(el, val);
             }
