@@ -869,6 +869,7 @@ export async function initModal9() {
   const POS_TABLE = 'modal9_page1_positions';
   const SELECT_TABLE = 'modal9_page1_positions_select';
   // URLs функций не используются напрямую; оставлены для совместимости
+  const STATUS_TABLE = 'modal9_selector_status';
   const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
   const SELECTOR_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-selector';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
@@ -904,6 +905,15 @@ export async function initModal9() {
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
   let openedSpecId = null;
+
+  let block1ReloadTimer = null;
+  function scheduleLoadBlock1() {
+    if (block1ReloadTimer) return;
+    block1ReloadTimer = setTimeout(async () => {
+      block1ReloadTimer = null;
+      await loadBlock1();
+    }, 500);
+  }
 
   const DELIM = window.__DELIM || "###";
 
@@ -1092,12 +1102,12 @@ export async function initModal9() {
       stopBtnLoad();
 
      try {
-       await supabase.functions.invoke('modal9-parser', {
-         body: { request_id: insertedRow.id },
-       });
-       await loadBlock1();
-       await loadHistory();
-       } catch (err) {
+        await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', insertedRow.id);
+        await supabase.functions.invoke('modal9-parser', {
+          body: { request_id: insertedRow.id },
+        });
+        await loadHistory();
+      } catch (err) {
         console.error('modal9-parser error:', err);
       }
 
@@ -1699,8 +1709,8 @@ export async function initModal9() {
     try {
       await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
       await supabase.from(POS_TABLE).delete().eq('spec_id', specId);
+      await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', specId);
       await supabase.functions.invoke('modal9-parser', { body: { request_id: specId } });
-      await loadBlock1();
       await loadHistory();
     } catch (err) {
       console.error('refreshParser error:', err);
@@ -1710,109 +1720,35 @@ export async function initModal9() {
   // === НОВАЯ ДВУХФАЗНАЯ ЛОГИКА ДЛЯ BLOCK 2 / 2.1 ===
   const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
-  // //ручной «насос» воркера: по одному сообщению за итерацию
-async function runWorkerBurst(opts, specId, progressEl) {
-  const { loops = 3, vt = 45, budget_ms = 30000 } = opts || {};
-  let lastDone = -1;
-
-  for (let i = 0; i < loops; i++) {
-    // запускаем воркер на одну позицию
-    await supabase.functions.invoke('modal9-selector', {
-      body: { mode: 'worker', spec_id: specId, vt, batch: 1, budget_ms }
-    });
-
-    const { done, found, total, remaining } = await getSelectorProgress(specId);
-    setProgress(progressEl, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
-    await loadBlock1();
-
-    if (!remaining) break;
-    if (done <= lastDone) await delay(1200);
-    lastDone = done;
-  }
-}
-
-  // //перезапуск селектора: сервер сам решит «первый запуск или повторный»
-// //и обеспечит последовательную очередь (по одной позиции)
-async function refreshSelector(specId, progress) {
-  try {
-    // сервер: launch_serial (или reset если ранее уже подбиралось)
-    await supabase.functions.invoke('modal9-selector', {
-      body: { mode: 'launch_serial', spec_id: specId }
-    });
-
-    // короткий «насос» воркера: по одному сообщению, несколько итераций
-    const { done, found, total } = await getSelectorProgress(specId);
-    setProgress(progress, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
-
-    await runWorkerBurst({ loops: 4, vt: 45, budget_ms: 30000 }, specId, progress);
-
-    await loadBlock1();
-    await loadHistory();
-  } catch (err) {
-    console.error('refreshSelector error:', err);
-  }
-}
-
-  // старый «ручной насос», приведён к mode:'worker' (на случай ручного вызова)
-  async function pumpSelector(specId, progressEl) {
-  if (pumpSelector._locks?.has(specId)) return;
-  pumpSelector._locks = pumpSelector._locks || new Set();
-  pumpSelector._locks.add(specId);
-
-  try {
-    let lastDone = -1;
-    let idleTries = 0;
-
-    for (let iter = 0; iter < 30; iter++) {
-      const { done, found, total, remaining } = await getSelectorProgress(specId);
-      setProgress(progressEl, { status: `BLOCK2 (${done} / ${found} / ${total})`, done, found, total });
-      await loadBlock1();
-      if (!remaining) break;
-
-      // запуск воркера ТЕПЕРЬ с spec_id
-      const { error } = await supabase.functions.invoke('modal9-selector', {
-        body: { mode: 'worker', spec_id: specId, vt: 60, batch: 3, budget_ms: 35000 }
-      });
-      if (error) {
-        console.error('modal9-selector invoke error:', error);
-        idleTries++;
-        if (idleTries >= 3) break;
-      } else {
-        idleTries = 0;
+  async function trackSelectorProgress(specId, progressEl, statusEl) {
+    for (;;) {
+      const { sent, received, total } = await getSelectorProgress(specId);
+      let status;
+      if (received >= total && total > 0) status = 'BLOCK 2 ( готово )';
+      else if (sent > 0) status = `BLOCK 2 ( ${sent} / ${received} / ${total} )`;
+      else status = 'подготовка';
+      if (statusEl) updateStatus(statusEl, status);
+      setProgress(progressEl, { status, sent, received, total });
+      if (status === 'BLOCK 2 ( готово )') {
+        await supabase.from(TABLE).update({ status }).eq('id', specId);
+        break;
       }
-
-      const after = await getSelectorProgress(specId);
-      if (after.done <= lastDone) {
-        idleTries++;
-        if (idleTries >= 5) break;
-        await delay(1500);
-      } else {
-        idleTries = 0;
-        lastDone = after.done;
-      }
-      await delay(500);
+      await delay(1000);
     }
-  } finally {
-    pumpSelector._locks.delete(specId);
-    await loadHistory();
-  }
 }
 
-  // --- автопамп воркера (оставлен отключённым) ---
-  const workerTimers = {};
-  function startWorkerPump(specId) {
+  async function refreshSelector(specId, progress) {
     try {
-      if (typeof workerTimers !== 'undefined' && workerTimers[specId]) {
-        clearInterval(workerTimers[specId]);
-        delete workerTimers[specId];
-      }
-    } catch (_) { /* no-op */ }
-    console.warn('[modal9] startWorkerPump() вызван, но автопамп отключён. specId =', specId);
-  }
-  function stopWorkerPump(specId) {
-    if (workerTimers[specId]) {
-      clearInterval(workerTimers[specId]);
-      delete workerTimers[specId];
+      const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
+      updateStatus(statusEl, 'подготовка');
+      setProgress(progress, 'подготовка');
+      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', specId);
+      await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
+      await trackSelectorProgress(specId, progress, statusEl);
+      await loadBlock1();
+      await loadHistory();
+    } catch (err) {
+      console.error('refreshSelector error:', err);
     }
   }
   
@@ -1820,14 +1756,12 @@ async function refreshSelector(specId, progress) {
   if (!supabase) return;
   realtimeSub = supabase
     .channel('modal9-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, payload => {
-      if (payload?.new?.id && payload?.new?.status === 'обработан') {
-        stopWorkerPump(payload.new.id);
-      }
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
       loadHistory();
+      scheduleLoadBlock1();
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => loadBlock1())
-    .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => loadBlock1())
+    .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => scheduleLoadBlock1())
+    .on('postgres_changes', { event: '*', schema: 'public', table: STATUS_TABLE }, () => scheduleLoadBlock1())
     .subscribe();
 }
 
@@ -1842,24 +1776,24 @@ async function refreshSelector(specId, progress) {
   
   function setProgress(progressEl, info) {
     if (!progressEl) return;
-    let status = '', done, found, total;
+    let status = '', sent, received, total;
     if (typeof info === 'string') status = info;
     else if (info && typeof info === 'object') {
       status = info.status || '';
-      done = info.done;
-      found = info.found;
+      sent = info.sent;
+      received = info.received;
       total = info.total;
     }
     const s = String(status || '').toLowerCase();
     let active = -1;
     const m2 = s.match(/block\s*2\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\)/i);
     if (/block\s*2/i.test(s)) {
-      if ((!Number.isFinite(done) || !Number.isFinite(total)) && m2) {
-        done = Number(m2[1]);
-        found = Number(m2[2]);
+      if ((!Number.isFinite(sent) || !Number.isFinite(received) || !Number.isFinite(total)) && m2) {
+        sent = Number(m2[1]);
+        received = Number(m2[2]);
         total = Number(m2[3]);
       }
-      if (Number.isFinite(done) && Number.isFinite(total) && total > 0 && done >= total) active = 2;
+      if (/готово/.test(s) || (Number.isFinite(received) && Number.isFinite(total) && total > 0 && received >= total)) active = 2;
       else active = 1;
     } else if (/block\s*1/i.test(s)) {
       if (/готово/.test(s)) active = 0;
@@ -1886,19 +1820,22 @@ async function refreshSelector(specId, progress) {
   async function getSelectorProgress(specId) {
     const { count: total } = await supabase
     .from(POS_TABLE)
-    .select('*', { count: 'exact', head: true })
-    .eq('spec_id', specId);
+      .select('*', { count: 'exact', head: true })
+      .eq('spec_id', specId);
 
-  const { data: doneRows } = await supabase
-    .from(SELECT_TABLE)
-    .select('pos_id, model_name')
-    .eq('spec_id', specId);
+    const { count: sent } = await supabase
+      .from(STATUS_TABLE)
+      .select('*', { count: 'exact', head: true })
+      .eq('spec_id', specId);
 
-  const covered = new Set((doneRows || []).map(r => r.pos_id));
-  const found = (doneRows || []).filter(r => (r.model_name || '').toUpperCase() !== 'НЕ НАЙДЕНО').length;
-  const done = covered.size;
-  return { done, found, total: total || 0, remaining: Math.max(0, (total || 0) - done) };
-}
+    const { count: received } = await supabase
+      .from(STATUS_TABLE)
+      .select('*', { count: 'exact', head: true })
+      .eq('spec_id', specId)
+      .not('status', 'eq', 'pending_async');
+
+    return { sent: sent || 0, received: received || 0, total: total || 0 };
+  }
 
   await loadBlock1();
   await loadHistory();
