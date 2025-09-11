@@ -1,22 +1,166 @@
 <!-- ========= modal10.html  (Проект 10) ========= -->
-<div id="modal10-container">
+<div id="modal10-container" class="support-modal">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
-    #modal10-container {
+    .support-modal {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      justify-content: flex-start;
       align-items: center;
       height: 100vh;
       margin: 0;
+      box-sizing: border-box;
       color: var(--content-color);
     }
-    #modal10-container .glass3d {
-      padding: 1rem;
-      border: 1px solid var(--content-color);
+    .modal10-top-window {
+      color: var(--black-color, var(--content-color));
+      width: 1930px;
+      height: 100px;
+      padding: 20px;
+      box-sizing: border-box;
     }
+    .modal10-window {
+      width: 1930px;
+      height: calc(100vh - 100px);
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .input-container { position: relative; width: auto; }
+    .styled_input_bar {
+      width: auto;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid var(--content-color);
+      border-radius: 8px;
+      background-color: transparent;
+      color: var(--content-color);
+      outline: none;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .styled_input_bar::placeholder { color: grey; transition: all 0.3s ease; }
+    .styled_input_bar:hover { border-color: grey; }
+    .styled_input_bar:hover::placeholder { color: transparent; }
+    .input-label {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      transform: translateY(-50%);
+      font-size: 10px;
+      background-color: var(--fon, #f5f5f5);
+      color: var(--content-color);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    .styled_input_bar:hover + .input-label,
+    .styled_input_bar:not(:placeholder-shown) + .input-label {
+      top: -2px;
+      left: 10px;
+      font-size: 13px;
+      color: var(--content-color);
+      background-color: var(--fon, #f5f5f5);
+      padding: 0 8px;
+    }
+    .styled_input_bar:not(:hover):not(:placeholder-shown) + .input-label { color: grey; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 20px; }
+    .toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: 0.4s; border-radius: 50%; }
+    input:checked + .toggle-slider { background-color: #2196F3; }
+    input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .darkmatter-btn { position: relative; display: inline-block; padding: 10px 20px; border: 1px solid #b56aff; border-radius: 8px; background: transparent; color: #b56aff; font-size: 14px; cursor: pointer; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
+    .darkmatter-btn:hover { background: #b56aff; color: #fff; }
+    .darkmatter-btn:active { transform: scale(0.95); }
+    .darkmatter-btn::before { content: ""; position: absolute; inset: -10px; background: radial-gradient(circle at center, rgba(181,106,255,0.4), transparent 70%); transform: scale(0); transition: transform 0.5s; }
+    .darkmatter-btn:hover::before { transform: scale(1.5); }
+    .darkmatter-btn .loader { display: none; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border: 2px solid #b56aff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+    .darkmatter-btn.loading .loader { display: block; }
+    .darkmatter-btn.loading .button-text { visibility: hidden; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .darkmatter-particle { position: absolute; width: 4px; height: 4px; background: #b56aff; border-radius: 50%; opacity: 0; }
+    @keyframes darkmatter-float { to { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+    .darkmatter-btn:hover .darkmatter-particle { animation: darkmatter-float 2s forwards; }
+    .status-display {
+      width: auto;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid var(--content-color);
+      border-radius: 8px;
+      background-color: transparent;
+      color: var(--content-color);
+      box-sizing: border-box;
+      text-align: left;
+      transition: opacity 1s, filter 1s;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .status-display.error { border-color: red; }
+    .status-display.fade { opacity: 0; filter: blur(2px); }
+    .group-close { background: none; border: none; cursor: pointer; }
+    .history-list { width: 100%; margin-top: 10px; overflow-x: auto; }
+    .history-item { display: flex; flex-direction: row; gap: 10px; padding-top: 5px; }
   </style>
-  <div class="glass3d">
-    страница 10 в разработке, позднее здесь будет располагаться чат технической поддержки где можно будет оставлять заявки и пожелания
+  <div class="modal10-top-window glass3d">
+    <div class="support-controls" style="display:flex; align-items:center; gap:10px;">
+      <div class="input-container" style="width:300px; position:relative;">
+        <input id="ticket-filter-input" class="styled_input_bar" style="width:100%;" />
+        <label class="input-label">поиск совпадений</label>
+        <button class="group-close ans5-close ticket-filter-clear" style="display:none;">×</button>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="my-tickets-toggle">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-text">демонстрация всех обращений</span>
+      <button type="button" class="darkmatter-btn create-ticket-btn">
+        <span class="button-text">создать обращение</span>
+        <span class="loader"></span>
+        <div class="darkmatter-particle" style="--tx: -20px; --ty: -15px; left: 25%; top: 25%;"></div>
+        <div class="darkmatter-particle" style="--tx: 15px; --ty: -20px; left: 75%; top: 25%; animation-delay:0.2s;"></div>
+        <div class="darkmatter-particle" style="--tx: -15px; --ty: 15px; left: 25%; top: 75%; animation-delay:0.4s;"></div>
+        <div class="darkmatter-particle" style="--tx: 20px; --ty: 15px; left: 75%; top: 75%; animation-delay:0.6s;"></div>
+      </button>
+    </div>
   </div>
+
+  <div class="modal10-window glass3d">
+    <div class="modal10-content">
+      <div class="history-list"></div>
+      <template id="ticket-row-template">
+        <div class="history-item">
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="created_at" readonly style="width:210px;" placeholder="15.07.2025, 14:23:47">
+            <label class="input-label">дата</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="user_login" readonly style="width:400px;" placeholder="user@example.com">
+            <label class="input-label">login</label>
+          </div>
+          <div class="input-container">
+            <input type="text" class="styled_input_bar" data-field="subject" readonly style="width:730px;" placeholder="Тема обращения">
+            <label class="input-label">тема</label>
+          </div>
+          <div class="input-container">
+            <div class="status-display" data-field="status" style="width:170px; text-transform:uppercase; text-align:center;">новое</div>
+            <label class="input-label">статус</label>
+          </div>
+          <div class="input-container">
+            <button class="darkmatter-btn show-answer" style="border-radius:4px; width:120px;">
+              <span class="button-text">ответ</span>
+              <span class="loader"></span>
+            </button>
+            <label class="input-label">ответ</label>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+   </div>
 <script type="module">
 export function initModal10() {
   console.log('[modal10.html] PAGE 10 активирован');
