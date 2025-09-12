@@ -12,11 +12,11 @@
       margin: 0;
       box-sizing: border-box;
     }
-
+    /* верхнее модальное окно – высота уменьшена на 60 % */
     .modal9-top-window {
       color: var(--black-color, var(--content-color));
       width: 1930px;
-      height: 72px;
+      height: 72px; /* 40 % от исходных 180px */
       padding: 20px;
       padding-top: 15px;
       padding-bottom: 15px;
@@ -231,19 +231,20 @@
       overflow-x: visible;
     }
 
+    /* нижнее окно компенсирует уменьшение верхнего */
     .modal9-window {
       color:var(--black-color, var(--content-color));
       width: 1930px;
       padding-left:20px;
       padding-top:20px;
-      padding-bottom:20px;      
+      padding-bottom:20px;
       padding-right:10px;
       margin-right:0;
       box-sizing:border-box;
       margin-bottom:0;
-      max-height:calc(100vh - 112px);
+      max-height:calc(100vh - 112px); /* +108px к доступной высоте */
       position:fixed;
-      top:92px;
+      top:92px; /* смещено вверх на 108px */
       bottom:0px;
       left:50%;
       transform:translateX(-50%);
@@ -509,6 +510,7 @@
     6.5px 7.2px 10.9px -2.1px hsl(205 20% 10% / 0.1), 
     8px 9px 14px -2.5px hsl(205 20% 10% / 0.2);
     }
+    
   </style>
   <div class="modal9-top-window glass3d">
    <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
