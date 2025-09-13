@@ -621,6 +621,16 @@ export function initModal10() {
   const historyList = root.querySelector('.history-list');
   const rowTemplate = root.querySelector('#ticket-row-template');
   const supabase = window.supabase;
+  let currentUserEmail;
+
+  supabase.auth.getUser().then(({ data: { user }, error }) => {
+    if (error) {
+      console.error(error);
+      return;
+    }
+    currentUserEmail = user?.email || null;
+    loadTickets();
+  });
 
   function prependTicketRow(ticket) {
     const fragment = rowTemplate.content.cloneNode(true);
@@ -640,9 +650,11 @@ export function initModal10() {
   }
 
   async function loadTickets() {
+    if (!currentUserEmail) return;
     const { data, error } = await supabase
       .from('support_tickets')
       .select('*')
+      .eq('user_login', currentUserEmail)
       .order('created_at', { ascending: false });
     if (error) { console.error(error); return; }
     historyList.innerHTML = '';
@@ -678,9 +690,14 @@ export function initModal10() {
       alert('spec # не существует');
       return;
     }
+    if (!currentUserEmail) {
+      alert('Не удалось получить email пользователя');
+      return;
+    }
     const { data: inserted, error } = await supabase
       .from('support_tickets')
       .insert({ spec_id: specId, subject, message })
+      .insert({ spec_id: specId, subject, message, user_login: currentUserEmail })
       .select()
       .single();
     if (error) {
@@ -693,8 +710,6 @@ export function initModal10() {
     messageInput.value = '';
     prependTicketRow(inserted);
   });
-  
-  loadTickets();
 }
 initModal10();
 </script>
