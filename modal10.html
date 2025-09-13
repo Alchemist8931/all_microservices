@@ -620,13 +620,14 @@ export function initModal10() {
   const submitBtn = ticketModal.querySelector('.submit-ticket-btn');
   const historyList = root.querySelector('.history-list');
   const rowTemplate = root.querySelector('#ticket-row-template');
+  const myFilesToggle = root.querySelector('#my-files-toggle');
+  const toggleText = root.querySelector('.toggle-text');
   const supabase = window.supabase;
   let currentUserEmail;
 
   supabase.auth.getUser().then(({ data: { user }, error }) => {
     if (error) {
       console.error(error);
-      return;
     }
     currentUserEmail = user?.email || null;
     loadTickets();
@@ -650,12 +651,19 @@ export function initModal10() {
   }
 
   async function loadTickets() {
-    if (!currentUserEmail) return;
-    const { data, error } = await supabase
+    let query = supabase
       .from('support_tickets')
       .select('*')
-      .eq('user_login', currentUserEmail)
       .order('created_at', { ascending: false });
+    if (myFilesToggle.checked) {
+      if (!currentUserEmail) {
+        historyList.innerHTML = '';
+        return;
+      }
+      query = query.eq('user_login', currentUserEmail);
+    }
+
+    const { data, error } = await query;
     if (error) { console.error(error); return; }
     historyList.innerHTML = '';
     data.forEach(prependTicketRow);
@@ -696,7 +704,6 @@ export function initModal10() {
     }
     const { data: inserted, error } = await supabase
       .from('support_tickets')
-      .insert({ spec_id: specId, subject, message })
       .insert({ spec_id: specId, subject, message, user_login: currentUserEmail })
       .select()
       .single();
@@ -710,6 +717,16 @@ export function initModal10() {
     messageInput.value = '';
     prependTicketRow(inserted);
   });
+  myFilesToggle.addEventListener('change', () => {
+    toggleText.textContent = myFilesToggle.checked
+      ? 'демонстрация только моих заявок'
+      : 'демонстрация заявок компании';
+    loadTickets();
+  });
+
+  toggleText.textContent = myFilesToggle.checked
+    ? 'демонстрация только моих заявок'
+    : 'демонстрация заявок компании';
 }
 initModal10();
 </script>
