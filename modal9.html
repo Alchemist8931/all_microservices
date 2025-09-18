@@ -117,6 +117,36 @@
       pointer-events: none;
       z-index: 1000;
     }
+    .spec-context-menu {
+      position: fixed;
+      display: none;
+      min-width: 220px;
+      background: #f5f5f5;
+      color: var(--black-color, #1f1f1f);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      padding: 6px 0;
+      z-index: 4000;
+    }
+    .spec-context-menu.visible {
+      display: block;
+    }
+    .spec-context-menu button {
+      width: 100%;
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      text-align: left;
+      color: inherit;
+      cursor: pointer;
+    }
+    .spec-context-menu button:hover,
+    .spec-context-menu button:focus {
+      background: rgba(0, 0, 0, 0.05);
+      outline: none;
+    }
     .tooltip-overlay { position:fixed; inset:0; background:var(--content-color); opacity:1; display:flex; align-items:center; justify-content:center; z-index:10000; }
     .tooltip-modal { position:relative; background:#f5f5f5; border:1px solid rgba(0,0,0,0.10); border-radius:10px; padding:10px; width:1320px; max-width:90vw; max-height:90vh; overflow-y:auto; margin:30px; display:inline-block; }
     .tooltip-modal::-webkit-scrollbar { width:6px; }
@@ -512,6 +542,10 @@
     }
     
   </style>
+  <div class="spec-context-menu" aria-hidden="true">
+    <button type="button" data-action="copy">Скопировать спецификацию</button>
+    <button type="button" data-action="excel">Скачать спецификацию Excel</button>
+  </div>
   <div class="modal9-top-window glass3d">
    <div class="file-upload__modal">
      <form class="file-upload-form js-dropzone">
@@ -900,11 +934,15 @@ export async function initModal9() {
   const block3Template = root.querySelector('#spec-block3-template');
   const block31Template = root.querySelector('#spec-block31-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
+  const contextMenu = root.querySelector('.spec-context-menu');
+  const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
+  const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   let realtimeSub = null;
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
   let openedSpecId = null;
+  let contextSpecContent = null;
 
   let block1ReloadTimer = null;
   function scheduleLoadBlock1() {
@@ -1674,6 +1712,410 @@ export async function initModal9() {
         input.removeAttribute('title');
       });
     });
+  }
+  function boolLabel(value) {
+    return value ? 'да' : 'нет';
+  }
+  function padRow(row, length) {
+    const source = Array.isArray(row) ? row : [];
+    const result = source.slice(0, length);
+    while (result.length < length) {
+      result.push('');
+    }
+    return result;
+  }
+  function hideContextMenu() {
+    if (!contextMenu) return;
+    contextMenu.classList.remove('visible');
+    contextMenu.style.display = 'none';
+    contextMenu.dataset.specId = '';
+    contextSpecContent = null;
+  }
+  function showContextMenuAt(event, specContent) {
+    if (!contextMenu || !specContent) return;
+    const specId = specContent.dataset.specId;
+    if (!specId) return;
+    contextSpecContent = specContent;
+    contextMenu.dataset.specId = specId;
+    contextMenu.classList.remove('visible');
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = '0px';
+    contextMenu.style.top = '0px';
+    requestAnimationFrame(() => {
+      const rect = contextMenu.getBoundingClientRect();
+      let left = event.clientX;
+      let top = event.clientY;
+      if (left + rect.width > window.innerWidth) {
+        left = Math.max(0, window.innerWidth - rect.width - 4);
+      }
+      if (top + rect.height > window.innerHeight) {
+        top = Math.max(0, window.innerHeight - rect.height - 4);
+      }
+      contextMenu.style.left = `${left}px`;
+      contextMenu.style.top = `${top}px`;
+      contextMenu.classList.add('visible');
+    });
+  }
+  function collectSpecData(specId, specContent) {
+    if (!specId) return null;
+    const idStr = String(specId);
+    const container = specContent
+      || historyList.querySelector(`.spec-content[data-spec-id="${idStr}"]`)
+      || block1List.querySelector(`.spec-content[data-spec-id="${idStr}"]`);
+    if (!container) return null;
+    const historyItem = historyList.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+    const historyEntry = history.find(h => String(h.id) === idStr);
+    const readField = (field) => {
+      if (historyItem) {
+        const el = historyItem.querySelector(`[data-field="${field}"]`);
+        if (el) {
+          const raw = el.tagName === 'INPUT' ? el.value : el.textContent;
+          if (typeof raw === 'string') return raw.trim();
+        }
+      }
+      if (historyEntry) {
+        if (field === 'created_at') {
+          return historyEntry.created_at ? new Date(historyEntry.created_at).toLocaleString() : '';
+        }
+        const value = historyEntry[field];
+        if (value != null) return String(value).trim();
+      }
+      return '';
+    };
+    const data = {
+      id: idStr,
+      header: {
+        file_number: readField('file_number'),
+        user_login: readField('user_login'),
+        created_at: readField('created_at'),
+        file_name: readField('file_name'),
+        file_ext: readField('file_ext'),
+        status: readField('status'),
+        spec_id: idStr,
+      },
+      positions: [],
+    };
+    container.querySelectorAll('.modalCONTEINERpost').forEach(node => {
+      const pos = {
+        posNumber: node.querySelector('[data-field="pos_number"]')?.value?.trim() || '',
+        name: node.querySelector('[data-field="name"]')?.value?.trim() || '',
+        qty: node.querySelector('[data-field="qty"]')?.value?.trim() || '',
+        unit: node.querySelector('[data-field="unit"]')?.value?.trim() || '',
+        registries: {},
+        block1: [],
+        block2: [],
+        block21: [],
+        block3: [],
+        block31: [],
+      };
+      node.querySelectorAll('.registry-checkboxes input[data-field]').forEach(chk => {
+        if (chk.dataset.field) {
+          pos.registries[chk.dataset.field] = !!chk.checked;
+        }
+      });
+      const block1Content = node.querySelector('.block1 .modal-content');
+      if (block1Content) {
+        block1Content.querySelectorAll('.modalRow').forEach(row => {
+          const paramEl = row.querySelector('.param-input');
+          const valueEl = row.querySelector('.value-input');
+          const param = (paramEl?.value || paramEl?.textContent || '').trim();
+          const value = (valueEl?.value || valueEl?.textContent || '').trim();
+          if (param || value) {
+            pos.block1.push({ param, value });
+          }
+        });
+      }
+      const collectRows = (selector) => {
+        const block = node.querySelector(selector);
+        if (!block) return [];
+        const rows = [];
+        block.querySelectorAll('.modalRow').forEach(row => {
+          const inputs = row.querySelectorAll('input');
+          if (!inputs.length) return;
+          const values = Array.from(inputs, input => (input.value || input.textContent || '').trim());
+          rows.push(values);
+        });
+        return rows;
+      };
+      pos.block2 = collectRows('.block2 .modal-content');
+      pos.block21 = collectRows('.block21 .modal-content');
+      pos.block3 = collectRows('.block3 .modal-content');
+      pos.block31 = collectRows('.block31 .modal-content');
+      data.positions.push(pos);
+    });
+    return data;
+  }
+  function collectRepeatingRows(positions, key) {
+    const rows = [];
+    let maxLen = 0;
+    positions.forEach(pos => {
+      (pos[key] || []).forEach(row => {
+        const values = Array.isArray(row) ? row.slice() : [];
+        maxLen = Math.max(maxLen, values.length);
+        rows.push({ posNumber: pos.posNumber || '', values });
+      });
+    });
+    if (!rows.length || maxLen === 0) return null;
+    const header = ['№ в ТЗ'];
+    for (let i = 0; i < maxLen; i += 1) {
+      const label = i % 2 === 0 ? 'артикул' : 'магазин';
+      header.push(`${label} ${Math.floor(i / 2) + 1}`);
+    }
+    const normalized = rows.map(({ posNumber, values }) => {
+      const row = [posNumber];
+      for (let i = 0; i < maxLen; i += 1) {
+        row.push(values[i] || '');
+      }
+      return row;
+    });
+    return { header, rows: normalized };
+  }
+  function formatSpecForClipboard(data) {
+    if (!data) return '';
+    const lines = [];
+    const headerMap = [
+      ['номер', 'file_number'],
+      ['login', 'user_login'],
+      ['дата', 'created_at'],
+      ['файл', 'file_name'],
+      ['ext', 'file_ext'],
+      ['статус', 'status'],
+      ['spec #', 'spec_id'],
+    ];
+    headerMap.forEach(([label, key]) => {
+      const value = data.header?.[key] ?? '';
+      lines.push(`${label}\t${value}`);
+    });
+    lines.push('');
+    lines.push('BLOCK 1');
+    lines.push(['№ в ТЗ', 'наименование', 'кол-во', 'ед. изм.', 'РПП 878', 'ТОРП', 'РРПО 1875'].join('\t'));
+    data.positions.forEach(pos => {
+      const regs = pos.registries || {};
+      lines.push([
+        pos.posNumber || '',
+        pos.name || '',
+        pos.qty || '',
+        pos.unit || '',
+        boolLabel(regs.rpp_878),
+        boolLabel(regs.torp),
+        boolLabel(regs.rrpo_1875),
+      ].join('\t'));
+      (pos.block1 || []).forEach(attr => {
+        lines.push(`\t${attr.param || ''}\t${attr.value || ''}`);
+      });
+    });
+    lines.push('');
+    lines.push('BLOCK 2');
+    lines.push(['№ в ТЗ', ...BLOCK2_COLUMNS].join('\t'));
+    data.positions.forEach(pos => {
+      const rows = (pos.block2 && pos.block2.length) ? pos.block2 : [[]];
+      rows.forEach(row => {
+        const values = [pos.posNumber || ''];
+        const length = Math.max(BLOCK2_COLUMNS.length, row.length);
+        padRow(row, length).forEach(cell => values.push(cell));
+        lines.push(values.join('\t'));
+      });
+    });
+    const block21 = collectRepeatingRows(data.positions, 'block21');
+    if (block21) {
+      lines.push('');
+      lines.push('BLOCK 2.1');
+      lines.push(block21.header.join('\t'));
+      block21.rows.forEach(row => lines.push(row.join('\t')));
+    }
+    lines.push('');
+    lines.push('BLOCK 3');
+    lines.push(['№ в ТЗ', ...BLOCK3_COLUMNS].join('\t'));
+    data.positions.forEach(pos => {
+      const rows = (pos.block3 && pos.block3.length) ? pos.block3 : [[]];
+      rows.forEach(row => {
+        const values = [pos.posNumber || ''];
+        const length = Math.max(BLOCK3_COLUMNS.length, row.length);
+        padRow(row, length).forEach(cell => values.push(cell));
+        lines.push(values.join('\t'));
+      });
+    });
+    const block31 = collectRepeatingRows(data.positions, 'block31');
+    if (block31) {
+      lines.push('');
+      lines.push('BLOCK 3.1');
+      lines.push(block31.header.join('\t'));
+      block31.rows.forEach(row => lines.push(row.join('\t')));
+    }
+    return lines.join('\n');
+  }
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function buildTableHtml(caption, headers, rows) {
+    const head = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
+    const body = rows.length
+      ? rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')
+      : `<tr>${headers.map(() => '<td></td>').join('')}</tr>`;
+    const captionHtml = caption ? `<caption style="font-weight:600; text-align:left; padding:4px 0;">${escapeHtml(caption)}</caption>` : '';
+    return `<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse; margin-bottom:12px;">${captionHtml}<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+  function buildExcelHtml(data) {
+    if (!data) return '';
+    const tables = [];
+    const headerRows = [
+      ['номер', data.header?.file_number || ''],
+      ['login', data.header?.user_login || ''],
+      ['дата', data.header?.created_at || ''],
+      ['файл', data.header?.file_name || ''],
+      ['ext', data.header?.file_ext || ''],
+      ['статус', data.header?.status || ''],
+      ['spec #', data.header?.spec_id || ''],
+    ];
+    tables.push(buildTableHtml('Реквизиты файла', ['Поле', 'Значение'], headerRows));
+    const block1MainRows = data.positions.map(pos => {
+      const regs = pos.registries || {};
+      return [
+        pos.posNumber || '',
+        pos.name || '',
+        pos.qty || '',
+        pos.unit || '',
+        boolLabel(regs.rpp_878),
+        boolLabel(regs.torp),
+        boolLabel(regs.rrpo_1875),
+      ];
+    });
+    tables.push(buildTableHtml('BLOCK 1', ['№ в ТЗ', 'наименование', 'кол-во', 'ед. изм.', 'РПП 878', 'ТОРП', 'РРПО 1875'], block1MainRows));
+    const block1Attrs = [];
+    data.positions.forEach(pos => {
+      (pos.block1 || []).forEach(attr => {
+        block1Attrs.push([pos.posNumber || '', attr.param || '', attr.value || '']);
+      });
+    });
+    if (block1Attrs.length) {
+      tables.push(buildTableHtml('BLOCK 1 параметры', ['№ в ТЗ', 'параметр', 'значение'], block1Attrs));
+    }
+    const block2Rows = [];
+    data.positions.forEach(pos => {
+      const rows = (pos.block2 && pos.block2.length) ? pos.block2 : [[]];
+      rows.forEach(row => {
+        const values = [pos.posNumber || ''];
+        const length = Math.max(BLOCK2_COLUMNS.length, row.length);
+        padRow(row, length).forEach(cell => values.push(cell));
+        block2Rows.push(values);
+      });
+    });
+    tables.push(buildTableHtml('BLOCK 2', ['№ в ТЗ', ...BLOCK2_COLUMNS], block2Rows));
+    const block21 = collectRepeatingRows(data.positions, 'block21');
+    if (block21) {
+      tables.push(buildTableHtml('BLOCK 2.1', block21.header, block21.rows));
+    }
+    const block3Rows = [];
+    data.positions.forEach(pos => {
+      const rows = (pos.block3 && pos.block3.length) ? pos.block3 : [[]];
+      rows.forEach(row => {
+        const values = [pos.posNumber || ''];
+        const length = Math.max(BLOCK3_COLUMNS.length, row.length);
+        padRow(row, length).forEach(cell => values.push(cell));
+        block3Rows.push(values);
+      });
+    });
+    tables.push(buildTableHtml('BLOCK 3', ['№ в ТЗ', ...BLOCK3_COLUMNS], block3Rows));
+    const block31 = collectRepeatingRows(data.positions, 'block31');
+    if (block31) {
+      tables.push(buildTableHtml('BLOCK 3.1', block31.header, block31.rows));
+    }
+    return tables.join('');
+  }
+  function createExcelBlob(data) {
+    const html = buildExcelHtml(data);
+    if (!html) return null;
+    const content = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${html}</body></html>`;
+    return new Blob(['\uFEFF', content], { type: 'application/vnd.ms-excel' });
+  }
+  function downloadSpecExcel(data, blob) {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const baseName = data?.header?.file_number || data?.header?.spec_id || 'specification';
+    const safeName = sanitize(String(baseName || 'specification')) || 'specification';
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `spec_${safeName}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      link.remove();
+    }, 0);
+  }
+  if (!root.__contextMenuSetup) {
+    root.addEventListener('contextmenu', event => {
+      if (!contextMenu) return;
+      const specContent = event.target.closest('.spec-content');
+      if (!specContent || specContent.classList.contains('hidden')) {
+        hideContextMenu();
+        return;
+      }
+      if (!specContent.closest('.history-list') && !specContent.closest('.block1-wrapper')) {
+        hideContextMenu();
+        return;
+      }
+      const computed = window.getComputedStyle(specContent);
+      if (computed.display === 'none' || computed.visibility === 'hidden' || Number(computed.opacity) === 0) {
+        hideContextMenu();
+        return;
+      }
+      event.preventDefault();
+      showContextMenuAt(event, specContent);
+    });
+    window.addEventListener('click', event => {
+      if (!contextMenu) return;
+      if (contextMenu.style.display === 'block' && !contextMenu.contains(event.target)) {
+        hideContextMenu();
+      }
+    });
+    window.addEventListener('resize', hideContextMenu);
+    root.addEventListener('scroll', hideContextMenu, true);
+    window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') hideContextMenu();
+    });
+    if (contextMenu) {
+      contextMenu.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const action = button.dataset.action;
+        const specId = contextMenu.dataset.specId;
+        if (!specId) return;
+        const specData = collectSpecData(specId, contextSpecContent);
+        if (!specData) {
+          hideContextMenu();
+          return;
+        }
+        try {
+          if (action === 'copy') {
+            const text = formatSpecForClipboard(specData);
+            if (text) {
+              await navigator.clipboard.writeText(text);
+              showCopyTip(button);
+            }
+          } else if (action === 'excel') {
+            const blob = createExcelBlob(specData);
+            if (blob) {
+              downloadSpecExcel(specData, blob);
+            }
+          }
+        } catch (err) {
+          console.error('context menu action error:', err);
+        } finally {
+          hideContextMenu();
+        }
+      });
+      contextMenu.addEventListener('contextmenu', event => event.preventDefault());
+      contextMenu.addEventListener('mousedown', event => event.stopPropagation());
+    }
+    root.__contextMenuSetup = true;
   }
   function initProgressHandlers(progress, specId) {
     const buttons = progress.querySelectorAll('.refresh');
