@@ -8,6 +8,7 @@
       flex-direction: column;
       justify-content: flex-start;
       align-items: center;
+      position: relative;
       height: 100vh;
       margin: 0;
       box-sizing: border-box;
@@ -118,7 +119,7 @@
       z-index: 1000;
     }
     .spec-context-menu {
-      position: fixed;
+      position: absolute;
       display: none;
       min-width: 220px;
       background: #f5f5f5;
@@ -1742,15 +1743,16 @@ export async function initModal9() {
     contextMenu.style.left = '0px';
     contextMenu.style.top = '0px';
     requestAnimationFrame(() => {
+      const rootRect = root.getBoundingClientRect();
       const rect = contextMenu.getBoundingClientRect();
-      let left = event.clientX;
-      let top = event.clientY;
-      if (left + rect.width > window.innerWidth) {
-        left = Math.max(0, window.innerWidth - rect.width - 4);
-      }
-      if (top + rect.height > window.innerHeight) {
-        top = Math.max(0, window.innerHeight - rect.height - 4);
-      }
+      let left = event.clientX - rootRect.left;
+      let top = event.clientY - rootRect.top;
+      const maxLeft = Math.max(0, rootRect.width - rect.width);
+      const maxTop = Math.max(0, rootRect.height - rect.height);
+      if (left < 0) left = 0;
+      else if (left > maxLeft) left = maxLeft;
+      if (top < 0) top = 0;
+      else if (top > maxTop) top = maxTop;
       contextMenu.style.left = `${left}px`;
       contextMenu.style.top = `${top}px`;
       contextMenu.classList.add('visible');
