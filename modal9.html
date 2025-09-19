@@ -1031,8 +1031,10 @@ export async function initModal9() {
   function updateStatus(el, status) {
     if (!el) return;
     const s = String(status || '');
-    el.textContent = s;
-    if (s.trim().endsWith('!!!')) {
+    const match = s.match(/^BLOCK\s*2\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\)$/i);
+    const display = match ? `${match[1]} / ${match[2]} / ${match[3]}` : s;
+    el.textContent = display;
+    if (display.trim().endsWith('!!!')) {
       el.classList.add('error');
     } else {
       el.classList.remove('error');
@@ -2164,35 +2166,60 @@ export async function initModal9() {
   // === НОВАЯ ДВУХФАЗНАЯ ЛОГИКА ДЛЯ BLOCK 2 / 2.1 ===
   const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
-  async function trackSelectorProgress(specId, progressEl, statusEl) {
+  async function trackSelectorProgress(specId, progressEl, statusEl, options = {}) {
+    const { signal } = options;
+    let lastStatus = null;
+    for (;;) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     for (;;) {
       const { sent, received, total } = await getSelectorProgress(specId);
       let status;
-      if (received >= total && total > 0) status = 'BLOCK 2 ( готово )';
+      if (total <= 0) status = 'BLOCK 2 ( готово )';
+      else if (received >= total) status = 'BLOCK 2 ( готово )';
       else if (sent > 0) status = `BLOCK 2 ( ${sent} / ${received} / ${total} )`;
       else status = 'подготовка';
       if (statusEl) updateStatus(statusEl, status);
       setProgress(progressEl, { status, sent, received, total });
-      if (status === 'BLOCK 2 ( готово )') {
-        await supabase.from(TABLE).update({ status }).eq('id', specId);
-        break;
+      if (status !== lastStatus) {
+        lastStatus = status;
+        try {
+          await supabase.from(TABLE).update({ status }).eq('id', specId);
+        } catch (err) {
+          console.error('trackSelectorProgress status update error:', err);
+        }
       }
+      if (status === 'BLOCK 2 ( готово )') break;
       await delay(1000);
     }
 }
 
   async function refreshSelector(specId, progress) {
+    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
+    updateStatus(statusEl, 'подготовка');
+    setProgress(progress, 'подготовка');
+    const controller = new AbortController();
+    const trackerPromise = (async () => {
+      try {
+        await trackSelectorProgress(specId, progress, statusEl, { signal: controller.signal });
+      } catch (err) {
+        if (err?.name !== 'AbortError') console.error('trackSelectorProgress error:', err);
+      }
+    })();
     try {
-      const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
-      updateStatus(statusEl, 'подготовка');
-      setProgress(progress, 'подготовка');
       await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', specId);
-      await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
-      await trackSelectorProgress(specId, progress, statusEl);
+      const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
+      if (error) throw error;
+    } catch (err) {
+      controller.abort();
+      console.error('refreshSelector error:', err);
+    } finally {
+      try {
+        await trackerPromise;
+      } catch (err) {
+        if (err?.name !== 'AbortError') console.error('trackerPromise error:', err);
+      }
       await loadBlock1();
       await loadHistory();
-    } catch (err) {
-      console.error('refreshSelector error:', err);
     }
   }
   
