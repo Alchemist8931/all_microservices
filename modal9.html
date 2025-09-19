@@ -2193,6 +2193,9 @@ export async function initModal9() {
 }
 
   async function refreshSelector(specId, progress) {
+    const { data: { session } = {} } = await supabase.auth.getSession();
+    if (!session) return;
+
     const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
     updateStatus(statusEl, 'подготовка');
     setProgress(progress, 'подготовка');
