@@ -2171,7 +2171,6 @@ export async function initModal9() {
     let lastStatus = null;
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-    for (;;) {
       const { sent, received, total } = await getSelectorProgress(specId);
       let status;
       if (total <= 0) status = 'BLOCK 2 ( готово )';
@@ -2308,12 +2307,14 @@ export async function initModal9() {
     return { sent: sent || 0, received: received || 0, total: total || 0 };
   }
 
+  try {
+    await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
+  } catch (_) {}
+
   await loadBlock1();
   await loadHistory();
   setupRealtime();
 }
-  // в конце initModal9, перед loadBlock1():
-try { await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } }); } catch(_) {}
 
 initModal9();
 
