@@ -2335,7 +2335,12 @@ export async function initModal9() {
   }
 
   try {
-    await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
+    }
   } catch (_) {}
 
   await loadBlock1();
