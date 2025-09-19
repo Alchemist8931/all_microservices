@@ -2288,23 +2288,50 @@ export async function initModal9() {
   }
 
   async function getSelectorProgress(specId) {
-    const { count: total } = await supabase
-    .from(POS_TABLE)
-      .select('*', { count: 'exact', head: true })
-      .eq('spec_id', specId);
+    const [totalRes, sentRes, selectRes] = await Promise.all([
+      supabase
+        .from(POS_TABLE)
+        .select('id', { count: 'exact', head: true })
+        .eq('spec_id', specId),
+      supabase
+        .from(STATUS_TABLE)
+        .select('pos_id', { count: 'exact', head: true })
+        .eq('spec_id', specId),
+      supabase
+        .from(SELECT_TABLE)
+        .select('pos_id')
+        .eq('spec_id', specId)
+        .limit(5000),
+    ]);
 
-    const { count: sent } = await supabase
-      .from(STATUS_TABLE)
-      .select('*', { count: 'exact', head: true })
-      .eq('spec_id', specId);
+    const totalCount = typeof totalRes?.count === 'number' ? totalRes.count : 0;
+    if (totalRes?.error) console.error('getSelectorProgress total error:', totalRes.error);
 
-    const { count: received } = await supabase
-      .from(STATUS_TABLE)
-      .select('*', { count: 'exact', head: true })
-      .eq('spec_id', specId)
-      .not('status', 'eq', 'pending_async');
+    const sentCount = typeof sentRes?.count === 'number' ? sentRes.count : 0;
+    if (sentRes?.error) console.error('getSelectorProgress sent error:', sentRes.error);
 
-    return { sent: sent || 0, received: received || 0, total: total || 0 };
+    let receivedCount = 0;
+    if (selectRes?.error) {
+      console.error('getSelectorProgress received error:', selectRes.error);
+    } else if (Array.isArray(selectRes?.data)) {
+      const unique = new Set();
+      selectRes.data.forEach(row => {
+        const posId = row?.pos_id ?? row?.posId ?? row?.posid;
+        if (posId !== null && posId !== undefined) {
+          unique.add(String(posId));
+        }
+      });
+      receivedCount = unique.size;
+    }
+
+    const normalizedSent = Math.max(sentCount, receivedCount);
+    const normalizedTotal = Math.max(totalCount, normalizedSent, receivedCount);
+
+    return {
+      sent: normalizedSent,
+      received: receivedCount,
+      total: normalizedTotal,
+    };
   }
 
   try {
