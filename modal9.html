@@ -769,43 +769,50 @@
          </div>
       </template>
       
-      <template id="spec-block21-template">
-        <div class="modalRow">
-          <div class="input-container">
-            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">артикул</label>
-          </div>
-          <div class="input-container">
-            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">магазин</label>
-          </div>
-          <div class="icons">
-              <span class="material-symbols-outlined status">link</span>
-          </div>
-          <div class="input-container">
-            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">артикул</label>
-          </div>
-          <div class="input-container">
-            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">магазин</label>
-          </div>
-          <div class="icons">
-              <span class="material-symbols-outlined status">link</span>
-          </div>
-          <div class="input-container">
-            <input type="text" style="width: 146px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">артикул</label>
-          </div>
-          <div class="input-container">
-            <input type="text" style="width: 90px;" class="styled_input_bar param-input" placeholder="артикул" readonly>
-            <label class="input-label">магазин</label>
-          </div>
-          <div class="icons">
-              <span class="material-symbols-outlined status">link</span>
-          </div>
-       </div>
-      </template>
+      <!-- //фронтенд: шаблон BLOCK 2/1 под 3 оффера -->
+<template id="spec-block21-template">
+  <div class="modalRow">
+    <!-- offer #1 -->
+    <div class="input-container">
+      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="1-price" placeholder="0 ₽" readonly>
+      <label class="input-label">цена 1</label>
+    </div>
+    <div class="input-container">
+      <input type="text" style="width: 90px;" class="styled_input_bar" data-offer="1-store" placeholder="магазин" readonly>
+      <label class="input-label">магазин</label>
+    </div>
+    <a class="icons" data-offer="1-url" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined status">link</span>
+    </a>
+
+    <!-- offer #2 -->
+    <div class="input-container">
+      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="2-price" placeholder="0 ₽" readonly>
+      <label class="input-label">цена 2</label>
+    </div>
+    <div class="input-container">
+      <input type="text" style="width: 90px;" class="styled_input_bar" data-offer="2-store" placeholder="магазин" readonly>
+      <label class="input-label">магазин</label>
+    </div>
+    <a class="icons" data-offer="2-url" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined status">link</span>
+    </a>
+
+    <!-- offer #3 -->
+    <div class="input-container">
+      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="3-price" placeholder="0 ₽" readonly>
+      <label class="input-label">цена 3</label>
+    </div>
+    <div class="input-container">
+      <input type="text" style="width: 90px;" class="styled_input_bar" data-offer="3-store" placeholder="магазин" readonly>
+      <label class="input-label">магазин</label>
+    </div>
+    <a class="icons" data-offer="3-url" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined status">link</span>
+    </a>
+  </div>
+</template>
+
 
       <template id="spec-block3-template">
         <div class="modalRow">
@@ -1350,10 +1357,15 @@ export async function initModal9() {
     const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
     if (posIds.length) {
-      const { data: sels, error: selErr } = await supabase
-        .from(SELECT_TABLE)
-        .select('pos_id, article, model_name, qty, unit')
-        .in('pos_id', posIds);
+      // //фронтенд: выборка с полями прайсера
+const { data: sels, error: selErr } = await supabase
+  .from(SELECT_TABLE)
+  .select('pos_id, article, model_name, qty, unit, \
+    price1_amount, price1_currency, price1_store, price1_url, \
+    price2_amount, price2_currency, price2_store, price2_url, \
+    price3_amount, price3_currency, price3_store, price3_url, \
+    pricer_status')
+  .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
         (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s);
@@ -1461,8 +1473,29 @@ export async function initModal9() {
               if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
             }
           }
-          const b21 = rf.querySelector('.block21 .modal-content');
-          if(b21) b21.appendChild(block21Template.content.cloneNode(true));
+          // //фронтенд: заполнение BLOCK 2/1
+const b21 = rf.querySelector('.block21 .modal-content');
+if (b21) {
+  const frag = block21Template.content.cloneNode(true);
+  const setOffer = (n, amount, curr, store, url) => {
+    const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
+    const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
+    const urlEl   = frag.querySelector(`[data-offer="${n}-url"]`);
+    if (priceEl) priceEl.value = amount != null ? `${amount} ${curr || 'RUB'}` : '';
+    if (storeEl) storeEl.value = store || '';
+    if (urlEl)   urlEl.setAttribute('href', url || '#');
+  };
+  const sel = (selectionMap[row.id] || [])[0]; // берем первую подборку по позиции
+  // найдём запись с ценами (она в той же selectionMap записи)
+  const rec = (selectionMap[row.id] || [])[0] || {};
+
+  setOffer(1, rec.price1_amount, rec.price1_currency, rec.price1_store, rec.price1_url);
+  setOffer(2, rec.price2_amount, rec.price2_currency, rec.price2_store, rec.price2_url);
+  setOffer(3, rec.price3_amount, rec.price3_currency, rec.price3_store, rec.price3_url);
+
+  b21.appendChild(frag);
+}
+
           rf.querySelector('.block1').classList.add('open');
           content.appendChild(rf);
         });
