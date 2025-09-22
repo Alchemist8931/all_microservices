@@ -86,12 +86,11 @@
     }
     textarea.styled_input_bar {
       white-space: pre-wrap;
-      overflow: auto;
-      overflow-wrap: anywhere;
+      overflow: hidden;
       text-overflow: initial;
       word-break: break-word;
       resize: vertical;
-      min-height: 100px;
+      height: max-content;
     }
     .styled_input_bar::placeholder { color: grey; transition: all 0.3s ease; }
     .styled_input_bar:hover { border-color: grey; }
