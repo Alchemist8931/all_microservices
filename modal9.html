@@ -759,11 +759,11 @@
             <label class="input-label">ед. изм.</label>
           </div>
           <div class="input-container">
-            <input type="text" style="width: 110px; text-align: center;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
+             <input type="text" style="width: 110px; text-align: right;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
             <label class="input-label">цена</label>
           </div>
           <div class="input-container">
-            <input type="text" style="width: 110px; text-align: center;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
+            <input type="text" style="width: 110px; text-align: right;" class="styled_input_bar value-input" placeholder="000 000 000" readonly>
             <label class="input-label">сумма</label>
           </div>
          </div>
@@ -774,7 +774,7 @@
   <div class="modalRow">
     <!-- offer #1 -->
     <div class="input-container">
-      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="1-price" placeholder="0 ₽" readonly>
+      <input type="text" style="width: 110px; text-align: right;" class="styled_input_bar" data-offer="1-price" placeholder="0" readonly>
       <label class="input-label">цена 1</label>
     </div>
     <div class="input-container">
@@ -787,7 +787,7 @@
 
     <!-- offer #2 -->
     <div class="input-container">
-      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="2-price" placeholder="0 ₽" readonly>
+      <input type="text" style="width: 110px; text-align: right;" class="styled_input_bar" data-offer="2-price" placeholder="0" readonly>
       <label class="input-label">цена 2</label>
     </div>
     <div class="input-container">
@@ -800,7 +800,7 @@
 
     <!-- offer #3 -->
     <div class="input-container">
-      <input type="text" style="width: 110px; text-align:center;" class="styled_input_bar" data-offer="3-price" placeholder="0 ₽" readonly>
+      <input type="text" style="width: 110px; text-align: right;" class="styled_input_bar" data-offer="3-price" placeholder="0" readonly>
       <label class="input-label">цена 3</label>
     </div>
     <div class="input-container">
@@ -963,17 +963,27 @@ export async function initModal9() {
 
   const DELIM = window.__DELIM || "###";
 
-  const formatOfferPrice = (amount, currency) => {
-    if (amount === null || amount === undefined || amount === '') return '';
-    const prepared = typeof amount === 'number'
-      ? amount
-      : Number(String(amount).replace(/\s+/g, '').replace(',', '.'));
-    const priceText = Number.isFinite(prepared)
-      ? prepared.toLocaleString('ru-RU')
-      : String(amount);
-    const curr = (currency || 'RUB').toUpperCase();
-    return curr ? `${priceText} ${curr}` : priceText;
+  const formatNumericValue = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) return String(value);
+      return value.toLocaleString('ru-RU');
+    }
+    const raw = String(value).trim();
+    const normalized = raw
+      .replace(/\u00a0/g, ' ')
+      .replace(/[^0-9,.-]/g, '')
+      .replace(/\s+/g, '')
+      .replace(',', '.');
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) {
+      const digitsOnly = raw.replace(/[^0-9,.-]/g, '').replace(/\s+/g, '');
+      return digitsOnly || raw;
+    }
+    return parsed.toLocaleString('ru-RU');
   };
+
+  const formatOfferPrice = (amount) => formatNumericValue(amount);
 
   function appendBlock21Content(target, selections = []) {
     if (!target || !block21Template) return;
@@ -1334,12 +1344,14 @@ export async function initModal9() {
                   const b2El = b2Frag.firstElementChild;
                   if (b2El) b2El.classList.add('fade-in');
                   const inputs = b2Frag.querySelectorAll('input');
-                  if (inputs[0]) inputs[0].value = sel.article || '';
-                  if (inputs[1]) inputs[1].value = sel.model_name || '';
-                  if (inputs[2]) inputs[2].value = sel.qty || '';
-                  if (inputs[3]) inputs[3].value = sel.unit || '';
-                  b2.appendChild(b2Frag);
-                });
+                 if (inputs[0]) inputs[0].value = sel.article || '';
+                if (inputs[1]) inputs[1].value = sel.model_name || '';
+                if (inputs[2]) inputs[2].value = sel.qty || '';
+                if (inputs[3]) inputs[3].value = sel.unit || '';
+                if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
+                if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
+                b2.appendChild(b2Frag);
+              });
               } else {
                 const b2Frag = block2Template.content.cloneNode(true);
                 const b2El = b2Frag.firstElementChild;
@@ -1412,13 +1424,13 @@ export async function initModal9() {
     if (posIds.length) {
       // //фронтенд: выборка с полями прайсера
 const { data: sels, error: selErr } = await supabase
-  .from(SELECT_TABLE)
-  .select('pos_id, article, model_name, qty, unit, \
-    price1_amount, price1_currency, price1_store, price1_url, \
-    price2_amount, price2_currency, price2_store, price2_url, \
-    price3_amount, price3_currency, price3_store, price3_url, \
-    prices_json, pricer_status')
-  .in('pos_id', posIds);
+        .from(SELECT_TABLE)
+        .select('pos_id, article, model_name, qty, unit, price, sum, \
+          price1_amount, price1_currency, price1_store, price1_url, \
+          price2_amount, price2_currency, price2_store, price2_url, \
+          price3_amount, price3_currency, price3_store, price3_url, \
+          prices_json, pricer_status')
+        .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
         (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s);
@@ -1518,6 +1530,8 @@ const { data: sels, error: selErr } = await supabase
                 if (inputs[1]) inputs[1].value = sel.model_name || '';
                 if (inputs[2]) inputs[2].value = sel.qty || '';
                 if (inputs[3]) inputs[3].value = sel.unit || '';
+                if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
+                if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
                 b2.appendChild(b2Frag);
                 if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
               });
