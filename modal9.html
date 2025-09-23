@@ -1214,9 +1214,9 @@ export async function initModal9() {
   });
 
   let history = [];
+  let lastHistoryStatus = {};
   async function loadHistory() {
-    const oldMap = {};
-    history.forEach(h => (oldMap[h.id] = h.status));
+    const oldMap = { ...lastHistoryStatus };
      let query = supabase
       .from(TABLE)
       .select('id, file_number, user_login, created_at, file_name, file_ext, status')
@@ -1231,6 +1231,10 @@ export async function initModal9() {
 
     if (error) { console.error(error); return; }
     history = data || [];
+    lastHistoryStatus = {};
+    history.forEach(h => {
+      if (h?.id !== undefined) lastHistoryStatus[h.id] = h.status;
+    });
     renderHistory(oldMap);
     renderBlock1();
   }
@@ -1413,7 +1417,7 @@ const { data: sels, error: selErr } = await supabase
     price1_amount, price1_currency, price1_store, price1_url, \
     price2_amount, price2_currency, price2_store, price2_url, \
     price3_amount, price3_currency, price3_store, price3_url, \
-    pricer_status')
+    prices_json, pricer_status')
   .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
@@ -1425,6 +1429,9 @@ const { data: sels, error: selErr } = await supabase
       (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
     });
     renderBlock1();
+    if (history.length) {
+      renderHistory({ ...lastHistoryStatus });
+    }
     loadingBlock1 = false;
     if (pendingLoad) {
       pendingLoad = false;
@@ -1523,7 +1530,7 @@ const { data: sels, error: selErr } = await supabase
             }
           }
           // //фронтенд: заполнение BLOCK 2/1
-const b21 = rf.querySelector('.block21 .modal-content');
+         const b21 = rf.querySelector('.block21 .modal-content');
           if (b21) appendBlock21Content(b21, selectionMap[row.id] || []);
 
           rf.querySelector('.block1').classList.add('open');
