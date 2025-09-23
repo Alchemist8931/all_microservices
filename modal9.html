@@ -963,6 +963,55 @@ export async function initModal9() {
 
   const DELIM = window.__DELIM || "###";
 
+  const formatOfferPrice = (amount, currency) => {
+    if (amount === null || amount === undefined || amount === '') return '';
+    const prepared = typeof amount === 'number'
+      ? amount
+      : Number(String(amount).replace(/\s+/g, '').replace(',', '.'));
+    const priceText = Number.isFinite(prepared)
+      ? prepared.toLocaleString('ru-RU')
+      : String(amount);
+    const curr = (currency || 'RUB').toUpperCase();
+    return curr ? `${priceText} ${curr}` : priceText;
+  };
+
+  function appendBlock21Content(target, selections = []) {
+    if (!target || !block21Template) return;
+    const frag = block21Template.content.cloneNode(true);
+    const record = Array.isArray(selections) && selections.length ? selections[0] : {};
+    const setOffer = (n, amount, curr, store, url) => {
+      const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
+      const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
+      const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
+      if (priceEl) priceEl.value = formatOfferPrice(amount, curr);
+      if (storeEl) storeEl.value = store || '';
+      if (urlEl) {
+        const href = url || '';
+        if (href) {
+          urlEl.setAttribute('href', href);
+          urlEl.removeAttribute('aria-disabled');
+          urlEl.removeAttribute('tabindex');
+          urlEl.classList.remove('disabled');
+          urlEl.style.pointerEvents = '';
+          urlEl.style.opacity = '';
+        } else {
+          urlEl.setAttribute('href', '#');
+          urlEl.setAttribute('aria-disabled', 'true');
+          urlEl.setAttribute('tabindex', '-1');
+          urlEl.classList.add('disabled');
+          urlEl.style.pointerEvents = 'none';
+          urlEl.style.opacity = '0.5';
+        }
+      }
+    };
+
+    setOffer(1, record.price1_amount, record.price1_currency, record.price1_store, record.price1_url);
+    setOffer(2, record.price2_amount, record.price2_currency, record.price2_store, record.price2_url);
+    setOffer(3, record.price3_amount, record.price3_currency, record.price3_store, record.price3_url);
+
+    target.appendChild(frag);
+  }
+
   let selectedFile = null;
   filterInput.addEventListener('input', () => {
     applySecondFilter();
@@ -1295,7 +1344,7 @@ export async function initModal9() {
               }
             }
             const b21 = rf.querySelector('.block21 .modal-content');
-            if(b21) b21.appendChild(block21Template.content.cloneNode(true));
+            if (b21) appendBlock21Content(b21, selectionMap[r.id] || []);
             rf.querySelector('.block1').classList.add('open');
             content.appendChild(rf);
           });
@@ -1475,26 +1524,7 @@ const { data: sels, error: selErr } = await supabase
           }
           // //фронтенд: заполнение BLOCK 2/1
 const b21 = rf.querySelector('.block21 .modal-content');
-if (b21) {
-  const frag = block21Template.content.cloneNode(true);
-  const setOffer = (n, amount, curr, store, url) => {
-    const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
-    const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
-    const urlEl   = frag.querySelector(`[data-offer="${n}-url"]`);
-    if (priceEl) priceEl.value = amount != null ? `${amount} ${curr || 'RUB'}` : '';
-    if (storeEl) storeEl.value = store || '';
-    if (urlEl)   urlEl.setAttribute('href', url || '#');
-  };
-  const sel = (selectionMap[row.id] || [])[0]; // берем первую подборку по позиции
-  // найдём запись с ценами (она в той же selectionMap записи)
-  const rec = (selectionMap[row.id] || [])[0] || {};
-
-  setOffer(1, rec.price1_amount, rec.price1_currency, rec.price1_store, rec.price1_url);
-  setOffer(2, rec.price2_amount, rec.price2_currency, rec.price2_store, rec.price2_url);
-  setOffer(3, rec.price3_amount, rec.price3_currency, rec.price3_store, rec.price3_url);
-
-  b21.appendChild(frag);
-}
+          if (b21) appendBlock21Content(b21, selectionMap[row.id] || []);
 
           rf.querySelector('.block1').classList.add('open');
           content.appendChild(rf);
