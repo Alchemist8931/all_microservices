@@ -1231,10 +1231,10 @@ export async function initModal9() {
     }
   }
 
-  function insertActionButtons(container, specId) {
+  function insertActionButtons(container, specId, beforeElement = null) {
     if (!container || !buttonGroupSpec) return null;
     const specContent = container.querySelector('.spec-content');
-    if (!specContent) return null;
+    if (!specContent && !beforeElement) return null;
     const fragment = buttonGroupSpec.content.cloneNode(true);
     const row = fragment.querySelector('.spec-action-row');
     if (!row) return null;
@@ -1250,7 +1250,12 @@ export async function initModal9() {
         await runSpecAction(action, specId, specContent, button);
       });
     });
-    container.insertBefore(fragment, specContent);
+    const referenceNode = beforeElement || specContent;
+    if (referenceNode) {
+      container.insertBefore(fragment, referenceNode);
+    } else {
+      container.appendChild(fragment);
+    }
     return row;
   }
   
@@ -1602,7 +1607,7 @@ export async function initModal9() {
           progress.classList.add('fade-toggle', 'hidden');
           progress.style.display = 'none';
           container.insertBefore(progressFrag, content);
-          insertActionButtons(container, item.id);
+          insertActionButtons(container, item.id, progress);
           initProgressHandlers(progress, item.id);
           setProgress(progress, item.status);
           if (btn) btn.remove();
@@ -1772,7 +1777,7 @@ const { data: sels, error: selErr } = await supabase
         progress.classList.add('fade-toggle', 'hidden');
         progress.style.display = 'none';
         container.insertBefore(progressFrag, content);
-        insertActionButtons(container, id);
+        insertActionButtons(container, id, progress);
         initProgressHandlers(progress, id);
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
