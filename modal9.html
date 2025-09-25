@@ -630,6 +630,30 @@
     <button type="button" data-action="copy">Скопировать спецификацию</button>
     <button type="button" data-action="excel">Скачать спецификацию Excel</button>
   </div>
+  <div id="modal9-ticket-modal" class="tooltip-overlay" style="display:none;">
+   <div class="tooltip-modal">
+     <button class="ans5-close modal9-ticket-close" style="position:absolute; top:4px; right:8px;">×</button>
+     <div class="modalRow" style="margin-top:0;">
+       <div class="input-container">
+         <input type="text" id="modal9-ticket-spec-id" class="styled_input_bar" style="width: 90px; text-transform: uppercase; text-align: center;" inputmode="numeric" placeholder="">
+         <label class="input-label">spec #</label>
+       </div>
+       <div class="input-container">
+         <input type="text" id="modal9-ticket-subject" class="styled_input_bar" style="width: 700px;" maxlength="70" placeholder="">
+         <label class="input-label">тема обращения</label>
+       </div>
+     </div>
+     <div class="modalRow">
+       <div class="input-container" style="width:100%;">
+         <textarea id="modal9-ticket-message" class="styled_input_bar" style="width: 800px; height: 500px;"></textarea>
+         <label class="input-label">текст обращения</label>
+       </div>
+     </div>
+     <div class="modalRow">
+       <button type="button" class="darkmatter-btn modal9-submit-ticket-btn" style="height:40px;">отправить обращение</button>
+     </div>
+   </div>
+  </div>
   <div class="modal9-top-window glass3d">
    <div class="file-upload__modal">
      <form class="file-upload-form js-dropzone">
@@ -733,7 +757,7 @@
       <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
       <span class="label">скопировать</span>
     </button>
-   <button type="button" class="spec-action-btn spec-action-btn--help" data-action="???">
+   <button type="button" class="spec-action-btn spec-action-btn--help" data-action="support">
       <span class="material-symbols-outlined" aria-hidden="true">person_raised_hand</span>
       <span class="label">создать обращение</span>
     </button>
@@ -1047,6 +1071,12 @@ export async function initModal9() {
   const block31Template = root.querySelector('#spec-block31-template');
   const attrPairTemplate = root.querySelector('#spec-attr-template');
   const contextMenu = root.querySelector('.spec-context-menu');
+  const ticketModal = root.querySelector('#modal9-ticket-modal');
+  const ticketCloseBtn = ticketModal ? ticketModal.querySelector('.modal9-ticket-close') : null;
+  const ticketSpecInput = root.querySelector('#modal9-ticket-spec-id');
+  const ticketSubjectInput = root.querySelector('#modal9-ticket-subject');
+  const ticketMessageInput = root.querySelector('#modal9-ticket-message');
+  const ticketSubmitBtn = root.querySelector('.modal9-submit-ticket-btn');
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   let realtimeSub = null;
@@ -1055,6 +1085,101 @@ export async function initModal9() {
   const hideTimers = new WeakMap();
   let openedSpecId = null;
   let contextSpecContent = null;
+  let currentUserEmail = null;
+  let lastSupportSpecId = null;
+
+  if (supabase?.auth?.getUser) {
+    try {
+      supabase.auth.getUser()
+        .then(({ data: { user } = {}, error }) => {
+          if (error) {
+            console.error('[modal9] getUser error:', error);
+            return;
+          }
+          currentUserEmail = user?.email || null;
+        })
+        .catch(err => {
+          console.error('[modal9] getUser rejected:', err);
+        });
+    } catch (err) {
+      console.error('[modal9] getUser exception:', err);
+    }
+  }
+
+  if (supabase?.auth?.getSession && !currentUserEmail) {
+    supabase.auth.getSession()
+      .then(({ data: { session } = {}, error }) => {
+        if (error) {
+          console.error('[modal9] getSession error:', error);
+          return;
+        }
+        currentUserEmail = session?.user?.email || currentUserEmail;
+      })
+      .catch(err => {
+        console.error('[modal9] getSession rejected:', err);
+      });
+  }
+
+  if (ticketCloseBtn) {
+    ticketCloseBtn.addEventListener('click', () => {
+      closeSupportTicketModal({ preserveSpec: false });
+    });
+  }
+  if (ticketModal) {
+    ticketModal.addEventListener('click', event => {
+      if (event.target === ticketModal) {
+        closeSupportTicketModal({ preserveSpec: true });
+      }
+    });
+  }
+  if (ticketSpecInput) {
+    ticketSpecInput.addEventListener('input', () => {
+      ticketSpecInput.value = ticketSpecInput.value.replace(/\D/g, '');
+    });
+  }
+  if (ticketSubmitBtn) {
+    ticketSubmitBtn.addEventListener('click', async () => {
+      if (!supabase) return;
+      const specId = (ticketSpecInput?.value || '').trim();
+      const subject = (ticketSubjectInput?.value || '').trim();
+      const message = (ticketMessageInput?.value || '').trim();
+      if (!specId || !subject || !message) {
+        alert('Заполните все поля');
+        return;
+      }
+      let specExists = false;
+      try {
+        const { data } = await supabase
+          .from(TABLE)
+          .select('id')
+          .eq('id', specId)
+          .single();
+        if (data?.id) {
+          specExists = true;
+        }
+      } catch (err) {
+        console.error('[modal9] ticket spec lookup error:', err);
+      }
+      if (!specExists) {
+        alert('spec # не существует');
+        return;
+      }
+      if (!currentUserEmail) {
+        alert('Не удалось получить email пользователя');
+        return;
+      }
+      try {
+        const { error } = await supabase
+          .from('support_tickets')
+          .insert({ spec_id: specId, subject, message, user_login: currentUserEmail });
+        if (error) throw error;
+        closeSupportTicketModal({ preserveSpec: false });
+      } catch (err) {
+        console.error('[modal9] support ticket insert error:', err);
+        alert('Ошибка отправки');
+      }
+    });
+  }
 
   let block1ReloadTimer = null;
   function scheduleLoadBlock1() {
@@ -1066,6 +1191,45 @@ export async function initModal9() {
   }
 
   const DELIM = window.__DELIM || "###";
+
+  function openSupportTicketModal(specId) {
+    if (!ticketModal) return;
+    const normalizedSpec = specId != null ? String(specId).replace(/[^0-9]/g, '') : '';
+    lastSupportSpecId = normalizedSpec || null;
+    if (ticketSpecInput) {
+      ticketSpecInput.value = normalizedSpec;
+    }
+    if (ticketSubjectInput) {
+      ticketSubjectInput.value = '';
+    }
+    if (ticketMessageInput) {
+      ticketMessageInput.value = '';
+    }
+    ticketModal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      ticketSubjectInput?.focus();
+    });
+  }
+
+  function closeSupportTicketModal(options = {}) {
+    if (!ticketModal) return;
+    const { preserveSpec = false } = options;
+    ticketModal.style.display = 'none';
+    if (ticketSubjectInput) {
+      ticketSubjectInput.value = '';
+    }
+    if (ticketMessageInput) {
+      ticketMessageInput.value = '';
+    }
+    if (ticketSpecInput) {
+      if (preserveSpec && lastSupportSpecId) {
+        ticketSpecInput.value = lastSupportSpecId;
+      } else {
+        ticketSpecInput.value = '';
+        lastSupportSpecId = null;
+      }
+    }
+  }
 
   function insertActionButtons(container, specId) {
     if (!container || !buttonGroupSpec) return null;
@@ -2110,6 +2274,10 @@ const { data: sels, error: selErr } = await supabase
     return data;
   }
   async function runSpecAction(action, specId, specContent, button) {
+    if (action === 'support') {
+      openSupportTicketModal(specId);
+      return;
+    }
     const specData = collectSpecData(specId, specContent);
     if (!specData) return;
     try {
