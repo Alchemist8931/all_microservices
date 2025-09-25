@@ -1821,6 +1821,7 @@ export async function initModal9() {
             }
             const b21 = rf.querySelector('.block21 .modal-content');
             if (b21) appendBlock21Content(b21, selectionMap[r.id] || []);
+           setupRegistryCheckboxes(rf, r);
             rf.querySelector('.block1').classList.add('open');
             content.appendChild(rf);
           });
@@ -2007,7 +2008,8 @@ const { data: sels, error: selErr } = await supabase
           // //фронтенд: заполнение BLOCK 2/1
          const b21 = rf.querySelector('.block21 .modal-content');
           if (b21) appendBlock21Content(b21, selectionMap[row.id] || []);
-
+         
+          setupRegistryCheckboxes(rf, row);
           rf.querySelector('.block1').classList.add('open');
           content.appendChild(rf);
         });
