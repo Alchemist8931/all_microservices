@@ -542,48 +542,82 @@
     8px 9px 14px -2.5px hsl(205 20% 10% / 0.2);
     }
 
-    .container-btn-file {
-  display: flex;
-  position: relative;
-  justify-content: center;
-  align-items: center;
-  background-color: #307750;
-  color: #fff;
-  border-style: none;
-  padding: 1em 2em;
-  border-radius: 0.5em;
-  overflow: hidden;
-  z-index: 1;
-  box-shadow: 4px 8px 10px -3px rgba(0, 0, 0, 0.356);
-  transition: all 250ms;
-  width: 172px;
-  height: 30px;
-}
-.container-btn-file input[type="file"] {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-.container-btn-file > svg {
-  margin-right: 1em;
-}
-.container-btn-file::before {
-  content: "";
-  position: absolute;
-  height: 100%;
-  width: 0;
-  border-radius: 0.5em;
-  background-color: #aaa;
-  color: #999999;
-  z-index: -1;
-  transition: all 350ms;
-}
-.container-btn-file:hover::before {
-  width: 100%;
-}
-
+   .spec-action-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .spec-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      min-width: 174px;
+      height: 40px;
+      padding: 0 24px;
+      border: none;
+      border-radius: 8px;
+      background-color: #307750;
+      color: #fff;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 4px 8px 10px -3px rgba(0, 0, 0, 0.356);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      z-index: 0;
+    }
+    .spec-action-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background-color: rgba(255, 255, 255, 0.08);
+      z-index: -1;
+      transition: width 0.35s ease;
+    }
+    .spec-action-btn:hover::before {
+      width: 100%;
+    }
+    .spec-action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 6px 10px 14px -5px rgba(0, 0, 0, 0.35);
+    }
+    .spec-action-btn:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.6);
+      outline-offset: 2px;
+    }
+    .spec-action-btn svg,
+    .spec-action-btn .material-symbols-outlined {
+      margin-right: 12px;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .spec-action-btn .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    .spec-action-btn span.label {
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .spec-action-btn--excel {
+      background-color: #307750;
+    }
+    .spec-action-btn--excel::before {
+      background-color: #469b61;
+    }
+    .spec-action-btn--copy {
+      background-color: #30333c;
+    }
+    .spec-action-btn--copy::before {
+      background-color: #4c4f58;
+    }
     
   </style>
   <div class="spec-context-menu" aria-hidden="true">
@@ -682,45 +716,18 @@
       </template>
 
 <template id="button-group-spec">
- <div class="modalRow">
-    <button class="container-btn-file">
-  <svg
-    fill="#fff"
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 50 50"
-  >
-    <path
-      d="M28.8125 .03125L.8125 5.34375C.339844 
-    5.433594 0 5.863281 0 6.34375L0 43.65625C0 
-    44.136719 .339844 44.566406 .8125 44.65625L28.8125 
-    49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
-    50 29.445313 49.929688 29.625 49.78125C29.855469 49.589844 
-    30 49.296875 30 49L30 1C30 .703125 29.855469 .410156 29.625 
-    .21875C29.394531 .0273438 29.105469 -.0234375 28.8125 .03125ZM32 
-    6L32 13L34 13L34 15L32 15L32 20L34 20L34 22L32 22L32 27L34 27L34 
-    29L32 29L32 35L34 35L34 37L32 37L32 44L47 44C48.101563 44 49 
-    43.101563 49 42L49 8C49 6.898438 48.101563 6 47 6ZM36 13L44 
-    13L44 15L36 15ZM6.6875 15.6875L11.8125 15.6875L14.5 21.28125C14.710938 
-    21.722656 14.898438 22.265625 15.0625 22.875L15.09375 22.875C15.199219 
-    22.511719 15.402344 21.941406 15.6875 21.21875L18.65625 15.6875L23.34375 
-    15.6875L17.75 24.9375L23.5 34.375L18.53125 34.375L15.28125 
-    28.28125C15.160156 28.054688 15.035156 27.636719 14.90625 
-    27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
-    14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
-    20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"
-    ></path>
-  </svg>
-  Скачать EXCEL
-  <input class="file" name="text" type="file" />
-</button>
-
-<button class="container-btn-file" style="margin-left: 20px; background-color: #30333c;">
-  Скопировать
-  <input class="file" name="text" type="file" />
-</button>
-    </div>
+ <div class="modalRow spec-action-row">
+    <button type="button" class="spec-action-btn spec-action-btn--excel" data-action="excel">
+      <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 50 50" aria-hidden="true">
+        <path d="M28.8125 .03125L.8125 5.34375C.339844 5.433594 0 5.863281 0 6.34375L0 43.65625C0 44.136719 .339844 44.566406 .8125 44.65625L28.8125 49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 50 29.445313 49.929688 29.625 49.78125C29.855469 49.589844 30 49.296875 30 49L30 1C30 .703125 29.855469 .410156 29.625 .21875C29.394531 .0273438 29.105469 -.0234375 28.8125 .03125ZM32 6L32 13L34 13L34 15L32 15L32 20L34 20L34 22L32 22L32 27L34 27L34 29L32 29L32 35L34 35L34 37L32 37L32 44L47 44C48.101563 44 49 43.101563 49 42L49 8C49 6.898438 48.101563 6 47 6ZM36 13L44 13L44 15L36 15ZM6.6875 15.6875L11.8125 15.6875L14.5 21.28125C14.710938 21.722656 14.898438 22.265625 15.0625 22.875L15.09375 22.875C15.199219 22.511719 15.402344 21.941406 15.6875 21.21875L18.65625 15.6875L23.34375 15.6875L17.75 24.9375L23.5 34.375L18.53125 34.375L15.28125 28.28125C15.160156 28.054688 15.035156 27.636719 14.90625 27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"></path>
+      </svg>
+      <span class="label">скачать excel</span>
+    </button>
+    <button type="button" class="spec-action-btn spec-action-btn--copy" data-action="copy">
+      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+      <span class="label">скопировать</span>
+    </button>
+  </div>
 </template>
       
 <template id="spec-progress-template">
@@ -1050,6 +1057,29 @@ export async function initModal9() {
 
   const DELIM = window.__DELIM || "###";
 
+  function insertActionButtons(container, specId) {
+    if (!container || !buttonGroupSpec) return null;
+    const specContent = container.querySelector('.spec-content');
+    if (!specContent) return null;
+    const fragment = buttonGroupSpec.content.cloneNode(true);
+    const row = fragment.querySelector('.spec-action-row');
+    if (!row) return null;
+    row.dataset.specId = String(specId);
+    row.classList.add('fade-toggle', 'hidden');
+    row.style.display = 'none';
+    row.querySelectorAll('.spec-action-btn').forEach(button => {
+      const action = button.dataset.action;
+      if (!action) return;
+      button.addEventListener('click', async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        await runSpecAction(action, specId, specContent, button);
+      });
+    });
+    container.insertBefore(fragment, specContent);
+    return row;
+  }
+  
   const formatNumericValue = (value) => {
     if (value === null || value === undefined || value === '') return '';
     if (typeof value === 'number') {
@@ -1398,6 +1428,7 @@ export async function initModal9() {
           progress.classList.add('fade-toggle', 'hidden');
           progress.style.display = 'none';
           container.insertBefore(progressFrag, content);
+          insertActionButtons(container, item.id);
           initProgressHandlers(progress, item.id);
           setProgress(progress, item.status);
           if (btn) btn.remove();
@@ -1567,6 +1598,7 @@ const { data: sels, error: selErr } = await supabase
         progress.classList.add('fade-toggle', 'hidden');
         progress.style.display = 'none';
         container.insertBefore(progressFrag, content);
+        insertActionButtons(container, id);
         initProgressHandlers(progress, id);
         content.dataset.specId = id;
         btn.classList.add('fade-toggle', 'hidden');
@@ -1668,9 +1700,17 @@ const { data: sels, error: selErr } = await supabase
         p.addEventListener('transitionend', () => { p.style.display = 'none'; }, { once: true });
       }
     });
+    block1List.querySelectorAll('.spec-action-row').forEach(row => {
+      const sid = row.closest('.spec-container')?.dataset.specId;
+      if (sid !== String(id)) {
+        row.classList.add('hidden');
+        row.addEventListener('transitionend', () => { row.style.display = 'none'; }, { once: true });
+      }
+    });
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const prog = block1List.querySelector(`.spec-progress[data-spec-id="${id}"]`);
+    const actions = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-action-row`);
     if (cont) {
       resetDynamicBlocks(cont);
       cont.style.display = 'block';
@@ -1710,12 +1750,17 @@ const { data: sels, error: selErr } = await supabase
       prog.style.display = 'flex';
       requestAnimationFrame(() => prog.classList.remove('hidden'));
     }
+    if (actions) {
+      actions.style.display = 'flex';
+      requestAnimationFrame(() => actions.classList.remove('hidden'));
+    }
   }
 
   function closeGroup(id) {
     const cont = block1List.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const btn = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const prog = block1List.querySelector(`.spec-progress[data-spec-id="${id}"]`);
+    const actions = block1List.querySelector(`.spec-container[data-spec-id="${id}"] .spec-action-row`);
     if (cont) {
       cont.classList.add('hidden');
       cont.addEventListener('transitionend', () => { cont.style.display = 'none'; }, { once: true });
@@ -1729,6 +1774,10 @@ const { data: sels, error: selErr } = await supabase
       prog.classList.add('hidden');
       prog.addEventListener('transitionend', () => { prog.style.display = 'none'; }, { once: true });
     }
+    if (actions) {
+      actions.classList.add('hidden');
+      actions.addEventListener('transitionend', () => { actions.style.display = 'none'; }, { once: true });
+    }
     delete block1OpenBlocks[id];
   }
 
@@ -1739,6 +1788,7 @@ const { data: sels, error: selErr } = await supabase
     openedSpecId = id;
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const prog = historyList.querySelector(`.spec-progress[data-spec-id="${id}"]`);
+    const actions = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .spec-action-row`);
     if (cont) {
       const oldT = hideTimers.get(cont);
       if (oldT) {
@@ -1764,7 +1814,16 @@ const { data: sels, error: selErr } = await supabase
         if (cls) historyOpenBlocks[id] = cls;
       }
     }
-     if (prog) {
+     if (actions) {
+      const oldT = hideTimers.get(actions);
+      if (oldT) {
+        clearTimeout(oldT);
+        hideTimers.delete(actions);
+      }
+      actions.style.display = 'flex';
+      requestAnimationFrame(() => actions.classList.remove('hidden'));
+    }
+    if (prog) {
       const oldT = hideTimers.get(prog);
       if (oldT) {
         clearTimeout(oldT);
@@ -1782,6 +1841,17 @@ const { data: sels, error: selErr } = await supabase
           hideTimers.delete(p);
         }, 500);
         hideTimers.set(p, t);
+      }
+    });
+    historyList.querySelectorAll('.spec-action-row').forEach(row => {
+      const specId = row.closest('.spec-container')?.dataset.specId;
+      if (specId !== String(id)) {
+        row.classList.add('hidden');
+        const t = setTimeout(() => {
+          row.style.display = 'none';
+          hideTimers.delete(row);
+        }, 500);
+        hideTimers.set(row, t);
       }
     });
     
@@ -1812,6 +1882,7 @@ const { data: sels, error: selErr } = await supabase
     const btn = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .group-close`);
     const extra = historyList.querySelector(`.history-item[data-spec-id="${id}"] .spec-close-btn`);
     const prog = historyList.querySelector(`.spec-progress[data-spec-id="${id}"]`);
+    const actions = historyList.querySelector(`.spec-container[data-spec-id="${id}"] .spec-action-row`);
     if (cont) {
       cont.classList.add('hidden');
       const t = setTimeout(() => {
@@ -1835,6 +1906,14 @@ const { data: sels, error: selErr } = await supabase
         hideTimers.delete(prog);
       }, 500);
       hideTimers.set(prog, t);
+    }
+    if (actions) {
+      actions.classList.add('hidden');
+      const t = setTimeout(() => {
+        actions.style.display = 'none';
+        hideTimers.delete(actions);
+      }, 500);
+      hideTimers.set(actions, t);
     }
     if (extra) extra.remove();
   }
@@ -2019,6 +2098,26 @@ const { data: sels, error: selErr } = await supabase
       data.positions.push(pos);
     });
     return data;
+  }
+  async function runSpecAction(action, specId, specContent, button) {
+    const specData = collectSpecData(specId, specContent);
+    if (!specData) return;
+    try {
+      if (action === 'copy') {
+        const text = formatSpecForClipboard(specData);
+        if (text) {
+          await navigator.clipboard.writeText(text);
+          if (button) showCopyTip(button);
+        }
+      } else if (action === 'excel') {
+        const blob = createExcelBlob(specData);
+        if (blob) {
+          downloadSpecExcel(specData, blob);
+        }
+      }
+    } catch (err) {
+      console.error('spec action error:', err);
+    }
   }
   function collectRepeatingRows(positions, key) {
     const rows = [];
