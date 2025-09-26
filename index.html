@@ -805,7 +805,7 @@
       window.LOCAL_USER_ID = user.id;
       window.AUTH_ID = loginData?.user?.id || user.id;
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
-      window.USER_KEY = user.user_key;
+      window.USER_KEY = user.user_key || window.AUTH_ID || user.id || '';
       window.IS_ADMIN = user.is_admin;
       window.USER_LEVELS = user.menu_levels || '';
       window.USER_LOGIN  = user.login || user.email || user.last_name || '';
@@ -878,7 +878,7 @@
             window.companyId = user.company_id;
             window.companyName = user.company_name;
             window.AUTH_ID = user.id;
-            window.USER_KEY = user.user_key;
+            window.USER_KEY = user.user_key || window.AUTH_ID || user.id || '';
             window.IS_ADMIN = user.is_admin;
             window.USER_LEVELS = user.menu_levels || '';
             window.USER_LOGIN = user.login || user.email || user.last_name || '';
