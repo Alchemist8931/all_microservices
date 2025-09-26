@@ -894,9 +894,10 @@ export function initModal4() {
   const modalRect = modal.getBoundingClientRect();
   const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
   const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
+  const dropdownWidth = rect.width * 2;
   selectDropdown.style.left = `${offsetLeft}px`;
   selectDropdown.style.top = `${offsetTop}px`;
-  selectDropdown.style.width = `${rect.width}px`;
+  selectDropdown.style.width = `${dropdownWidth}px`;
   selectDropdown.classList.add('show');
   selectOverlay.style.display = 'block';
     });
