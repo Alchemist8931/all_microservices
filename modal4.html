@@ -521,7 +521,7 @@
 <script type="module">
 export function initModal4() {
   const supabase = window.supabase;
-  const USER_KEY = window.USER_KEY;
+  const USER_KEY = window.USER_KEY || window.AUTH_ID;
   const TABLE_NAME = 'modal4_orders';
   const ORDER_STATUS = 'заказано';
 
@@ -533,7 +533,7 @@ export function initModal4() {
     return;
   }
   if (!USER_KEY) {
-    console.warn('[modal4.html] USER_KEY не определён');
+    console.warn('[modal4.html] USER_KEY/AUTH_ID не определён');
     return;
   }
 
