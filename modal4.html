@@ -365,7 +365,7 @@
       opacity: 0;
       visibility: hidden;
       transform: translateY(-10px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
+      transition: opacity 1s ease, transform 1s ease, visibility 0s linear 1s;
       z-index: 9999;
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid #212121;
@@ -381,6 +381,7 @@
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
+      transition: opacity 1s ease, transform 1s ease, visibility 0s linear 0s;
     }
 
     #modal4-global-select-dropdown::-webkit-scrollbar,
@@ -551,6 +552,7 @@ export function initModal4() {
   const deleteButton = modal.querySelector('#delete-selected');
   const moveButton = modal.querySelector('#move-warehouse');
   const selectInput = modal.querySelector('.select-input');
+  const DROPDOWN_POINTER_TOLERANCE = 0.1;
 
   const fmtNum = value => {
     if (value === null || value === undefined || value === '') return '';
@@ -821,7 +823,67 @@ export function initModal4() {
     closeDropdowns();
   });
 
+  let pointerMonitorActive = false;
+  let lastPointerPosition = null;
+
+  const getActiveDropdown = () => {
+    if (selectDropdown?.classList.contains('show')) return selectDropdown;
+    if (autocompleteDropdown?.classList.contains('show')) return autocompleteDropdown;
+    return null;
+  };
+
+  const isPointerWithinTolerance = position => {
+    const dropdown = getActiveDropdown();
+    if (!dropdown) return true;
+    const rect = dropdown.getBoundingClientRect();
+    const toleranceX = rect.width * DROPDOWN_POINTER_TOLERANCE;
+    const toleranceY = rect.height * DROPDOWN_POINTER_TOLERANCE;
+    return (
+      position.x >= rect.left - toleranceX &&
+      position.x <= rect.right + toleranceX &&
+      position.y >= rect.top - toleranceY &&
+      position.y <= rect.bottom + toleranceY
+    );
+  };
+
+  const handlePointerMove = event => {
+    const { clientX, clientY } = event;
+    lastPointerPosition = { x: clientX, y: clientY };
+    if (!isPointerWithinTolerance(lastPointerPosition)) {
+      closeDropdowns();
+    }
+  };
+
+  const handleDropdownScroll = () => {
+    if (!lastPointerPosition) return;
+    if (!isPointerWithinTolerance(lastPointerPosition)) {
+      closeDropdowns();
+    }
+  };
+
+  const startDropdownMonitoring = initialEvent => {
+    if (initialEvent && typeof initialEvent.clientX === 'number' && typeof initialEvent.clientY === 'number') {
+      lastPointerPosition = { x: initialEvent.clientX, y: initialEvent.clientY };
+    }
+    if (pointerMonitorActive) return;
+    pointerMonitorActive = true;
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('scroll', handleDropdownScroll, true);
+  };
+
+  const stopDropdownMonitoring = () => {
+    if (!pointerMonitorActive) {
+      lastPointerPosition = null;
+      return;
+    }
+    pointerMonitorActive = false;
+    lastPointerPosition = null;
+    document.removeEventListener('pointermove', handlePointerMove);
+    document.removeEventListener('scroll', handleDropdownScroll, true);
+  };
+
   function closeDropdowns() {
+    stopDropdownMonitoring();
     selectDropdown?.classList.remove('show');
     autocompleteDropdown?.classList.remove('show');
     if (selectOverlay) selectOverlay.style.display = 'none';
@@ -890,16 +952,17 @@ export function initModal4() {
 
     selectInput.addEventListener('click', event => {
   event.stopPropagation();
-  const rect = selectInput.getBoundingClientRect();
-  const modalRect = modal.getBoundingClientRect();
-  const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
-  const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
-  const dropdownWidth = rect.width * 2;
-  selectDropdown.style.left = `${offsetLeft}px`;
-  selectDropdown.style.top = `${offsetTop}px`;
-  selectDropdown.style.width = `${dropdownWidth}px`;
-  selectDropdown.classList.add('show');
-  selectOverlay.style.display = 'block';
+      const rect = selectInput.getBoundingClientRect();
+      const modalRect = modal.getBoundingClientRect();
+      const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
+      const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
+      const dropdownWidth = rect.width * 2;
+      selectDropdown.style.left = `${offsetLeft}px`;
+      selectDropdown.style.top = `${offsetTop}px`;
+      selectDropdown.style.width = `${dropdownWidth}px`;
+      selectDropdown.classList.add('show');
+      selectOverlay.style.display = 'block';
+      startDropdownMonitoring(event);
     });
 
     selectDropdown.addEventListener('click', event => {
@@ -918,7 +981,6 @@ export function initModal4() {
         }
       });
 
-      document.addEventListener('scroll', closeDropdowns, true);
       window.addEventListener('resize', closeDropdowns);
       customSelectListenersBound = true;
     }
@@ -959,15 +1021,15 @@ export function initModal4() {
         autocompleteDropdown.appendChild(option);
       });
 
-      const rect = src.getBoundingClientRect();
-const modalRect = modal.getBoundingClientRect();
-const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
-const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
-autocompleteDropdown.style.left = `${offsetLeft}px`;
-autocompleteDropdown.style.top = `${offsetTop}px`;
-autocompleteDropdown.style.width = `${rect.width}px`;
-autocompleteDropdown.classList.add('show');
-selectOverlay.style.display = 'block';
+      const modalRect = modal.getBoundingClientRect();
+      const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
+      const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
+      autocompleteDropdown.style.left = `${offsetLeft}px`;
+      autocompleteDropdown.style.top = `${offsetTop}px`;
+      autocompleteDropdown.style.width = `${rect.width}px`;
+      autocompleteDropdown.classList.add('show');
+      selectOverlay.style.display = 'block';
+      startDropdownMonitoring();
     };
 
     autocompleteDropdown.addEventListener('click', event => {
