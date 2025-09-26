@@ -521,7 +521,9 @@
 <script type="module">
 export function initModal4() {
   const supabase = window.supabase;
-  const USER_KEY = window.USER_KEY || window.AUTH_ID;
+  const rawUserKey = window.USER_KEY;
+  const authUserId = window.AUTH_ID;
+  const DB_USER_KEY = authUserId || rawUserKey;
   const TABLE_NAME = 'modal4_orders';
   const ORDER_STATUS = 'заказано';
 
@@ -532,7 +534,7 @@ export function initModal4() {
     console.warn('[modal4.html] Supabase client не найден');
     return;
   }
-  if (!USER_KEY) {
+  if (!DB_USER_KEY) {
     console.warn('[modal4.html] USER_KEY/AUTH_ID не определён');
     return;
   }
@@ -664,7 +666,7 @@ export function initModal4() {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('order_code, item_name, url, supplier, modification, quantity_value, price_value')
-      .eq('user_key', USER_KEY);
+      .eq('user_key', DB_USER_KEY);
 
     if (error) {
       console.error(error);
@@ -705,7 +707,7 @@ export function initModal4() {
     const { data: orders, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('user_key', USER_KEY)
+      .eq('user_key', DB_USER_KEY)
       .eq('status', ORDER_STATUS)
       .order('created_at', { ascending: false });
 
@@ -1080,7 +1082,7 @@ export function initModal4() {
     const priceRaw = priceInput?.dataset.raw ?? priceInput?.value.trim() ?? '';
 
     const orderData = {
-      user_key: USER_KEY,
+      user_key: DB_USER_KEY,
       order_code: inputs[0].value.trim(),
       item_name: inputs[1].value.trim(),
       url: inputs[2].value.trim(),
