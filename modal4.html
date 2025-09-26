@@ -889,13 +889,16 @@ export function initModal4() {
     }
 
     selectInput.addEventListener('click', event => {
-      event.stopPropagation();
-      const rect = selectInput.getBoundingClientRect();
-      selectDropdown.style.left = `${rect.left}px`;
-      selectDropdown.style.top = `${rect.bottom + 10}px`;
-      selectDropdown.style.width = `${rect.width}px`;
-      selectDropdown.classList.add('show');
-      selectOverlay.style.display = 'block';
+  event.stopPropagation();
+  const rect = selectInput.getBoundingClientRect();
+  const modalRect = modal.getBoundingClientRect();
+  const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
+  const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
+  selectDropdown.style.left = `${offsetLeft}px`;
+  selectDropdown.style.top = `${offsetTop}px`;
+  selectDropdown.style.width = `${rect.width}px`;
+  selectDropdown.classList.add('show');
+  selectOverlay.style.display = 'block';
     });
 
     selectDropdown.addEventListener('click', event => {
@@ -956,11 +959,14 @@ export function initModal4() {
       });
 
       const rect = src.getBoundingClientRect();
-      autocompleteDropdown.style.left = `${rect.left}px`;
-      autocompleteDropdown.style.top = `${rect.bottom + 10}px`;
-      autocompleteDropdown.style.width = `${rect.width}px`;
-      autocompleteDropdown.classList.add('show');
-      selectOverlay.style.display = 'block';
+const modalRect = modal.getBoundingClientRect();
+const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
+const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
+autocompleteDropdown.style.left = `${offsetLeft}px`;
+autocompleteDropdown.style.top = `${offsetTop}px`;
+autocompleteDropdown.style.width = `${rect.width}px`;
+autocompleteDropdown.classList.add('show');
+selectOverlay.style.display = 'block';
     };
 
     autocompleteDropdown.addEventListener('click', event => {
