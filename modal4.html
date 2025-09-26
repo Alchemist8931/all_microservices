@@ -1,19 +1,906 @@
 <!-- ========= modal4.html  (Проект 4) ========= -->
-<div id="modal4-container">
+<div id="modal4-container" class="modal4-shell">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
     #modal4-container {
+      position: relative;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      gap: 24px;
+      width: 100%;
+      padding: 24px 0 36px;
+      color: var(--content-color, #212121);
+      font-family: 'Comfortaa', sans-serif;
+    }
+    #modal4-container .glass-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--content-color, #212121);
+      border-radius: 12px;
+      box-shadow:
+        0 0 0.75px hsl(205 20% 10% / 0.24),
+        0.7px 0.8px 1.2px -0.4px hsl(205 20% 10% / 0.16),
+        1.3px 1.5px 2.2px -0.8px hsl(205 20% 10% / 0.16),
+        2.3px 2.6px 3.9px -1.2px hsl(205 20% 10% / 0.16),
+        3.9px 4.4px 6.6px -1.7px hsl(205 20% 10% / 0.16),
+        6.5px 7.2px 10.9px -2.1px hsl(205 20% 10% / 0.18);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    #modal4-container .modal-top {
+      width: 1150px;
+      max-width: calc(100vw - 120px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 22px 28px;
+    }
+
+    #modal4-container .modal-bottom {
+      width: 1150px;
+      max-width: calc(100vw - 120px);
+      height: calc(100vh - 220px);
+      padding: 20px 26px;
+      overflow: hidden;
+    }
+
+    #modal4-container .modalVNUT-content {
+      height: 100%;
+      width: 100%;
+      overflow-y: auto;
+      padding-right: 14px;
+      box-sizing: border-box;
+    }
+
+    #modal4-container .modalVNUT-content::-webkit-scrollbar {
+      width: 6px;
+      background-color: rgba(0, 0, 0, 0.08);
+      border-radius: 20px;
+    }
+    #modal4-container .modalVNUT-content::-webkit-scrollbar-thumb {
+      background-color: var(--content-color, #212121);
+      border-radius: 20px;
+    }
+
+    #modal4-container .modalRow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #modal4-container .stats-row {
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    #modal4-container .stat-card {
+      flex: 1;
+      min-width: 240px;
+      padding: 18px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    #modal4-container .stat-title {
+      text-transform: uppercase;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--content-color, #212121);
+    }
+
+    #modal4-container .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 12px;
+      color: var(--content-color, #212121);
+    }
+
+    #modal4-container .action-bar {
+      justify-content: flex-end;
+      gap: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    #modal4-container .action-bar.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    #modal4-container .form-row {
+      align-items: stretch;
+      gap: 18px;
+    }
+
+    #modal4-container .form-fields {
+      flex: 1;
+      padding: 18px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #modal4-container .form-fields .modalRow {
+      gap: 12px;
+    }
+
+    #modal4-container .modalVNUT-content .modalBLOCK {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    #modal4-container .modalVNUT-content .modalBLOCK:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    #modal4-container .modalVNUT-content .modalBLOCK.appear {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+
+    #modal4-container .modalVNUT-content .modalBLOCK.appear-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    #modal4-container .inputT,
+    #modal4-container .input,
+    #modal4-container .inputSUM {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      outline: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--content-color, #212121);
+      transition: border-color 0.3s ease, transform 0.2s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal4-container .inputT:focus,
+    #modal4-container .input:focus,
+    #modal4-container .inputSUM:focus {
+      border-color: var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal4-container .inputSUM {
+      text-align: right;
+      width: 116px;
+    }
+
+    #modal4-container .code-field { width: 130px; text-transform: uppercase; }
+    #modal4-container .name-field { width: 340px; }
+    #modal4-container .url-field { width: 200px; }
+    #modal4-container .supplier-field { width: 220px; }
+    #modal4-container .select-wrapper { width: 100px; position: relative; }
+
+    #modal4-container .button-form {
+      position: relative;
+      min-width: 220px;
+      height: 36px;
+      background: var(--content-color, #212121);
+      border: 1px solid var(--content-color, #212121);
+      color: var(--fon, #f5f5f5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    #modal4-container .button-form:hover {
+      color: var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal4-container .button-form.primary {
+      min-width: 280px;
+    }
+
+    #modal4-container .spec-icon {
+      color: var(--content-color, #212121);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    #modal4-container .spec-icon:hover {
+      color: rgba(98, 90, 86, 0.85);
+      transform: scale(1.05);
+    }
+
+    #modal4-container label.checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #modal4-container .checkbox input[type="checkbox"] {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--content-color, #212121);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    #modal4-container .checkbox input[type="checkbox"]:checked {
+      background: var(--content-color, #212121);
+    }
+
+    #modal4-container .checkbox input[type="checkbox"]::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      transform: translate(-50%, -50%) scale(0);
+      background: var(--fon, #f5f5f5);
+      border-radius: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    #modal4-container .checkbox input[type="checkbox"]:checked::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    #modal4-select-overlay {
+      position: fixed;
+      inset: 0;
+      background: transparent;
+      z-index: 9998;
+      display: none;
+    }
+
+    #modal4-global-select-dropdown,
+    #modal4-autocomplete-dropdown {
+      position: fixed;
+      max-height: 200px;
+      min-width: 200px;
+      overflow-y: auto;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 9999;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      color: var(--content-color, #212121);
+    }
+
+    #modal4-global-select-dropdown.show,
+    #modal4-autocomplete-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    #modal4-global-select-dropdown::-webkit-scrollbar,
+    #modal4-autocomplete-dropdown::-webkit-scrollbar {
+      width: 6px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 20px;
+    }
+
+    #modal4-global-select-dropdown::-webkit-scrollbar-thumb,
+    #modal4-autocomplete-dropdown::-webkit-scrollbar-thumb {
+      background: var(--content-color, #212121);
+      border-radius: 20px;
+    }
+
+    #modal4-global-select-dropdown .select-option,
+    #modal4-autocomplete-dropdown .ac-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    #modal4-global-select-dropdown .select-option:hover,
+    #modal4-autocomplete-dropdown .ac-option:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    @keyframes digit-glow {
+      0% {
+        opacity: 0;
+        transform: translateY(-0.4em);
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.15);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(0);
+        text-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+      }
+      100% {
+        opacity: 1;
+        text-shadow: none;
+      }
+    }
+
+    #modal4-container .stat-value span {
+      display: inline-block;
+      animation: digit-glow 0.6s cubic-bezier(0.19, 1, 0.22, 1) both;
     }
   </style>
-  страница 4
+
+  <div id="modal4-select-overlay"></div>
+  <div id="modal4-global-select-dropdown"></div>
+  <div id="modal4-autocomplete-dropdown"></div>
+
+  <div class="modal-top glass-panel">
+    <div class="modalRow stats-row">
+      <div class="stat-card">
+        <div class="stat-title">размещено заказов</div>
+        <div class="stat-value">000 000 000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">на сумму</div>
+        <div class="stat-value">000 000 000</div>
+      </div>
+    </div>
+
+    <div class="modalRow action-bar">
+      <button class="button-form" id="move-warehouse">переместить на склад</button>
+      <button class="button-form" id="delete-selected">удалить выбранное</button>
+    </div>
+
+    <div class="modalRow form-row">
+      <div class="modalBLOCK form-fields">
+        <div class="modalRow">
+          <input class="inputT code-field" placeholder="RIV-0881" />
+          <input class="input name-field" placeholder="наименование позиции" />
+          <input class="inputT url-field" placeholder="URL" />
+          <input class="inputT supplier-field" placeholder="поставщик" />
+          <div class="select-wrapper">
+            <input class="input select-input" placeholder="изм." readonly />
+          </div>
+          <input class="inputSUM qty-field" placeholder="000 000" />
+          <input class="inputSUM price-field" placeholder="000 000 000" />
+        </div>
+      </div>
+      <button class="button-form primary" id="create-order">создать позицию заказа</button>
+    </div>
   </div>
+
+  <div class="modal-bottom glass-panel">
+    <div class="modalVNUT-content"></div>
+  </div>
+</div>
+
 <script type="module">
 export function initModal4() {
+  const supabase = window.supabase;
+  const USER_KEY = window.USER_KEY;
+  const TABLE_NAME = 'modal4_orders';
+  const ORDER_STATUS = 'заказано';
+
+  const modal = document.getElementById('modal4-container');
+  if (!modal) return;
+
+  if (!supabase) {
+    console.warn('[modal4.html] Supabase client не найден');
+    return;
+  }
+  if (!USER_KEY) {
+    console.warn('[modal4.html] USER_KEY не определён');
+    return;
+  }
+
   console.log('[modal4.html] PAGE 4 активирован');
+
+  const ordersContainer = modal.querySelector('.modalVNUT-content');
+  const [countEl, sumEl] = modal.querySelectorAll('.stat-value');
+  const actionRow = modal.querySelector('.action-bar');
+  const selectOverlay = modal.querySelector('#modal4-select-overlay');
+  const selectDropdown = modal.querySelector('#modal4-global-select-dropdown');
+  const autocompleteDropdown = modal.querySelector('#modal4-autocomplete-dropdown');
+  const formRow = modal.querySelector('.form-fields .modalRow');
+  const createButton = modal.querySelector('#create-order');
+  const deleteButton = modal.querySelector('#delete-selected');
+  const moveButton = modal.querySelector('#move-warehouse');
+  const selectInput = modal.querySelector('.select-input');
+
+  const fmtNum = value => Number(value || 0).toLocaleString('ru-RU');
+
+  const parseFloatSafe = str =>
+    parseFloat(String(str ?? '').replace(/[\s\u202f]/g, '').replace(',', '.')) || 0;
+
+  const sumInputs = formRow?.querySelectorAll('.inputSUM') ?? [];
+  sumInputs.forEach(el => {
+    if (el.dataset.bindSum === '1') return;
+    el.addEventListener('focus', () => {
+      const raw = el.dataset.raw ?? parseFloatSafe(el.value);
+      if (!isNaN(raw)) el.value = Number(raw).toFixed(2);
+    });
+    el.addEventListener('blur', () => {
+      const raw = parseFloatSafe(el.value);
+      if (isNaN(raw)) {
+        el.value = '';
+        delete el.dataset.raw;
+        return;
+      }
+      el.dataset.raw = raw;
+      el.value = fmtNum(raw);
+    });
+    el.dataset.bindSum = '1';
+  });
+
+  function animateStat(el, newVal) {
+    const formatted = fmtNum(newVal);
+    if (el.dataset.value === formatted) return;
+
+    el.dataset.value = formatted;
+    el.innerHTML = '';
+    [...formatted].forEach((ch, idx) => {
+      const span = document.createElement('span');
+      span.textContent = ch;
+      span.style.animationDelay = `${idx * 50}ms`;
+      el.appendChild(span);
+    });
+  }
+
+  function recalcStats() {
+    const blocks = ordersContainer.querySelectorAll('.modalBLOCK');
+    const totalQty = blocks.length;
+    const totalCost = [...blocks].reduce((sum, block) => {
+      return sum + parseFloatSafe(block.dataset.price);
+    }, 0);
+
+    animateStat(countEl, totalQty);
+    animateStat(sumEl, totalCost);
+  }
+
+  async function loadUnitsMeasure() {
+    const { data, error } = await supabase
+      .from('units_measure')
+      .select('unit_name, unit_group, multiplier')
+      .order('unit_group', { ascending: true })
+      .order('multiplier', { ascending: true });
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data ?? [];
+  }
+
+  const unitsPromise = loadUnitsMeasure();
+
+  let hintsCache = [];
+
+  async function loadHints() {
+    if (hintsCache.length) return hintsCache;
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('order_code, item_name, url, supplier, modification, quantity_value, price_value')
+      .eq('user_key', USER_KEY);
+
+    if (error) {
+      console.error(error);
+      hintsCache = [];
+      return hintsCache;
+    }
+
+    hintsCache = data ?? [];
+    return hintsCache;
+  }
+
+  function getBaseUnit(unitName, units) {
+    const current = units.find(u => u.unit_name === unitName);
+    if (!current) return unitName;
+
+    return units
+      .filter(u => u.unit_group === current.unit_group)
+      .sort((a, b) => a.multiplier - b.multiplier)[0]?.unit_name ?? unitName;
+  }
+
+  const getMultiplier = (unitName, units) =>
+    Number(units.find(u => u.unit_name === unitName)?.multiplier ?? 1);
+
+  async function loadExistingOrders() {
+    const units = await unitsPromise;
+    const { data: orders, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('user_key', USER_KEY)
+      .eq('status', ORDER_STATUS)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+    if (!orders?.length) return;
+
+    orders.forEach(order => {
+      const qty = parseFloatSafe(order.quantity_value);
+      const price = parseFloatSafe(order.price_value);
+      const mult = getMultiplier(order.modification, units);
+      const baseQty = qty * mult;
+      const basePrice = mult ? price / mult : 0;
+      const total = basePrice * mult;
+      const baseUnit = getBaseUnit(order.modification, units);
+
+      const rendered = createOrderElement({
+        id: order.id,
+        order_code: order.order_code,
+        item_name: order.item_name,
+        url: order.url,
+        supplier: order.supplier,
+        modification: order.modification,
+        qtySel: qty,
+        priceSel: price,
+        base_unit: baseUnit,
+        baseQty,
+        priceBase: basePrice,
+        total,
+      });
+      ordersContainer.insertAdjacentHTML('beforeend', rendered);
+      const created = ordersContainer.lastElementChild;
+      created.dataset.price = price;
+      if (order.url) {
+        created.querySelector('.spec-icon')?.addEventListener('click', () => {
+          window.open(order.url, '_blank');
+        });
+      }
+    });
+
+    recalcStats();
+    updateActionButtons();
+  }
+
+  function createOrderElement(o) {
+    return /* html */`
+      <div class="modalBLOCK" data-id="${o.id ?? ''}" data-price="${o.priceSel ?? 0}">
+        <div class="modalRow">
+          <label class="checkbox">
+            <input type="checkbox" />
+          </label>
+          <input class="inputT code-field" value="${o.order_code ?? ''}" placeholder="RIV-0881" readonly />
+          <input class="input name-field" value="${o.item_name ?? ''}" placeholder="наименование" readonly />
+          <input class="input" value="${ORDER_STATUS}" placeholder="статус" readonly />
+          <span class="spec-icon" data-url="${o.url ?? ''}">
+            <i class="material-symbols-outlined">captive_portal</i>
+          </span>
+          <input class="inputT supplier-field" value="${o.supplier ?? ''}" placeholder="поставщик" readonly />
+          <input class="input" style="width: 90px;" value="${o.modification ?? ''}" placeholder="изм." readonly />
+          <input class="inputSUM" style="width: 100px;" value="${fmtNum(o.qtySel)}" placeholder="000 000" readonly />
+          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.priceSel)}" placeholder="000 000 000" readonly />
+        </div>
+        <div class="modalRow" style="margin-left: 36px;">
+          <input class="input" style="width: 90px;" value="${o.base_unit ?? ''}" placeholder="изм." readonly />
+          <input class="inputSUM" style="width: 100px;" value="${fmtNum(o.baseQty)}" placeholder="000 000" readonly />
+          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.priceBase)}" placeholder="000 000 000" readonly />
+          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.total)}" placeholder="000 000 000" readonly />
+        </div>
+      </div>`;
+  }
+
+  function clearForm() {
+    const inputs = formRow?.querySelectorAll('input') ?? [];
+    inputs.forEach(input => {
+      input.value = '';
+      if (input.classList.contains('inputSUM')) {
+        delete input.dataset.raw;
+      }
+    });
+  }
+
+  async function insertOrderToDB(record) {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([record])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  function updateActionButtons() {
+    const hasChecked = !!ordersContainer.querySelector('input[type="checkbox"]:checked');
+    actionRow?.classList.toggle('visible', hasChecked);
+  }
+
+  ordersContainer.addEventListener('change', event => {
+    if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
+      updateActionButtons();
+    }
+  });
+
+  selectOverlay?.addEventListener('click', () => {
+    closeDropdowns();
+  });
+
+  function closeDropdowns() {
+    selectDropdown?.classList.remove('show');
+    autocompleteDropdown?.classList.remove('show');
+    if (selectOverlay) selectOverlay.style.display = 'none';
+  }
+
+  async function setupCustomSelect() {
+    if (!selectInput || !selectDropdown || !selectOverlay) return;
+    const units = await unitsPromise;
+
+    if (!selectDropdown.hasChildNodes()) {
+      const fragment = document.createDocumentFragment();
+      units.forEach(unit => {
+        const option = document.createElement('div');
+        option.className = 'select-option';
+        option.textContent = unit.unit_name;
+        option.dataset.group = unit.unit_group;
+        option.dataset.multiplier = unit.multiplier;
+        fragment.appendChild(option);
+      });
+      selectDropdown.appendChild(fragment);
+    }
+
+    selectInput.addEventListener('click', event => {
+      event.stopPropagation();
+      const rect = selectInput.getBoundingClientRect();
+      selectDropdown.style.left = `${rect.left}px`;
+      selectDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      selectDropdown.classList.add('show');
+      selectOverlay.style.display = 'block';
+    });
+
+    selectDropdown.addEventListener('click', event => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains('select-option')) return;
+      selectInput.value = target.textContent ?? '';
+      closeDropdowns();
+    });
+  }
+
+  async function setupAutocomplete() {
+    if (!formRow || !autocompleteDropdown || !selectOverlay) return;
+    await loadHints();
+    const [codeInput, nameInput, urlInput, supplierInput, , qtyInput, priceInput] =
+      formRow.querySelectorAll('input');
+
+    if (!codeInput || !nameInput) return;
+
+    const handleInput = event => {
+      const src = event.target;
+      if (!(src instanceof HTMLInputElement)) return;
+      const value = src.value.trim().toLowerCase();
+      if (value.length < 1) {
+        closeDropdowns();
+        return;
+      }
+
+      const list = src === codeInput
+        ? hintsCache.filter(h => (h.order_code ?? '').toLowerCase().includes(value))
+        : hintsCache.filter(h => (h.item_name ?? '').toLowerCase().includes(value));
+
+      if (!list.length) {
+        closeDropdowns();
+        return;
+      }
+
+      autocompleteDropdown.innerHTML = '';
+      list.forEach(record => {
+        const option = document.createElement('div');
+        option.className = 'ac-option';
+        option.textContent = src === codeInput ? record.order_code : record.item_name;
+        option.dataset.record = JSON.stringify(record);
+        autocompleteDropdown.appendChild(option);
+      });
+
+      const rect = src.getBoundingClientRect();
+      autocompleteDropdown.style.left = `${rect.left}px`;
+      autocompleteDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      autocompleteDropdown.classList.add('show');
+      selectOverlay.style.display = 'block';
+    };
+
+    autocompleteDropdown.addEventListener('click', event => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains('ac-option')) return;
+      const record = JSON.parse(target.dataset.record ?? '{}');
+      codeInput.value = record.order_code ?? '';
+      nameInput.value = record.item_name ?? '';
+      if (urlInput) urlInput.value = record.url ?? '';
+      if (supplierInput) supplierInput.value = record.supplier ?? '';
+      if (selectInput) selectInput.value = record.modification ?? '';
+      if (qtyInput) {
+        if (record.quantity_value === null || record.quantity_value === undefined || record.quantity_value === '') {
+          delete qtyInput.dataset.raw;
+          qtyInput.value = '';
+        } else {
+          const qtyVal = parseFloatSafe(record.quantity_value);
+          qtyInput.dataset.raw = String(qtyVal);
+          qtyInput.value = fmtNum(qtyVal);
+        }
+      }
+      if (priceInput) {
+        if (record.price_value === null || record.price_value === undefined || record.price_value === '') {
+          delete priceInput.dataset.raw;
+          priceInput.value = '';
+        } else {
+          const priceVal = parseFloatSafe(record.price_value);
+          priceInput.dataset.raw = String(priceVal);
+          priceInput.value = fmtNum(priceVal);
+        }
+      }
+      closeDropdowns();
+    });
+
+    codeInput.addEventListener('input', handleInput);
+    nameInput.addEventListener('input', handleInput);
+  }
+
+  createButton?.addEventListener('click', async () => {
+    if (!formRow) return;
+    const inputs = formRow.querySelectorAll('input');
+    const units = await unitsPromise;
+
+    const quantityInput = inputs[5];
+    const priceInput = inputs[6];
+    const quantityRaw = quantityInput?.dataset.raw ?? quantityInput?.value.trim() ?? '';
+    const priceRaw = priceInput?.dataset.raw ?? priceInput?.value.trim() ?? '';
+
+    const orderData = {
+      user_key: USER_KEY,
+      order_code: inputs[0].value.trim(),
+      item_name: inputs[1].value.trim(),
+      url: inputs[2].value.trim(),
+      supplier: inputs[3].value.trim(),
+      modification: inputs[4].value.trim(),
+      quantity_value: quantityRaw,
+      price_value: priceRaw,
+      status: ORDER_STATUS,
+    };
+
+    if (!orderData.order_code || !orderData.item_name) {
+      alert('Заполните обязательные поля (код и наименование)');
+      return;
+    }
+
+    const multiplier = getMultiplier(orderData.modification, units);
+    const qtySel = parseFloatSafe(orderData.quantity_value);
+    const priceSel = parseFloatSafe(orderData.price_value);
+    const baseQty = qtySel * multiplier;
+    const basePrice = multiplier ? priceSel / multiplier : 0;
+    const total = basePrice * multiplier;
+    const baseUnit = getBaseUnit(orderData.modification, units);
+
+    try {
+      const dbPayload = {
+        user_key: orderData.user_key,
+        order_code: orderData.order_code,
+        item_name: orderData.item_name,
+        url: orderData.url,
+        supplier: orderData.supplier,
+        modification: orderData.modification,
+        quantity_value: orderData.quantity_value,
+        price_value: orderData.price_value,
+        status: orderData.status,
+      };
+
+      const id = await insertOrderToDB(dbPayload);
+
+      const rendered = createOrderElement({
+        id,
+        order_code: orderData.order_code,
+        item_name: orderData.item_name,
+        url: orderData.url,
+        supplier: orderData.supplier,
+        modification: orderData.modification,
+        qtySel,
+        priceSel,
+        base_unit: baseUnit,
+        baseQty,
+        priceBase: basePrice,
+        total,
+      });
+
+      ordersContainer.insertAdjacentHTML('afterbegin', rendered);
+      const created = ordersContainer.firstElementChild;
+      created.dataset.price = priceSel;
+      created.classList.add('appear');
+      requestAnimationFrame(() => {
+        created.classList.add('appear-active');
+        created.classList.remove('appear');
+      });
+
+      if (orderData.url) {
+        created.querySelector('.spec-icon')?.addEventListener('click', () => {
+          window.open(orderData.url, '_blank');
+        });
+      }
+
+      hintsCache.push({
+        order_code: orderData.order_code,
+        item_name: orderData.item_name,
+        url: orderData.url,
+        supplier: orderData.supplier,
+        modification: orderData.modification,
+        quantity_value: orderData.quantity_value,
+        price_value: orderData.price_value,
+      });
+
+      updateActionButtons();
+      recalcStats();
+      clearForm();
+    } catch (error) {
+      alert('Ошибка при создании заказа: ' + error.message);
+      console.error(error);
+    }
+  });
+
+  deleteButton?.addEventListener('click', async () => {
+    const checked = ordersContainer.querySelectorAll('input[type="checkbox"]:checked');
+    if (!checked.length) return;
+
+    const ids = [...checked]
+      .map(cb => cb.closest('.modalBLOCK')?.dataset.id)
+      .filter(Boolean);
+
+    try {
+      if (ids.length) {
+        const { error } = await supabase
+          .from(TABLE_NAME)
+          .delete()
+          .in('id', ids);
+        if (error) throw error;
+      }
+
+      checked.forEach(cb => cb.closest('.modalBLOCK')?.remove());
+      updateActionButtons();
+      recalcStats();
+    } catch (error) {
+      alert('Ошибка удаления: ' + error.message);
+      console.error(error);
+    }
+  });
+
+  moveButton?.addEventListener('click', () => {
+    console.log('Перемещение на склад');
+  });
+
+  loadHints();
+  setupCustomSelect();
+  setupAutocomplete();
+  loadExistingOrders();
+  recalcStats();
 }
+
 initModal4();
 </script>
