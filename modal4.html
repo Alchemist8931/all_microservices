@@ -516,6 +516,32 @@
   <div class="modal-bottom glass-panel">
     <div class="modalVNUT-content"></div>
   </div>
+
+  <template id="modal4-order-template">
+    <div class="modalBLOCK" data-id="" data-price="">
+      <div class="modalRow">
+        <label class="checkbox">
+          <input type="checkbox" />
+        </label>
+        <input class="inputT code-field" data-field="order_code" placeholder="RIV-0881" readonly />
+        <input class="input name-field" data-field="item_name" placeholder="наименование" readonly />
+        <input class="input" data-field="status" placeholder="статус" readonly />
+        <span class="spec-icon" data-field="spec-url" data-url="">
+          <i class="material-symbols-outlined">captive_portal</i>
+        </span>
+        <input class="inputT supplier-field" data-field="supplier" placeholder="поставщик" readonly />
+        <input class="input" style="width: 90px;" data-field="display_unit" placeholder="изм." readonly />
+        <input class="inputSUM" style="width: 100px;" data-field="display_qty" placeholder="000 000" readonly />
+        <input class="inputSUM" style="width: 120px;" data-field="display_price" placeholder="000 000 000" readonly />
+      </div>
+      <div class="modalRow" style="margin-left: 36px;">
+        <input class="input" style="width: 90px;" data-field="base_unit" placeholder="изм." readonly />
+        <input class="inputSUM" style="width: 100px;" data-field="base_qty" placeholder="000 000" readonly />
+        <input class="inputSUM" style="width: 120px;" data-field="base_price" placeholder="000 000 000" readonly />
+        <input class="inputSUM" style="width: 120px;" data-field="total" placeholder="000 000 000" readonly />
+      </div>
+    </div>
+  </template>
 </div>
 
 <script type="module">
@@ -542,6 +568,7 @@ export function initModal4() {
   console.log('[modal4.html] PAGE 4 активирован');
 
   const ordersContainer = modal.querySelector('.modalVNUT-content');
+  const orderTemplate = modal.querySelector('#modal4-order-template');
   const statEls = modal.querySelectorAll('.stat-value');
   const countEl = statEls[0] ?? null;
   const sumEl = statEls[1] ?? null;
@@ -739,8 +766,8 @@ export function initModal4() {
         priceBase: basePrice,
         total,
       });
-      ordersContainer.insertAdjacentHTML('beforeend', rendered);
-      const created = ordersContainer.lastElementChild;
+      ordersContainer.appendChild(rendered);
+      const created = rendered;
       created.dataset.price = total;
       if (order.url) {
         created.querySelector('.spec-icon')?.addEventListener('click', () => {
@@ -757,30 +784,45 @@ export function initModal4() {
     const displayUnit = o.display_unit ?? o.modification ?? '';
     const displayQty = o.display_qty ?? o.qtySel;
     const displayPrice = o.display_price ?? o.priceSel;
-    return /* html */`
-      <div class="modalBLOCK" data-id="${o.id ?? ''}" data-price="${o.total ?? o.priceSel ?? 0}">
-        <div class="modalRow">
-          <label class="checkbox">
-            <input type="checkbox" />
-          </label>
-          <input class="inputT code-field" value="${o.order_code ?? ''}" placeholder="RIV-0881" readonly />
-          <input class="input name-field" value="${o.item_name ?? ''}" placeholder="наименование" readonly />
-          <input class="input" value="${ORDER_STATUS}" placeholder="статус" readonly />
-          <span class="spec-icon" data-url="${o.url ?? ''}">
-            <i class="material-symbols-outlined">captive_portal</i>
-          </span>
-          <input class="inputT supplier-field" value="${o.supplier ?? ''}" placeholder="поставщик" readonly />
-          <input class="input" style="width: 90px;" value="${displayUnit}" placeholder="изм." readonly />
-          <input class="inputSUM" style="width: 100px;" value="${fmtNum(displayQty)}" placeholder="000 000" readonly />
-          <input class="inputSUM" style="width: 120px;" value="${fmtNum(displayPrice)}" placeholder="000 000 000" readonly />
-        </div>
-        <div class="modalRow" style="margin-left: 36px;">
-          <input class="input" style="width: 90px;" value="${o.base_unit ?? ''}" placeholder="изм." readonly />
-          <input class="inputSUM" style="width: 100px;" value="${fmtNum(o.baseQty)}" placeholder="000 000" readonly />
-          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.priceBase)}" placeholder="000 000 000" readonly />
-          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.total)}" placeholder="000 000 000" readonly />
-        </div>
-      </div>`;
+    const totalPrice = o.total ?? o.priceSel ?? 0;
+
+    const templateContent = orderTemplate?.content?.firstElementChild;
+    const baseElement = templateContent instanceof HTMLElement
+      ? templateContent.cloneNode(true)
+      : null;
+
+    if (!(baseElement instanceof HTMLElement)) {
+      throw new Error('modal4-order-template не найден или пуст');
+    }
+
+    baseElement.dataset.id = String(o.id ?? '');
+    baseElement.dataset.price = String(totalPrice ?? 0);
+
+    const assignValue = (field, value) => {
+      const normalized = value ?? '';
+      const target = baseElement.querySelector(`[data-field="${field}"]`);
+      if (!target) return;
+      if (target instanceof HTMLInputElement) {
+        target.value = normalized;
+      } else if (target instanceof HTMLElement && field === 'spec-url') {
+        target.dataset.url = normalized;
+      }
+    };
+
+    assignValue('order_code', o.order_code ?? '');
+    assignValue('item_name', o.item_name ?? '');
+    assignValue('status', ORDER_STATUS);
+    assignValue('spec-url', o.url ?? '');
+    assignValue('supplier', o.supplier ?? '');
+    assignValue('display_unit', displayUnit);
+    assignValue('display_qty', fmtNum(displayQty));
+    assignValue('display_price', fmtNum(displayPrice));
+    assignValue('base_unit', o.base_unit ?? '');
+    assignValue('base_qty', fmtNum(o.baseQty));
+    assignValue('base_price', fmtNum(o.priceBase));
+    assignValue('total', fmtNum(o.total));
+
+    return baseElement;
   }
 
   function clearForm() {
@@ -1151,8 +1193,8 @@ export function initModal4() {
         total,
       });
 
-      ordersContainer.insertAdjacentHTML('afterbegin', rendered);
-      const created = ordersContainer.firstElementChild;
+      ordersContainer.prepend(rendered);
+      const created = rendered;
       created.dataset.price = total;
       created.classList.add('appear');
       requestAnimationFrame(() => {
