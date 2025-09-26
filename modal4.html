@@ -360,19 +360,20 @@
     #modal4-global-select-dropdown,
     #modal4-autocomplete-dropdown {
       position: fixed;
-      max-height: 200px;
-      min-width: 200px;
+      max-height: 160px;
       overflow-y: auto;
       opacity: 0;
       visibility: hidden;
       transform: translateY(-10px);
       transition: opacity 0.25s ease, transform 0.25s ease;
       z-index: 9999;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #212121;
       border-radius: 10px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
       color: var(--content-color, #212121);
+      backdrop-filter: blur(6px);
+      padding: 6px 0;
     }
 
     #modal4-global-select-dropdown.show,
@@ -385,14 +386,26 @@
     #modal4-global-select-dropdown::-webkit-scrollbar,
     #modal4-autocomplete-dropdown::-webkit-scrollbar {
       width: 6px;
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 20px;
+      background: transparent;
+    }
+
+    #modal4-global-select-dropdown::-webkit-scrollbar-track,
+    #modal4-autocomplete-dropdown::-webkit-scrollbar-track {
+      background: transparent;
     }
 
     #modal4-global-select-dropdown::-webkit-scrollbar-thumb,
     #modal4-autocomplete-dropdown::-webkit-scrollbar-thumb {
       background: var(--content-color, #212121);
-      border-radius: 20px;
+      border-radius: 10px;
+    }
+
+    #modal4-global-select-dropdown .select-group-title {
+      padding: 6px 12px 4px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(33, 33, 33, 0.65);
     }
 
     #modal4-global-select-dropdown .select-option,
@@ -401,11 +414,30 @@
       font-size: 12px;
       cursor: pointer;
       transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
     #modal4-global-select-dropdown .select-option:hover,
     #modal4-autocomplete-dropdown .ac-option:hover {
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    #modal4-global-select-dropdown .select-option .select-option-title {
+      font-weight: 600;
+      color: var(--content-color, #212121);
+    }
+
+    #modal4-global-select-dropdown .select-option .select-option-hint {
+      font-size: 11px;
+      color: rgba(33, 33, 33, 0.65);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal4-autocomplete-dropdown .ac-option {
+      justify-content: flex-start;
     }
 
     @keyframes digit-glow {
@@ -520,7 +552,32 @@ export function initModal4() {
   const moveButton = modal.querySelector('#move-warehouse');
   const selectInput = modal.querySelector('.select-input');
 
-  const fmtNum = value => Number(value || 0).toLocaleString('ru-RU');
+  const fmtNum = value => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '';
+    return num.toLocaleString('ru-RU');
+  };
+
+  const parseNumberNullable = str => {
+    const normalized = String(str ?? '')
+      .replace(/[\s\u202f]/g, '')
+      .replace(',', '.')
+      .trim();
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const numberToStorageString = num => {
+    if (num === null || num === undefined) return '';
+    return Number(num).toString();
+  };
+
+  const isUniversalGroup = group => String(group ?? '')
+    .trim()
+    .toLowerCase() === 'универсальные';
+
 
   const parseFloatSafe = str =>
     parseFloat(String(str ?? '').replace(/[\s\u202f]/g, '').replace(',', '.')) || 0;
@@ -572,10 +629,16 @@ export function initModal4() {
     animateStat(sumEl, totalCost);
   }
 
+  const findUnit = (value, units) => {
+    if (!value) return undefined;
+    return units.find(u => u.unit_short === value) || units.find(u => u.unit_name === value);
+  };
+
+
   async function loadUnitsMeasure() {
     const { data, error } = await supabase
       .from('units_measure')
-      .select('unit_name, unit_group, multiplier')
+      .select('unit_name, unit_short, unit_group, multiplier, base_unit_short')
       .order('unit_group', { ascending: true })
       .order('multiplier', { ascending: true });
 
@@ -586,7 +649,11 @@ export function initModal4() {
     return data ?? [];
   }
 
-  const unitsPromise = loadUnitsMeasure();
+  let cachedUnits = [];
+  const unitsPromise = loadUnitsMeasure().then(units => {
+    cachedUnits = units ?? [];
+    return cachedUnits;
+  });
 
   let hintsCache = [];
 
@@ -607,17 +674,29 @@ export function initModal4() {
     return hintsCache;
   }
 
-  function getBaseUnit(unitName, units) {
-    const current = units.find(u => u.unit_name === unitName);
-    if (!current) return unitName;
-
-    return units
-      .filter(u => u.unit_group === current.unit_group)
-      .sort((a, b) => a.multiplier - b.multiplier)[0]?.unit_name ?? unitName;
+  function getBaseUnit(unitShort, units) {
+    const current = findUnit(unitShort, units);
+    if (!current) return unitShort;
+    if (isUniversalGroup(current.unit_group)) return unitShort;
+    return current.base_unit_short ?? unitShort;
   }
 
-  const getMultiplier = (unitName, units) =>
-    Number(units.find(u => u.unit_name === unitName)?.multiplier ?? 1);
+  function applyUnitDataset(unitShort, units) {
+    if (!selectInput) return;
+    const match = findUnit(unitShort, units);
+    if (!match) {
+      delete selectInput.dataset.unitGroup;
+      delete selectInput.dataset.multiplier;
+      delete selectInput.dataset.baseUnit;
+      delete selectInput.dataset.displayName;
+      return;
+    }
+
+    selectInput.dataset.unitGroup = match.unit_group ?? '';
+    selectInput.dataset.multiplier = String(match.multiplier ?? 1);
+    selectInput.dataset.baseUnit = match.base_unit_short ?? unitShort;
+    selectInput.dataset.displayName = match.unit_name ?? '';
+  }
 
   async function loadExistingOrders() {
     const units = await unitsPromise;
@@ -635,13 +714,12 @@ export function initModal4() {
     if (!orders?.length) return;
 
     orders.forEach(order => {
-      const qty = parseFloatSafe(order.quantity_value);
-      const price = parseFloatSafe(order.price_value);
-      const mult = getMultiplier(order.modification, units);
-      const baseQty = qty * mult;
-      const basePrice = mult ? price / mult : 0;
-      const total = basePrice * mult;
+      const qty = parseNumberNullable(order.quantity_value);
+      const price = parseNumberNullable(order.price_value);
       const baseUnit = getBaseUnit(order.modification, units);
+      const baseQty = qty;
+      const basePrice = price;
+      const total = (baseQty ?? 0) * (basePrice ?? 0);
 
       const rendered = createOrderElement({
         id: order.id,
@@ -650,8 +728,8 @@ export function initModal4() {
         url: order.url,
         supplier: order.supplier,
         modification: order.modification,
-        qtySel: qty,
-        priceSel: price,
+        qtySel: baseQty,
+        priceSel: basePrice,
         base_unit: baseUnit,
         baseQty,
         priceBase: basePrice,
@@ -659,7 +737,7 @@ export function initModal4() {
       });
       ordersContainer.insertAdjacentHTML('beforeend', rendered);
       const created = ordersContainer.lastElementChild;
-      created.dataset.price = price;
+      created.dataset.price = total;
       if (order.url) {
         created.querySelector('.spec-icon')?.addEventListener('click', () => {
           window.open(order.url, '_blank');
@@ -672,8 +750,11 @@ export function initModal4() {
   }
 
   function createOrderElement(o) {
+    const displayUnit = o.display_unit ?? o.modification ?? '';
+    const displayQty = o.display_qty ?? o.qtySel;
+    const displayPrice = o.display_price ?? o.priceSel;
     return /* html */`
-      <div class="modalBLOCK" data-id="${o.id ?? ''}" data-price="${o.priceSel ?? 0}">
+      <div class="modalBLOCK" data-id="${o.id ?? ''}" data-price="${o.total ?? o.priceSel ?? 0}">
         <div class="modalRow">
           <label class="checkbox">
             <input type="checkbox" />
@@ -685,9 +766,9 @@ export function initModal4() {
             <i class="material-symbols-outlined">captive_portal</i>
           </span>
           <input class="inputT supplier-field" value="${o.supplier ?? ''}" placeholder="поставщик" readonly />
-          <input class="input" style="width: 90px;" value="${o.modification ?? ''}" placeholder="изм." readonly />
-          <input class="inputSUM" style="width: 100px;" value="${fmtNum(o.qtySel)}" placeholder="000 000" readonly />
-          <input class="inputSUM" style="width: 120px;" value="${fmtNum(o.priceSel)}" placeholder="000 000 000" readonly />
+          <input class="input" style="width: 90px;" value="${displayUnit}" placeholder="изм." readonly />
+          <input class="inputSUM" style="width: 100px;" value="${fmtNum(displayQty)}" placeholder="000 000" readonly />
+          <input class="inputSUM" style="width: 120px;" value="${fmtNum(displayPrice)}" placeholder="000 000 000" readonly />
         </div>
         <div class="modalRow" style="margin-left: 36px;">
           <input class="input" style="width: 90px;" value="${o.base_unit ?? ''}" placeholder="изм." readonly />
@@ -706,6 +787,12 @@ export function initModal4() {
         delete input.dataset.raw;
       }
     });
+    if (selectInput) {
+      delete selectInput.dataset.unitGroup;
+      delete selectInput.dataset.multiplier;
+      delete selectInput.dataset.baseUnit;
+      delete selectInput.dataset.displayName;
+    }
   }
 
   async function insertOrderToDB(record) {
@@ -740,20 +827,64 @@ export function initModal4() {
     if (selectOverlay) selectOverlay.style.display = 'none';
   }
 
+  let customSelectListenersBound = false;
+
   async function setupCustomSelect() {
     if (!selectInput || !selectDropdown || !selectOverlay) return;
     const units = await unitsPromise;
 
+    if (!units.length) {
+      console.warn('[modal4.html] список единиц измерения пуст');
+      return;
+    }
+
+    const groupOrder = ['ДЛИННА', 'ОБЪЕМ', 'МАССА', 'УНИВЕРСАЛЬНЫЕ'];
+    const normalizeGroupKey = group => String(group ?? '').trim();
+
     if (!selectDropdown.hasChildNodes()) {
       const fragment = document.createDocumentFragment();
+      const groups = new Map();
+      
       units.forEach(unit => {
-        const option = document.createElement('div');
-        option.className = 'select-option';
-        option.textContent = unit.unit_name;
-        option.dataset.group = unit.unit_group;
-        option.dataset.multiplier = unit.multiplier;
-        fragment.appendChild(option);
+        const key = normalizeGroupKey(unit.unit_group);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(unit);
       });
+
+      const sortedGroups = [...groups.entries()].sort((a, b) => {
+        const [groupA] = a;
+        const [groupB] = b;
+        const idxA = groupOrder.indexOf(groupA.toUpperCase());
+        const idxB = groupOrder.indexOf(groupB.toUpperCase());
+        const safeA = idxA === -1 ? Number.MAX_SAFE_INTEGER : idxA;
+        const safeB = idxB === -1 ? Number.MAX_SAFE_INTEGER : idxB;
+        if (safeA !== safeB) return safeA - safeB;
+        return groupA.localeCompare(groupB, 'ru');
+      });
+      sortedGroups.forEach(([groupName, groupUnits]) => {
+        const title = document.createElement('div');
+        title.className = 'select-group-title';
+        title.textContent = groupName;
+        fragment.appendChild(title);
+
+        groupUnits
+          .slice()
+          .sort((a, b) => Number(a.multiplier ?? 1) - Number(b.multiplier ?? 1))
+          .forEach(unit => {
+            const option = document.createElement('div');
+            option.className = 'select-option';
+            option.innerHTML = `
+              <span class="select-option-title">${unit.unit_name}</span>
+              <span class="select-option-hint">${unit.unit_short}</span>
+            `;
+            option.dataset.short = unit.unit_short ?? '';
+            option.dataset.group = unit.unit_group ?? '';
+            option.dataset.multiplier = String(unit.multiplier ?? 1);
+            option.dataset.baseUnit = unit.base_unit_short ?? (unit.unit_short ?? '');
+            fragment.appendChild(option);
+          });
+      });
+      
       selectDropdown.appendChild(fragment);
     }
 
@@ -761,17 +892,32 @@ export function initModal4() {
       event.stopPropagation();
       const rect = selectInput.getBoundingClientRect();
       selectDropdown.style.left = `${rect.left}px`;
-      selectDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      selectDropdown.style.top = `${rect.bottom + 10}px`;
+      selectDropdown.style.width = `${rect.width}px`;
       selectDropdown.classList.add('show');
       selectOverlay.style.display = 'block';
     });
 
     selectDropdown.addEventListener('click', event => {
       const target = event.target;
-      if (!(target instanceof HTMLElement) || !target.classList.contains('select-option')) return;
-      selectInput.value = target.textContent ?? '';
+      const option = target?.closest('.select-option');
+      if (!(option instanceof HTMLElement)) return;
+      const unitShort = option.dataset.short ?? '';
+      selectInput.value = unitShort;
+      applyUnitDataset(unitShort, units);
       closeDropdowns();
     });
+    if (!customSelectListenersBound) {
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          closeDropdowns();
+        }
+      });
+
+      document.addEventListener('scroll', closeDropdowns, true);
+      window.addEventListener('resize', closeDropdowns);
+      customSelectListenersBound = true;
+    }
   }
 
   async function setupAutocomplete() {
@@ -811,7 +957,8 @@ export function initModal4() {
 
       const rect = src.getBoundingClientRect();
       autocompleteDropdown.style.left = `${rect.left}px`;
-      autocompleteDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      autocompleteDropdown.style.top = `${rect.bottom + 10}px`;
+      autocompleteDropdown.style.width = `${rect.width}px`;
       autocompleteDropdown.classList.add('show');
       selectOverlay.style.display = 'block';
     };
@@ -825,6 +972,7 @@ export function initModal4() {
       if (urlInput) urlInput.value = record.url ?? '';
       if (supplierInput) supplierInput.value = record.supplier ?? '';
       if (selectInput) selectInput.value = record.modification ?? '';
+      applyUnitDataset(selectInput?.value ?? '', cachedUnits);
       if (qtyInput) {
         if (record.quantity_value === null || record.quantity_value === undefined || record.quantity_value === '') {
           delete qtyInput.dataset.raw;
@@ -879,13 +1027,25 @@ export function initModal4() {
       return;
     }
 
-    const multiplier = getMultiplier(orderData.modification, units);
-    const qtySel = parseFloatSafe(orderData.quantity_value);
-    const priceSel = parseFloatSafe(orderData.price_value);
-    const baseQty = qtySel * multiplier;
-    const basePrice = multiplier ? priceSel / multiplier : 0;
-    const total = basePrice * multiplier;
-    const baseUnit = getBaseUnit(orderData.modification, units);
+    const quantityOriginal = parseNumberNullable(orderData.quantity_value);
+    const priceOriginal = parseNumberNullable(orderData.price_value);
+    const selectedUnit = findUnit(orderData.modification, units);
+    const canConvert = selectedUnit && !isUniversalGroup(selectedUnit.unit_group);
+    const multiplierSelected = canConvert ? Number(selectedUnit.multiplier ?? 1) || 1 : 1;
+    const baseUnit = canConvert
+      ? (selectedUnit?.base_unit_short ?? orderData.modification)
+      : orderData.modification;
+
+    const qtyStored = quantityOriginal === null
+      ? null
+      : (canConvert ? quantityOriginal * multiplierSelected : quantityOriginal);
+    const priceStored = priceOriginal === null
+      ? null
+      : (canConvert && multiplierSelected ? priceOriginal / multiplierSelected : priceOriginal);
+
+    const qtyStoredStr = numberToStorageString(qtyStored);
+    const priceStoredStr = numberToStorageString(priceStored);
+    const total = (qtyStored ?? 0) * (priceStored ?? 0);
 
     try {
       const dbPayload = {
@@ -894,9 +1054,9 @@ export function initModal4() {
         item_name: orderData.item_name,
         url: orderData.url,
         supplier: orderData.supplier,
-        modification: orderData.modification,
-        quantity_value: orderData.quantity_value,
-        price_value: orderData.price_value,
+        modification: baseUnit,
+        quantity_value: qtyStoredStr,
+        price_value: priceStoredStr,
         status: orderData.status,
       };
 
@@ -908,18 +1068,21 @@ export function initModal4() {
         item_name: orderData.item_name,
         url: orderData.url,
         supplier: orderData.supplier,
-        modification: orderData.modification,
-        qtySel,
-        priceSel,
+        modification: baseUnit,
+        display_unit: orderData.modification || undefined,
+        display_qty: quantityOriginal,
+        display_price: priceOriginal,
+        qtySel: qtyStored,
+        priceSel: priceStored,
         base_unit: baseUnit,
-        baseQty,
-        priceBase: basePrice,
+        baseQty: qtyStored,
+        priceBase: priceStored,
         total,
       });
 
       ordersContainer.insertAdjacentHTML('afterbegin', rendered);
       const created = ordersContainer.firstElementChild;
-      created.dataset.price = priceSel;
+      created.dataset.price = total;
       created.classList.add('appear');
       requestAnimationFrame(() => {
         created.classList.add('appear-active');
@@ -937,9 +1100,9 @@ export function initModal4() {
         item_name: orderData.item_name,
         url: orderData.url,
         supplier: orderData.supplier,
-        modification: orderData.modification,
-        quantity_value: orderData.quantity_value,
-        price_value: orderData.price_value,
+        modification: baseUnit,
+        quantity_value: qtyStoredStr,
+        price_value: priceStoredStr,
       });
 
       updateActionButtons();
