@@ -96,6 +96,14 @@
     #modal4-container .modal4-signature h2 span:nth-child(15) { transition-delay: 1.4s; }
     #modal4-container .modal4-signature h2 span:nth-child(16) { transition-delay: 1.5s; }
 
+    #modal4-container .modal4-scroll-wrapper {
+      width: 1950px;
+      max-width: 90vw;
+      flex: 1;
+      padding-bottom: 20px;
+      overflow-x: visible;
+    }
+
     #modal4-container .modal-bottom {
       width: 1930px;
       max-width: 90vw;
@@ -113,11 +121,13 @@
       transform: translateX(-50%);
       max-height: calc(100vh - 220px);
       color: var(--black-color, var(--content-color, #212121));
+      overflow-x: visible;
     }
 
     #modal4-container .modalVNUT-content {
       height: 100%;
-      width: 100%;
+      width: 1930px;
+      max-width: 100%;
       overflow-y: auto;
       padding-right: 10px;
       margin-right: -10px;
@@ -126,8 +136,9 @@
 
     #modal4-container .modalVNUT-content::-webkit-scrollbar {
       width: 6px;
-      background-color: rgba(0, 0, 0, 0.08);
-      border-radius: 20px;
+      }
+    #modal4-container .modalVNUT-content::-webkit-scrollbar-track {
+      background: transparent;
     }
     #modal4-container .modalVNUT-content::-webkit-scrollbar-thumb {
       background-color: var(--content-color, #212121);
@@ -530,8 +541,10 @@
     </div>
   </div>
 
-  <div class="modal-bottom glass-panel">
-    <div class="modalVNUT-content"></div>
+  <div class="modal4-scroll-wrapper">
+    <div class="modal-bottom glass-panel">
+      <div class="modalVNUT-content"></div>
+    </div>
   </div>
 
   <template id="modal4-order-template">
@@ -555,7 +568,7 @@
         <input class="inputSUM" style="width: 90px;" data-field="base_qty" placeholder="000 000" readonly />
         <input class="inputSUM" style="width: 90px;" data-field="base_price" placeholder="000 000 000" readonly />
         <input class="inputSUM" style="width: 120px;" data-field="total" placeholder="000 000 000" readonly />
-        <input class="input" style="width: 340px;" placeholder="для заметок" readonly />
+        <input class="input" style="width: 410px;" placeholder="для заметок" readonly />
       </div>
     </div>
   </template>
