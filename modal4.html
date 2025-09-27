@@ -104,13 +104,17 @@
       overflow-x: visible;
     }
 
-    #modal4-container .modal-bottom {
+    #modal4-container .modal4-window {
       width: 1930px;
       max-width: 90vw;
-      padding: 20px;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      padding-left: 20px;
       padding-right: 10px;
       box-sizing: border-box;
       margin-right: 0;
+      margin-bottom: 0;
+      margin-left: 0;
       margin-top: 20px;
       display: flex;
       flex-direction: column;
@@ -124,25 +128,27 @@
       overflow-x: visible;
     }
 
-    #modal4-container .modalVNUT-content {
+    #modal4-container .modal4-content {
+      width: 100%;
       height: 100%;
-      width: 1930px;
-      max-width: 100%;
+      box-sizing: border-box;
       overflow-y: auto;
       padding-right: 10px;
       margin-right: -10px;
-      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--content-color, #212121) transparent;
     }
 
-    #modal4-container .modalVNUT-content::-webkit-scrollbar {
+    #modal4-container .modal4-content::-webkit-scrollbar {
       width: 6px;
-      }
-    #modal4-container .modalVNUT-content::-webkit-scrollbar-track {
       background: transparent;
     }
-    #modal4-container .modalVNUT-content::-webkit-scrollbar-thumb {
+    #modal4-container .modal4-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #modal4-container .modal4-content::-webkit-scrollbar-thumb {
       background-color: var(--content-color, #212121);
-      border-radius: 20px;
+      border-radius: 10px;
     }
 
     #modal4-container .modalRow {
@@ -542,8 +548,8 @@
   </div>
 
   <div class="modal4-scroll-wrapper">
-    <div class="modal-bottom glass-panel">
-      <div class="modalVNUT-content"></div>
+    <div class="modal-bottom glass-panel modal4-window">
+      <div class="modalVNUT-content modal4-content"></div>
     </div>
   </div>
 
