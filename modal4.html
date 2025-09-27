@@ -51,6 +51,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
+      display: block;
       pointer-events: none;
       z-index: 0;
     }
@@ -763,7 +764,6 @@
 
 <script>
   (function () {
-    const SPEED_FACTOR = 0.7;
     const modal = document.getElementById('modal4-container');
     if (!modal) return;
 
@@ -771,64 +771,177 @@
     const canvas = topPanel && topPanel.querySelector('#modal4-ambient-canvas');
     if (!topPanel || !canvas) return;
 
+    class ClassicalNoise {
+      constructor(randomSource) {
+        const randomFn = typeof randomSource === 'function'
+          ? randomSource
+          : (randomSource && typeof randomSource.random === 'function'
+            ? randomSource.random.bind(randomSource)
+            : Math.random);
+
+        this.grad3 = [
+          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
+
+        this.p = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) {
+          this.p[i] = Math.floor(randomFn() * 256);
+        }
+
+        this.perm = new Uint8Array(512);
+        for (let i = 0; i < 512; i++) {
+          this.perm[i] = this.p[i & 255];
+        }
+      }
+
+      fade(t) {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+      }
+
+      lerp(a, b, t) {
+        return (1 - t) * a + t * b;
+      }
+
+      dot(g, x, y, z) {
+        return g[0] * x + g[1] * y + g[2] * z;
+      }
+
+      noise(x, y, z) {
+        const perm = this.perm;
+        const grad3 = this.grad3;
+
+        const X = Math.floor(x) & 255;
+        const Y = Math.floor(y) & 255;
+        const Z = Math.floor(z) & 255;
+
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        z -= Math.floor(z);
+
+        const u = this.fade(x);
+        const v = this.fade(y);
+        const w = this.fade(z);
+
+        const A = perm[X] + Y;
+        const AA = perm[A] + Z;
+        const AB = perm[A + 1] + Z;
+        const B = perm[X + 1] + Y;
+        const BA = perm[B] + Z;
+        const BB = perm[B + 1] + Z;
+
+        return this.lerp(
+          this.lerp(
+            this.lerp(
+              this.dot(grad3[perm[AA] % 12], x, y, z),
+              this.dot(grad3[perm[BA] % 12], x - 1, y, z),
+              u
+            ),
+            this.lerp(
+              this.dot(grad3[perm[AB] % 12], x, y - 1, z),
+              this.dot(grad3[perm[BB] % 12], x - 1, y - 1, z),
+              u
+            ),
+            v
+          ),
+          this.lerp(
+            this.lerp(
+              this.dot(grad3[perm[AA + 1] % 12], x, y, z - 1),
+              this.dot(grad3[perm[BA + 1] % 12], x - 1, y, z - 1),
+              u
+            ),
+            this.lerp(
+              this.dot(grad3[perm[AB + 1] % 12], x, y - 1, z - 1),
+              this.dot(grad3[perm[BB + 1] % 12], x - 1, y - 1, z - 1),
+              u
+            ),
+            v
+          ),
+          w
+        );
+      }
+    }
+
     const ctx = canvas.getContext('2d');
-    const waves = Array.from({ length: 4 }, (_, index) => ({
-      amplitude: 34 - index * 6,
-      wavelength: 180 + index * 40,
-      speed: (0.0009 + index * 0.00025) * SPEED_FACTOR,
-      phase: Math.random() * Math.PI * 2,
-      alpha: 0.12 - index * 0.02,
-      lineWidth: 1.1 - index * 0.15
-    }));
+    const perlin = new ClassicalNoise();
+
+    const variation = 0.0025;
+    const baseSpeed = 0.00055;
+    const speedSpread = 0.00028;
 
     let width = 0;
     let height = 0;
+    let startY = 0;
     let deviceRatio = window.devicePixelRatio || 1;
+    let lineCount = 0;
+    let variators = new Float32Array(0);
+    let speeds = new Float32Array(0);
+
+    const rebuildLines = () => {
+      const desiredLines = Math.max(18, Math.min(48, Math.round(width / 48)));
+      if (desiredLines === lineCount) return;
+
+      const nextVariators = new Float32Array(desiredLines);
+      const nextSpeeds = new Float32Array(desiredLines);
+
+      for (let i = 0; i < desiredLines; i++) {
+        nextVariators[i] = i < variators.length ? variators[i] : i * 0.035;
+        nextSpeeds[i] = baseSpeed + (i / Math.max(1, desiredLines - 1)) * speedSpread;
+      }
+
+      variators = nextVariators;
+      speeds = nextSpeeds;
+      lineCount = desiredLines;
+    };
 
     const resize = () => {
       const rect = topPanel.getBoundingClientRect();
-      width = rect.width;
-      height = rect.height;
+      width = Math.max(0, Math.floor(rect.width));
+      height = Math.max(0, Math.floor(rect.height));
+      startY = height / 2;
       deviceRatio = window.devicePixelRatio || 1;
 
       canvas.width = width * deviceRatio;
       canvas.height = height * deviceRatio;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
+
+      ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      rebuildLines();
     };
 
     const handleResize = () => {
       resize();
-      ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
     };
 
     let lastTime = null;
 
-    const render = (timestamp) => {
-      if (lastTime === null) {
-        lastTime = timestamp;
-      }
-
-      const delta = Math.min(64, timestamp - lastTime);
-      lastTime = timestamp;
+    const draw = (delta) => {
+      if (!width || !height || lineCount === 0) return;
 
       ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      ctx.strokeStyle = '#212121';
 
-      waves.forEach((wave) => {
-        const amplitude = Math.max(0, wave.amplitude);
-        const alpha = Math.max(0.02, wave.alpha);
-        const lineWidth = Math.max(0.4, wave.lineWidth);
+      const amplitude = Math.min(height * 0.45, 160);
+      const step = Math.max(1, Math.round(width / 320));
 
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = lineWidth;
+        ctx.shadowColor = 'rgba(43, 205, 255, 0.45)';
+      ctx.shadowBlur = 8;
+
+      for (let i = 0; i < lineCount; i++) {
         ctx.beginPath();
 
-        for (let x = 0; x <= width; x += 6) {
-          const progress = x / wave.wavelength;
-          const noise = Math.cos(progress * 0.35 + wave.phase) * amplitude * 0.18;
-          const y = height / 2 + Math.sin(progress * Math.PI * 2 + wave.phase) * amplitude + noise;
+        for (let x = 0; x <= width; x += step) {
+          const noiseValue = perlin.noise(
+            x * variation + variators[i],
+            x * variation * 0.35,
+            0
+          );
+          const y = startY + noiseValue * amplitude;
 
           if (x === 0) {
             ctx.moveTo(x, y);
@@ -836,14 +949,33 @@
             ctx.lineTo(x, y);
           }
         }
+        const alphaBase = 0.08;
+        const alphaRange = 0.22;
+        const alpha = alphaBase + (i / Math.max(1, lineCount - 1)) * alphaRange;
+
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = Math.max(0.45, 1.4 - i * 0.02);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
 
         ctx.stroke();
         ctx.closePath();
 
-        wave.phase += wave.speed * delta;
-      });
+        variators[i] += speeds[i] * delta;
+      }
 
       ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    };
+
+    const render = (timestamp) => {
+      if (lastTime === null) {
+        lastTime = timestamp;
+      }
+
+      const delta = Math.min(64, Math.max(16, timestamp - lastTime));
+      lastTime = timestamp;
+
+      draw(delta);
       requestAnimationFrame(render);
     };
 
