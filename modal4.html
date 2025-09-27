@@ -842,22 +842,27 @@ export function initModal4() {
   const modeRadios = modal.querySelectorAll('input[name="modal4-mode"]');
   const DROPDOWN_POINTER_TOLERANCE = 0.1;
 
+  const MODE_WAREHOUSE = 'warehouse';
+  const MODE_STOCKS = 'stocks';
+
   const modeConfigs = {
-    warehouse: {
+    [MODE_WAREHOUSE]: {
       table: 'modal4_orders',
       template: modal.querySelector('#modal4-order-template'),
     },
-    stocks: {
+    [MODE_STOCKS]: {
       table: 'modal4_orders_uni',
       template: modal.querySelector('#modal4-order-template-uni'),
     },
   };
 
-  let activeMode = 'warehouse';
+  let activeMode = MODE_WAREHOUSE;
+
+  const isStocksMode = (mode = activeMode) => String(mode ?? '').toLowerCase() === MODE_STOCKS;
 
   const hintsCache = {
-    warehouse: null,
-    stocks: null,
+    [MODE_WAREHOUSE]: null,
+    [MODE_STOCKS]: null,
   };
 
   const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs.warehouse;
@@ -1048,14 +1053,41 @@ export function initModal4() {
     return cachedUnits;
   });
 
+  const normalizeHintRecord = (mode, record) => {
+    if (!record) return {};
+    if (isStocksMode(mode)) {
+      return {
+        order_code: record.order_code ?? '',
+        item_name: record.item_name ?? '',
+        url: record.url ?? '',
+        supplier: record.supplier ?? '',
+        modification: record.modification ?? '',
+        quantity_value: record.total_quantity ?? '',
+        price_value: record.avg_price ?? '',
+        total_amount: record.total_amount ?? '',
+      };
+    }
+    return { ...record };
+  };
+
   async function loadHints(mode = activeMode, { force = false } = {}) {
     const config = getModeConfig(mode);
     if (!config) return [];
     if (!force && Array.isArray(hintsCache[mode])) return hintsCache[mode];
 
-    let query = supabase
-      .from(getModeTable(mode))
-      .select('order_code, item_name, url, supplier, modification, quantity_value, price_value');
+    let query = supabase.from(getModeTable(mode));
+
+    if (isStocksMode(mode)) {
+      query = query
+        .select('order_code, item_name, url, supplier, modification, total_quantity, avg_price, total_amount, statuses');
+      if (ORDER_STATUS) {
+        query = query.contains('statuses', [ORDER_STATUS]);
+      }
+    } else {
+      query = query
+        .select('order_code, item_name, url, supplier, modification, quantity_value, price_value')
+        .eq('status', ORDER_STATUS);
+    }
 
     const companyId = await resolveCompanyId();
     if (companyId) {
@@ -1072,7 +1104,11 @@ export function initModal4() {
       return hintsCache[mode];
     }
 
-    hintsCache[mode] = data ?? [];
+    const normalized = Array.isArray(data)
+      ? data.map(item => normalizeHintRecord(mode, item))
+      : [];
+
+    hintsCache[mode] = normalized;
     return hintsCache[mode];
   }
 
@@ -1082,6 +1118,48 @@ export function initModal4() {
     if (isUniversalGroup(current.unit_group)) return unitShort;
     return current.base_unit_short ?? unitShort;
   }
+
+  const normalizeOrderRecord = (mode, order, units) => {
+    if (!order) return null;
+
+    const stocksMode = isStocksMode(mode);
+    const qtyRaw = stocksMode ? order.total_quantity : order.quantity_value;
+    const priceRaw = stocksMode ? order.avg_price : order.price_value;
+    const qty = parseNumberNullable(qtyRaw);
+    const price = parseNumberNullable(priceRaw);
+    const baseUnit = getBaseUnit(order.modification, units);
+    const totalCandidate = stocksMode
+      ? parseNumberNullable(order.total_amount)
+      : (qty ?? 0) * (price ?? 0);
+    const total = totalCandidate ?? ((qty ?? 0) * (price ?? 0));
+    const createdAt = order.created_at ?? order.last_created_at ?? order.last_updated_at ?? null;
+    const statusText = (() => {
+      if (stocksMode) {
+        if (Array.isArray(order.statuses) && order.statuses.length) {
+          return order.statuses.join(', ');
+        }
+        return ORDER_STATUS;
+      }
+      return order.status ?? ORDER_STATUS;
+    })();
+
+    return {
+      id: order.id,
+      order_code: order.order_code ?? '',
+      item_name: order.item_name ?? '',
+      url: order.url ?? '',
+      supplier: order.supplier ?? '',
+      modification: order.modification ?? '',
+      created_at: createdAt,
+      qtySel: qty,
+      priceSel: price,
+      base_unit: baseUnit,
+      baseQty: qty,
+      priceBase: price,
+      total,
+      status: statusText,
+    };
+  };
 
   function applyUnitDataset(unitShort, units) {
     if (!selectInput) return;
@@ -1107,11 +1185,22 @@ export function initModal4() {
       ordersContainer.innerHTML = '';
     }
     const units = await unitsPromise;
-    let query = supabase
-      .from(getModeTable(mode))
-      .select('*')
-      .eq('status', ORDER_STATUS)
-      .order('created_at', { ascending: false });
+    const stocksMode = isStocksMode(mode);
+    let query = supabase.from(getModeTable(mode));
+
+    if (stocksMode) {
+      query = query
+        .select('order_code, item_name, url, supplier, modification, total_quantity, avg_price, total_amount, statuses, last_created_at, last_updated_at, company_id, user_key');
+      if (ORDER_STATUS) {
+        query = query.contains('statuses', [ORDER_STATUS]);
+      }
+      query = query.order('last_created_at', { ascending: false, nullsFirst: false });
+    } else {
+      query = query
+        .select('*')
+        .eq('status', ORDER_STATUS)
+        .order('created_at', { ascending: false });
+    }
 
     const companyId = await resolveCompanyId();
     if (companyId) {
@@ -1135,34 +1224,17 @@ export function initModal4() {
     }
 
     orders.forEach(order => {
-      const qty = parseNumberNullable(order.quantity_value);
-      const price = parseNumberNullable(order.price_value);
-      const baseUnit = getBaseUnit(order.modification, units);
-      const baseQty = qty;
-      const basePrice = price;
-      const total = (baseQty ?? 0) * (basePrice ?? 0);
+      const normalized = normalizeOrderRecord(mode, order, units);
+      if (!normalized) return;
 
-      const rendered = createOrderElement(mode, {
-        id: order.id,
-        order_code: order.order_code,
-        item_name: order.item_name,
-        url: order.url,
-        supplier: order.supplier,
-        modification: order.modification,
-        created_at: order.created_at,
-        qtySel: baseQty,
-        priceSel: basePrice,
-        base_unit: baseUnit,
-        baseQty,
-        priceBase: basePrice,
-        total,
-      });
+      const rendered = createOrderElement(mode, normalized);
       ordersContainer.appendChild(rendered);
       const created = rendered;
-      created.dataset.price = total;
-      if (order.url) {
+      const totalValue = Number(normalized.total ?? 0);
+      created.dataset.price = Number.isFinite(totalValue) ? String(totalValue) : '0';
+      if (normalized.url) {
         created.querySelector('.spec-icon')?.addEventListener('click', () => {
-          window.open(order.url, '_blank');
+          window.open(normalized.url, '_blank');
         });
       }
     });
@@ -1215,7 +1287,7 @@ export function initModal4() {
 
     assignValue('order_code', o.order_code ?? '');
     assignValue('item_name', o.item_name ?? '');
-    assignValue('status', ORDER_STATUS);
+    assignValue('status', o.status ?? ORDER_STATUS);
     assignValue('date-time', formatCreatedAt(o.created_at));
     assignValue('spec-url', o.url ?? '');
     assignValue('supplier', o.supplier ?? '');
@@ -1545,6 +1617,10 @@ export function initModal4() {
   }
 
   createButton?.addEventListener('click', async () => {
+    if (isStocksMode()) {
+      alert('Создание позиций недоступно в режиме "остатки".');
+      return;
+    }
     if (!formRow) return;
     const inputs = formRow.querySelectorAll('input');
     const units = await unitsPromise;
@@ -1717,6 +1793,15 @@ export function initModal4() {
     closeDropdowns();
     await fadeOut(ordersContainer);
     activeMode = next;
+    if (createButton) {
+      const disableCreate = isStocksMode(next);
+      createButton.disabled = disableCreate;
+      if (disableCreate) {
+        createButton.setAttribute('aria-disabled', 'true');
+      } else {
+        createButton.removeAttribute('aria-disabled');
+      }
+    }
     await loadExistingOrders(activeMode, { replace: true });
     await loadHints(activeMode);
     recalcStats();
