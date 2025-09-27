@@ -141,6 +141,10 @@
       gap: 14px;
     }
 
+    #modal4-container .modalRow [data-field="date-time"] {
+      text-align: right;
+    }
+
     #modal4-container .stats-row {
       justify-content: space-between;
       gap: 16px;
@@ -529,9 +533,6 @@
         <span class="spec-icon" data-field="spec-url" data-url="">
           <i class="material-symbols-outlined">captive_portal</i>
         </span>
-        <input class="input" style="width: 60px;" data-field="display_unit" placeholder="изм." readonly />
-        <input class="inputSUM" style="width: 90px;" data-field="display_qty" placeholder="000 000" readonly />
-        <input class="inputSUM" style="width: 120px;" data-field="display_price" placeholder="000 000 000" readonly />
         <input class="input" style="width: 60px;" data-field="base_unit" placeholder="изм." readonly />
         <input class="inputSUM" style="width: 90px;" data-field="base_qty" placeholder="000 000" readonly />
         <input class="inputSUM" style="width: 120px;" data-field="base_price" placeholder="000 000 000" readonly />
@@ -645,6 +646,34 @@ export function initModal4() {
     const num = Number(value);
     if (!Number.isFinite(num)) return '';
     return num.toLocaleString('ru-RU');
+  };
+
+  const MONTHS_RU = [
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ];
+
+  const formatCreatedAt = value => {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = MONTHS_RU[date.getMonth()] ?? '';
+    const year = date.getFullYear();
+    if (!month) return '';
+    return `${hours}:${minutes} ${day} ${month} ${year} г.`;
   };
 
   const parseNumberNullable = str => {
@@ -832,6 +861,7 @@ export function initModal4() {
         url: order.url,
         supplier: order.supplier,
         modification: order.modification,
+        created_at: order.created_at,
         qtySel: baseQty,
         priceSel: basePrice,
         base_unit: baseUnit,
@@ -854,11 +884,7 @@ export function initModal4() {
   }
 
   function createOrderElement(o) {
-    const displayUnit = o.display_unit ?? o.modification ?? '';
-    const displayQty = o.display_qty ?? o.qtySel;
-    const displayPrice = o.display_price ?? o.priceSel;
     const totalPrice = o.total ?? o.priceSel ?? 0;
-
     const templateContent = orderTemplate?.content?.firstElementChild;
     const baseElement = templateContent instanceof HTMLElement
       ? templateContent.cloneNode(true)
@@ -885,11 +911,9 @@ export function initModal4() {
     assignValue('order_code', o.order_code ?? '');
     assignValue('item_name', o.item_name ?? '');
     assignValue('status', ORDER_STATUS);
+    assignValue('date-time', formatCreatedAt(o.created_at));
     assignValue('spec-url', o.url ?? '');
     assignValue('supplier', o.supplier ?? '');
-    assignValue('display_unit', displayUnit);
-    assignValue('display_qty', fmtNum(displayQty));
-    assignValue('display_price', fmtNum(displayPrice));
     assignValue('base_unit', o.base_unit ?? '');
     assignValue('base_qty', fmtNum(o.baseQty));
     assignValue('base_price', fmtNum(o.priceBase));
@@ -1265,9 +1289,7 @@ export function initModal4() {
         url: orderData.url,
         supplier: orderData.supplier,
         modification: baseUnit,
-        display_unit: orderData.modification || undefined,
-        display_qty: quantityOriginal,
-        display_price: priceOriginal,
+        created_at: new Date().toISOString(),
         qtySel: qtyStored,
         priceSel: priceStored,
         base_unit: baseUnit,
