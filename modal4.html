@@ -547,6 +547,7 @@ export function initModal4() {
   const rawUserKey = window.USER_KEY;
   const authUserId = window.AUTH_ID;
   const DB_USER_KEY = authUserId || rawUserKey;
+  const DB_COMPANY_ID = window.companyId || window.companyID || null;
   const TABLE_NAME = 'modal4_orders';
   const ORDER_STATUS = 'заказано';
 
@@ -557,8 +558,8 @@ export function initModal4() {
     console.warn('[modal4.html] Supabase client не найден');
     return;
   }
-  if (!DB_USER_KEY) {
-    console.warn('[modal4.html] USER_KEY/AUTH_ID не определён');
+  if (!DB_USER_KEY && !DB_COMPANY_ID) {
+    console.warn('[modal4.html] отсутствует идентификатор пользователя или компании');
     return;
   }
 
@@ -687,10 +688,17 @@ export function initModal4() {
 
   async function loadHints() {
     if (hintsCache.length) return hintsCache;
-    const { data, error } = await supabase
+    let query = supabase
       .from(TABLE_NAME)
-      .select('order_code, item_name, url, supplier, modification, quantity_value, price_value')
-      .eq('user_key', DB_USER_KEY);
+      .select('order_code, item_name, url, supplier, modification, quantity_value, price_value');
+
+    if (DB_COMPANY_ID) {
+      query = query.eq('company_id', DB_COMPANY_ID);
+    } else if (DB_USER_KEY) {
+      query = query.eq('user_key', DB_USER_KEY);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error(error);
@@ -728,12 +736,19 @@ export function initModal4() {
 
   async function loadExistingOrders() {
     const units = await unitsPromise;
-    const { data: orders, error } = await supabase
+    let query = supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('user_key', DB_USER_KEY)
       .eq('status', ORDER_STATUS)
       .order('created_at', { ascending: false });
+
+    if (DB_COMPANY_ID) {
+      query = query.eq('company_id', DB_COMPANY_ID);
+    } else if (DB_USER_KEY) {
+      query = query.eq('user_key', DB_USER_KEY);
+    }
+
+    const { data: orders, error } = await query;
 
     if (error) {
       console.error(error);
@@ -1122,6 +1137,7 @@ export function initModal4() {
 
     const orderData = {
       user_key: DB_USER_KEY,
+      company_id: DB_COMPANY_ID,
       order_code: inputs[0].value.trim(),
       item_name: inputs[1].value.trim(),
       url: inputs[2].value.trim(),
@@ -1159,7 +1175,6 @@ export function initModal4() {
 
     try {
       const dbPayload = {
-        user_key: orderData.user_key,
         order_code: orderData.order_code,
         item_name: orderData.item_name,
         url: orderData.url,
@@ -1169,6 +1184,13 @@ export function initModal4() {
         price_value: priceStoredStr,
         status: orderData.status,
       };
+
+      if (orderData.user_key) {
+        dbPayload.user_key = orderData.user_key;
+      }
+      if (orderData.company_id) {
+        dbPayload.company_id = orderData.company_id;
+      }
 
       const id = await insertOrderToDB(dbPayload);
 
@@ -1234,10 +1256,18 @@ export function initModal4() {
 
     try {
       if (ids.length) {
-        const { error } = await supabase
+        let deleteQuery = supabase
           .from(TABLE_NAME)
           .delete()
           .in('id', ids);
+
+        if (DB_COMPANY_ID) {
+          deleteQuery = deleteQuery.eq('company_id', DB_COMPANY_ID);
+        } else if (DB_USER_KEY) {
+          deleteQuery = deleteQuery.eq('user_key', DB_USER_KEY);
+        }
+
+        const { error } = await deleteQuery;
         if (error) throw error;
       }
 
