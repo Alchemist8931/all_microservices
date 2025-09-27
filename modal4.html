@@ -44,6 +44,7 @@
       color: var(--black-color, var(--content-color, #212121));
       position: relative;
       overflow: hidden;
+      isolation: isolate;
     }
 
     #modal4-container #modal4-ambient-canvas {
@@ -867,8 +868,8 @@
     const perlin = new ClassicalNoise();
 
     const variation = 0.0025;
-    const baseSpeed = 0.00055;
-    const speedSpread = 0.00028;
+    const baseSpeed = 0.000275;
+    const speedSpread = 0.00014;
 
     let width = 0;
     let height = 0;
@@ -877,6 +878,9 @@
     let lineCount = 0;
     let variators = new Float32Array(0);
     let speeds = new Float32Array(0);
+    let phaseOffsets = new Float32Array(0);
+    let depthOffsets = new Float32Array(0);
+    let directions = new Int8Array(0);
 
     const rebuildLines = () => {
       const desiredLines = Math.max(18, Math.min(48, Math.round(width / 48)));
@@ -884,14 +888,24 @@
 
       const nextVariators = new Float32Array(desiredLines);
       const nextSpeeds = new Float32Array(desiredLines);
+      const nextPhaseOffsets = new Float32Array(desiredLines);
+      const nextDepthOffsets = new Float32Array(desiredLines);
+      const nextDirections = new Int8Array(desiredLines);
 
       for (let i = 0; i < desiredLines; i++) {
-        nextVariators[i] = i < variators.length ? variators[i] : i * 0.035;
-        nextSpeeds[i] = baseSpeed + (i / Math.max(1, desiredLines - 1)) * speedSpread;
+        nextVariators[i] = i < variators.length ? variators[i] : Math.random() * 1000;
+        const speedBase = baseSpeed + (i / Math.max(1, desiredLines - 1)) * speedSpread;
+        nextSpeeds[i] = speedBase * (0.85 + Math.random() * 0.45);
+        nextPhaseOffsets[i] = i < phaseOffsets.length ? phaseOffsets[i] : Math.random() * Math.PI * 2;
+        nextDepthOffsets[i] = i < depthOffsets.length ? depthOffsets[i] : Math.random() * 600;
+        nextDirections[i] = i < directions.length ? directions[i] || 1 : (Math.random() > 0.5 ? 1 : -1);
       }
 
       variators = nextVariators;
       speeds = nextSpeeds;
+      phaseOffsets = nextPhaseOffsets;
+      depthOffsets = nextDepthOffsets;
+      directions = nextDirections;
       lineCount = desiredLines;
     };
 
@@ -926,28 +940,39 @@
       ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
       ctx.clearRect(0, 0, width, height);
 
-      const amplitude = Math.min(height * 0.45, 160);
+      const amplitude = Math.min(height * 0.75, 220);
       const step = Math.max(1, Math.round(width / 320));
 
-        ctx.shadowColor = 'rgba(43, 205, 255, 0.45)';
+      ctx.shadowColor = 'rgba(33, 33, 33, 0.35)';
       ctx.shadowBlur = 8;
 
       for (let i = 0; i < lineCount; i++) {
         ctx.beginPath();
 
+        const depthOffset = depthOffsets[i];
+        const phaseOffset = phaseOffsets[i];
+        const direction = directions[i] || 1;
+        const baselineDrift = Math.sin(variators[i] * 0.25 + phaseOffset) * amplitude * 0.12;
+        const localAmplitude = amplitude * (0.65 + Math.sin(variators[i] * 0.6 + phaseOffset) * 0.35);
+
+        let previousY = null;
+
         for (let x = 0; x <= width; x += step) {
           const noiseValue = perlin.noise(
             x * variation + variators[i],
-            x * variation * 0.35,
+            x * variation * 0.35 + depthOffset,
+            depthOffset * 0.15 + variators[i] * 0.5
             0
           );
-          const y = startY + noiseValue * amplitude;
+          const y = startY + baselineDrift + noiseValue * localAmplitude;
 
           if (x === 0) {
             ctx.moveTo(x, y);
           } else {
-            ctx.lineTo(x, y);
+            const mixY = previousY === null ? y : (y * 0.7 + previousY * 0.3);
+            ctx.lineTo(x, mixY);
           }
+          previousY = y;
         }
         const alphaBase = 0.08;
         const alphaRange = 0.22;
@@ -955,12 +980,14 @@
 
         ctx.globalAlpha = alpha;
         ctx.lineWidth = Math.max(0.45, 1.4 - i * 0.02);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.strokeStyle = '#212121';
 
         ctx.stroke();
         ctx.closePath();
 
-        variators[i] += speeds[i] * delta;
+        variators[i] += speeds[i] * delta * direction;
+        phaseOffsets[i] += speeds[i] * delta * 0.25 * direction;
+        depthOffsets[i] += speeds[i] * delta * 0.05 * direction;
       }
 
       ctx.globalAlpha = 1;
