@@ -149,8 +149,12 @@
       overflow-y: auto;
       padding-right: 10px;
       margin-right: -10px;
-      /*scrollbar-width: thin;
-      scrollbar-color: var(--content-color, #212121) transparent; */
+      transition: opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    #modal4-container .modal4-content.is-faded {
+      opacity: 0;
     }
 
     #modal4-container .modal4-content::-webkit-scrollbar {width: 6px;}
@@ -248,6 +252,51 @@
 
     #modal4-container .form-fields .modalRow {
       gap: 12px;
+    }
+
+    #modal4-container .radio-inputs {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius: 0.5rem;
+      background-color: #EEE;
+      box-sizing: border-box;
+      box-shadow: 0 0 0px 1px rgba(0, 0, 0, 0.06);
+      padding: 0.25rem;
+      width: 300px;
+      font-size: 14px;
+      align-self: center;
+      margin-top: 10px;
+      gap: 0.25rem;
+    }
+
+    #modal4-container .radio-inputs .radio {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    #modal4-container .radio-inputs .radio input {
+      display: none;
+    }
+
+    #modal4-container .radio-inputs .radio .name {
+      display: flex;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      border: none;
+      padding: .5rem 0;
+      color: rgba(51, 65, 85, 1);
+      transition: all .15s ease-in-out;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+
+    #modal4-container .radio-inputs .radio input:checked + .name {
+      background-color: #fff;
+      font-weight: 600;
     }
 
     #modal4-container .modalVNUT-content .modalBLOCK {
@@ -620,6 +669,16 @@
           <input class="inputSUM price-field" placeholder="000 000 000" />
         </div>
       </div>
+      <div class="radio-inputs" role="radiogroup" aria-label="режим отображения">
+        <label class="radio">
+          <input type="radio" name="modal4-mode" value="warehouse" checked />
+          <span class="name">режим склад</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="modal4-mode" value="stocks" />
+          <span class="name">режим остатки</span>
+        </label>
+      </div>
       <button class="button-form primary" id="create-order">создать позицию заказа</button>
     </div>
   </div>
@@ -655,6 +714,33 @@
       </div>
     </div>
   </template>
+
+  <template id="modal4-order-template-uni">
+    <div class="modalBLOCK" data-id="" data-price="">
+      <div class="modalRow">
+        <label class="checkbox">
+          <input type="checkbox" />
+        </label>
+        <input class="inputT code-field" data-field="order_code" style="width: 100px;" placeholder="RIV-0881" readonly />
+        <input class="input name-field" data-field="item_name" placeholder="наименование" readonly />
+        <input class="input" data-field="status" style="width: 120px; text-align: center;" placeholder="статус" readonly />
+        <div class="input date-time-field" style="width: 200px;" data-field="date-time" aria-label="дата и время">
+          <span class="date-time-field__time"></span>
+          <span class="date-time-field__date"></span>
+        </div>
+        <input class="inputT supplier-field" style="width: 140px;" data-field="supplier" placeholder="поставщик" readonly />
+        <span class="spec-icon" data-field="spec-url" data-url="">
+          <i class="material-symbols-outlined">captive_portal</i>
+        </span>
+        <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
+        <input class="inputSUM" style="width: 90px;" data-field="base_qty" placeholder="000 000" readonly />
+        <input class="inputSUM" style="width: 90px;" data-field="base_price" placeholder="000 000 000" readonly />
+        <input class="inputSUM" style="width: 120px;" data-field="total" placeholder="000 000 000" readonly />
+        <input class="input" style="width: 420px;" placeholder="для заметок" readonly />
+      </div>
+    </div>
+  </template>
+  
 </div>
 
 <script type="module">
@@ -665,7 +751,6 @@ export function initModal4() {
   const DB_USER_KEY = authUserId || rawUserKey;
   let DB_COMPANY_ID = window.companyId || window.companyID || null;
   let resolvingCompanyIdPromise = null;
-  const TABLE_NAME = 'modal4_orders';
   const ORDER_STATUS = 'заказано';
 
   const modal = document.getElementById('modal4-container');
@@ -741,7 +826,6 @@ export function initModal4() {
   console.log('[modal4.html] PAGE 4 активирован');
 
   const ordersContainer = modal.querySelector('.modalVNUT-content');
-  const orderTemplate = modal.querySelector('#modal4-order-template');
   const statEls = modal.querySelectorAll('.stat-value');
   const countEl = statEls[0] ?? null;
   const sumEl = statEls[1] ?? null;
@@ -755,7 +839,60 @@ export function initModal4() {
   const deleteButton = modal.querySelector('#delete-selected');
   const moveButton = modal.querySelector('#move-warehouse');
   const selectInput = modal.querySelector('.select-input');
+  const modeRadios = modal.querySelectorAll('input[name="modal4-mode"]');
   const DROPDOWN_POINTER_TOLERANCE = 0.1;
+
+  const modeConfigs = {
+    warehouse: {
+      table: 'modal4_orders',
+      template: modal.querySelector('#modal4-order-template'),
+    },
+    stocks: {
+      table: 'modal4_orders_uni',
+      template: modal.querySelector('#modal4-order-template-uni'),
+    },
+  };
+
+  let activeMode = 'warehouse';
+
+  const hintsCache = {
+    warehouse: null,
+    stocks: null,
+  };
+
+  const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs.warehouse;
+
+  const getModeTable = (mode = activeMode) => getModeConfig(mode)?.table ?? modeConfigs.warehouse.table;
+
+  const getModeTemplate = (mode = activeMode) => getModeConfig(mode)?.template ?? modeConfigs.warehouse.template;
+
+  const toggleFade = (element, fade) => {
+    if (!element) return Promise.resolve();
+    const className = 'is-faded';
+    const shouldApply = Boolean(fade);
+    if (element.classList.contains(className) === shouldApply) {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const handle = event => {
+        if (event?.target === element) {
+          element.removeEventListener('transitionend', handle);
+          resolve();
+        }
+      };
+      element.addEventListener('transitionend', handle, { once: true });
+      requestAnimationFrame(() => {
+        element.classList.toggle(className, shouldApply);
+      });
+      setTimeout(() => {
+        element.removeEventListener('transitionend', handle);
+        resolve();
+      }, 360);
+    });
+  };
+
+  const fadeOut = element => toggleFade(element, true);
+  const fadeIn = element => toggleFade(element, false);
 
   const fmtNum = value => {
     if (value === null || value === undefined || value === '') return '';
@@ -911,12 +1048,13 @@ export function initModal4() {
     return cachedUnits;
   });
 
-  let hintsCache = [];
+  async function loadHints(mode = activeMode, { force = false } = {}) {
+    const config = getModeConfig(mode);
+    if (!config) return [];
+    if (!force && Array.isArray(hintsCache[mode])) return hintsCache[mode];
 
-  async function loadHints() {
-    if (hintsCache.length) return hintsCache;
     let query = supabase
-      .from(TABLE_NAME)
+      .from(getModeTable(mode))
       .select('order_code, item_name, url, supplier, modification, quantity_value, price_value');
 
     const companyId = await resolveCompanyId();
@@ -930,12 +1068,12 @@ export function initModal4() {
 
     if (error) {
       console.error(error);
-      hintsCache = [];
-      return hintsCache;
+      hintsCache[mode] = [];
+      return hintsCache[mode];
     }
 
-    hintsCache = data ?? [];
-    return hintsCache;
+    hintsCache[mode] = data ?? [];
+    return hintsCache[mode];
   }
 
   function getBaseUnit(unitShort, units) {
@@ -962,10 +1100,15 @@ export function initModal4() {
     selectInput.dataset.displayName = match.unit_name ?? '';
   }
 
-  async function loadExistingOrders() {
+  async function loadExistingOrders(mode = activeMode, { replace = false } = {}) {
+    const config = getModeConfig(mode);
+    if (!config) return [];
+    if (replace && ordersContainer) {
+      ordersContainer.innerHTML = '';
+    }
     const units = await unitsPromise;
     let query = supabase
-      .from(TABLE_NAME)
+      .from(getModeTable(mode))
       .select('*')
       .eq('status', ORDER_STATUS)
       .order('created_at', { ascending: false });
@@ -981,9 +1124,15 @@ export function initModal4() {
 
     if (error) {
       console.error(error);
-      return;
+      updateActionButtons();
+      recalcStats();
+      return [];
     }
-    if (!orders?.length) return;
+    if (!orders?.length) {
+      updateActionButtons();
+      recalcStats();
+      return [];
+    }
 
     orders.forEach(order => {
       const qty = parseNumberNullable(order.quantity_value);
@@ -993,7 +1142,7 @@ export function initModal4() {
       const basePrice = price;
       const total = (baseQty ?? 0) * (basePrice ?? 0);
 
-      const rendered = createOrderElement({
+      const rendered = createOrderElement(mode, {
         id: order.id,
         order_code: order.order_code,
         item_name: order.item_name,
@@ -1020,17 +1169,19 @@ export function initModal4() {
 
     recalcStats();
     updateActionButtons();
+    return orders;
   }
 
-  function createOrderElement(o) {
+  function createOrderElement(mode, o) {
     const totalPrice = o.total ?? o.priceSel ?? 0;
-    const templateContent = orderTemplate?.content?.firstElementChild;
+    const template = getModeTemplate(mode);
+    const templateContent = template?.content?.firstElementChild;
     const baseElement = templateContent instanceof HTMLElement
       ? templateContent.cloneNode(true)
       : null;
 
     if (!(baseElement instanceof HTMLElement)) {
-      throw new Error('modal4-order-template не найден или пуст');
+      throw new Error(`шаблон для режима ${mode} не найден или пуст`);
     }
 
     baseElement.dataset.id = String(o.id ?? '');
@@ -1092,9 +1243,9 @@ export function initModal4() {
     }
   }
 
-  async function insertOrderToDB(record) {
+  async function insertOrderToDB(record, mode = activeMode) {
     const { data, error } = await supabase
-      .from(TABLE_NAME)
+      .from(getModeTable(mode))
       .insert([record])
       .select('id')
       .single();
@@ -1307,7 +1458,7 @@ export function initModal4() {
 
   async function setupAutocomplete() {
     if (!formRow || !autocompleteDropdown || !selectOverlay) return;
-    await loadHints();
+    await loadHints(activeMode);
     const [codeInput, nameInput, urlInput, supplierInput, , qtyInput, priceInput] =
       formRow.querySelectorAll('input');
 
@@ -1322,9 +1473,13 @@ export function initModal4() {
         return;
       }
 
+      const currentHints = Array.isArray(hintsCache[activeMode])
+        ? hintsCache[activeMode]
+        : [];
+
       const list = src === codeInput
-        ? hintsCache.filter(h => (h.order_code ?? '').toLowerCase().includes(value))
-        : hintsCache.filter(h => (h.item_name ?? '').toLowerCase().includes(value));
+        ? currentHints.filter(h => (h.order_code ?? '').toLowerCase().includes(value))
+        : currentHints.filter(h => (h.item_name ?? '').toLowerCase().includes(value));
 
       if (!list.length) {
         closeDropdowns();
@@ -1340,6 +1495,7 @@ export function initModal4() {
         autocompleteDropdown.appendChild(option);
       });
 
+      const rect = src.getBoundingClientRect();
       const modalRect = modal.getBoundingClientRect();
       const offsetLeft = rect.left - modalRect.left + modal.scrollLeft;
       const offsetTop = rect.bottom - modalRect.top + modal.scrollTop + 10;
@@ -1458,9 +1614,9 @@ export function initModal4() {
         dbPayload.company_id = payloadCompanyId;
       }
 
-      const id = await insertOrderToDB(dbPayload);
+      const id = await insertOrderToDB(dbPayload, activeMode);
 
-      const rendered = createOrderElement({
+      const rendered = createOrderElement(activeMode, {
         id,
         order_code: orderData.order_code,
         item_name: orderData.item_name,
@@ -1491,7 +1647,10 @@ export function initModal4() {
         });
       }
 
-      hintsCache.push({
+      if (!Array.isArray(hintsCache[activeMode])) {
+        hintsCache[activeMode] = [];
+      }
+      hintsCache[activeMode].push({
         order_code: orderData.order_code,
         item_name: orderData.item_name,
         url: orderData.url,
@@ -1521,7 +1680,7 @@ export function initModal4() {
     try {
       if (ids.length) {
         let deleteQuery = supabase
-          .from(TABLE_NAME)
+          .from(getModeTable())
           .delete()
           .in('id', ids);
 
@@ -1549,10 +1708,34 @@ export function initModal4() {
     console.log('Перемещение на склад');
   });
 
-  loadHints();
+  async function applyMode(mode) {
+    if (typeof mode !== 'string') return;
+    const next = mode.toLowerCase();
+    if (!modeConfigs[next]) return;
+    if (next === activeMode) return;
+
+    closeDropdowns();
+    await fadeOut(ordersContainer);
+    activeMode = next;
+    await loadExistingOrders(activeMode, { replace: true });
+    await loadHints(activeMode);
+    recalcStats();
+    updateActionButtons();
+    await fadeIn(ordersContainer);
+  }
+
+  modeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) {
+        applyMode(radio.value);
+      }
+    });
+  });
+
+  loadHints(activeMode);
   setupCustomSelect();
   setupAutocomplete();
-  loadExistingOrders();
+  loadExistingOrders(activeMode, { replace: true });
   recalcStats();
 }
 
