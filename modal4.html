@@ -669,7 +669,7 @@
       </h2>
     </section>
 
-    <div class="modalRow action-bar" style="margin-top: 110px;">
+    <div class="modalRow action-bar">
       <button class="button-form" id="move-warehouse">переместить на склад</button>
       <button class="button-form" id="delete-selected">удалить выбранное</button>
     </div>
@@ -945,8 +945,8 @@
       const lineSeparation = baseAmplitude * 0.05;
       const step = Math.max(1, Math.round(width / 420));
 
-      ctx.shadowColor = 'rgba(43, 205, 255, 0.45)';
-      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(43, 205, 255, 0.35)';
+      ctx.shadowBlur = 20;
 
       for (let i = 0; i < lineCount; i++) {
         ctx.beginPath();
@@ -975,12 +975,12 @@
           }
           peakNoise = Math.max(peakNoise, Math.abs(noiseValue));
         }
-        const baseAlpha = 0.035;
-        const alpha = baseAlpha + peakNoise * 0.09;
+        const baseAlpha = 0.12;
+        const alpha = Math.min(0.7, baseAlpha + peakNoise * 0.4);
 
         ctx.globalAlpha = alpha;
-        ctx.lineWidth = Math.max(0.35, 1.15 - i * 0.018);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.lineWidth = Math.max(0.55, 1.45 - i * 0.022);
+        ctx.strokeStyle = `rgba(${170 - i * 1.8}, ${235 - i * 1.5}, 255, 1)`;
 
         ctx.stroke();
         ctx.closePath();
