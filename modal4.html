@@ -43,6 +43,21 @@
       box-sizing: border-box;
       color: var(--black-color, var(--content-color, #212121));
       position: relative;
+      overflow: hidden;
+    }
+
+    #modal4-container #modal4-ambient-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #modal4-container .modal-top > *:not(#modal4-ambient-canvas) {
+      position: relative;
+      z-index: 1;
     }
 
     #modal4-container .modal4-signature {
@@ -620,6 +635,7 @@
   <div id="modal4-autocomplete-dropdown"></div>
 
   <div class="modal-top glass-panel">
+    <canvas id="modal4-ambient-canvas" aria-hidden="true"></canvas>
     <section class="modal4-signature">
       <h2>
         <span>R</span>
@@ -670,7 +686,7 @@
           <input class="inputSUM price-field" placeholder="000 000 000" />
         </div>
       </div>
-      <div class="radio-inputs" style="margin-top: -10px;" role="radiogroup" aria-label="режим отображения">
+      <div class="radio-inputs" style="margin-top: -13px;" role="radiogroup" aria-label="режим отображения">
         <label class="radio">
           <input type="radio" name="modal4-mode" value="warehouse" checked />
           <span class="name">режим склад</span>
@@ -680,7 +696,7 @@
           <span class="name">режим остатки</span>
         </label>
       </div>
-      <button class="button-form primary" id="create-order">создать позицию</button>
+      <button class="button-form primary" style="margin-top: -3px;" id="create-order">создать позицию</button>
     </div>
   </div>
 
@@ -743,6 +759,105 @@
   </template>
   
 </div>
+
+
+<script>
+  (function () {
+    const SPEED_FACTOR = 0.7;
+    const modal = document.getElementById('modal4-container');
+    if (!modal) return;
+
+    const topPanel = modal.querySelector('.modal-top');
+    const canvas = topPanel && topPanel.querySelector('#modal4-ambient-canvas');
+    if (!topPanel || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const waves = Array.from({ length: 4 }, (_, index) => ({
+      amplitude: 34 - index * 6,
+      wavelength: 180 + index * 40,
+      speed: (0.0009 + index * 0.00025) * SPEED_FACTOR,
+      phase: Math.random() * Math.PI * 2,
+      alpha: 0.12 - index * 0.02,
+      lineWidth: 1.1 - index * 0.15
+    }));
+
+    let width = 0;
+    let height = 0;
+    let deviceRatio = window.devicePixelRatio || 1;
+
+    const resize = () => {
+      const rect = topPanel.getBoundingClientRect();
+      width = rect.width;
+      height = rect.height;
+      deviceRatio = window.devicePixelRatio || 1;
+
+      canvas.width = width * deviceRatio;
+      canvas.height = height * deviceRatio;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+    };
+
+    const handleResize = () => {
+      resize();
+      ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
+    };
+
+    let lastTime = null;
+
+    const render = (timestamp) => {
+      if (lastTime === null) {
+        lastTime = timestamp;
+      }
+
+      const delta = Math.min(64, timestamp - lastTime);
+      lastTime = timestamp;
+
+      ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = '#212121';
+
+      waves.forEach((wave) => {
+        const amplitude = Math.max(0, wave.amplitude);
+        const alpha = Math.max(0.02, wave.alpha);
+        const lineWidth = Math.max(0.4, wave.lineWidth);
+
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+
+        for (let x = 0; x <= width; x += 6) {
+          const progress = x / wave.wavelength;
+          const noise = Math.cos(progress * 0.35 + wave.phase) * amplitude * 0.18;
+          const y = height / 2 + Math.sin(progress * Math.PI * 2 + wave.phase) * amplitude + noise;
+
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+
+        ctx.stroke();
+        ctx.closePath();
+
+        wave.phase += wave.speed * delta;
+      });
+
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(render);
+    };
+
+    handleResize();
+    requestAnimationFrame(render);
+
+    window.addEventListener('resize', handleResize);
+    if (window.ResizeObserver) {
+      const observer = new ResizeObserver(handleResize);
+      observer.observe(topPanel);
+    }
+  })();
+</script>
+
 
 <script type="module">
 export function initModal4() {
