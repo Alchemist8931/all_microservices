@@ -547,7 +547,8 @@ export function initModal4() {
   const rawUserKey = window.USER_KEY;
   const authUserId = window.AUTH_ID;
   const DB_USER_KEY = authUserId || rawUserKey;
-  const DB_COMPANY_ID = window.companyId || window.companyID || null;
+  let DB_COMPANY_ID = window.companyId || window.companyID || null;
+  let resolvingCompanyIdPromise = null;
   const TABLE_NAME = 'modal4_orders';
   const ORDER_STATUS = 'заказано';
 
@@ -562,6 +563,64 @@ export function initModal4() {
     console.warn('[modal4.html] отсутствует идентификатор пользователя или компании');
     return;
   }
+
+  const resolveCompanyId = async () => {
+    if (DB_COMPANY_ID) return DB_COMPANY_ID;
+    if (resolvingCompanyIdPromise) return resolvingCompanyIdPromise;
+    if (!supabase) return null;
+
+    const localId = window.LOCAL_USER_ID;
+    const isAdmin = Boolean(window.IS_ADMIN);
+    const tablesToCheck = isAdmin
+      ? ['administrators', 'employees']
+      : ['employees', 'administrators'];
+
+    resolvingCompanyIdPromise = (async () => {
+      for (const table of tablesToCheck) {
+        try {
+          let query = supabase
+            .from(table)
+            .select('company_id')
+            .limit(1);
+
+          if (localId) {
+            query = query.eq('id', localId);
+          } else if (DB_USER_KEY) {
+            query = query.eq('user_key', DB_USER_KEY);
+          } else if (rawUserKey) {
+            query = query.eq('user_key', rawUserKey);
+          } else {
+            continue;
+          }
+
+          const { data, error } = await query;
+          if (error) {
+            console.warn(`[modal4.html] не удалось получить company_id из ${table}:`, error);
+            continue;
+          }
+
+          if (Array.isArray(data) && data.length) {
+            const companyId = data[0]?.company_id ?? null;
+            if (companyId) {
+              DB_COMPANY_ID = companyId;
+              if (!window.companyId) window.companyId = companyId;
+              return companyId;
+            }
+          }
+        } catch (err) {
+          console.warn(`[modal4.html] исключение при получении company_id из ${table}:`, err);
+        }
+      }
+
+      return DB_COMPANY_ID;
+    })();
+
+    try {
+      return await resolvingCompanyIdPromise;
+    } finally {
+      resolvingCompanyIdPromise = null;
+    }
+  };
 
   console.log('[modal4.html] PAGE 4 активирован');
 
@@ -692,8 +751,9 @@ export function initModal4() {
       .from(TABLE_NAME)
       .select('order_code, item_name, url, supplier, modification, quantity_value, price_value');
 
-    if (DB_COMPANY_ID) {
-      query = query.eq('company_id', DB_COMPANY_ID);
+    const companyId = await resolveCompanyId();
+    if (companyId) {
+      query = query.eq('company_id', companyId);
     } else if (DB_USER_KEY) {
       query = query.eq('user_key', DB_USER_KEY);
     }
@@ -742,8 +802,9 @@ export function initModal4() {
       .eq('status', ORDER_STATUS)
       .order('created_at', { ascending: false });
 
-    if (DB_COMPANY_ID) {
-      query = query.eq('company_id', DB_COMPANY_ID);
+    const companyId = await resolveCompanyId();
+    if (companyId) {
+      query = query.eq('company_id', companyId);
     } else if (DB_USER_KEY) {
       query = query.eq('user_key', DB_USER_KEY);
     }
@@ -1135,9 +1196,11 @@ export function initModal4() {
     const quantityRaw = quantityInput?.dataset.raw ?? quantityInput?.value.trim() ?? '';
     const priceRaw = priceInput?.dataset.raw ?? priceInput?.value.trim() ?? '';
 
+    const companyIdForUser = await resolveCompanyId();
+
     const orderData = {
       user_key: DB_USER_KEY,
-      company_id: DB_COMPANY_ID,
+      company_id: companyIdForUser,
       order_code: inputs[0].value.trim(),
       item_name: inputs[1].value.trim(),
       url: inputs[2].value.trim(),
@@ -1188,8 +1251,9 @@ export function initModal4() {
       if (orderData.user_key) {
         dbPayload.user_key = orderData.user_key;
       }
-      if (orderData.company_id) {
-        dbPayload.company_id = orderData.company_id;
+      const payloadCompanyId = orderData.company_id || await resolveCompanyId();
+      if (payloadCompanyId) {
+        dbPayload.company_id = payloadCompanyId;
       }
 
       const id = await insertOrderToDB(dbPayload);
@@ -1261,8 +1325,9 @@ export function initModal4() {
           .delete()
           .in('id', ids);
 
-        if (DB_COMPANY_ID) {
-          deleteQuery = deleteQuery.eq('company_id', DB_COMPANY_ID);
+        const deleteCompanyId = await resolveCompanyId();
+        if (deleteCompanyId) {
+          deleteQuery = deleteQuery.eq('company_id', deleteCompanyId);
         } else if (DB_USER_KEY) {
           deleteQuery = deleteQuery.eq('user_key', DB_USER_KEY);
         }
