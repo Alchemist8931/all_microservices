@@ -141,7 +141,22 @@
       gap: 14px;
     }
 
-    #modal4-container .modalRow [data-field="date-time"] {
+    #modal4-container .date-time-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 180px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal4-container .date-time-field__time {
+      flex: 0 0 auto;
+      text-align: left;
+    }
+
+    #modal4-container .date-time-field__date {
+      flex: 1 1 auto;
       text-align: right;
     }
 
@@ -528,7 +543,10 @@
         <input class="inputT code-field" data-field="order_code" style="width: 100px;" placeholder="RIV-0881" readonly />
         <input class="input name-field" data-field="item_name" placeholder="наименование" readonly />
         <input class="input" data-field="status" style="width: 110px;" placeholder="статус" readonly />
-        <input class="input" data-field="date-time" placeholder="дата и время" readonly />
+        <div class="input date-time-field" data-field="date-time" aria-label="дата и время">
+          <span class="date-time-field__time"></span>
+          <span class="date-time-field__date"></span>
+        </div>
         <input class="inputT supplier-field" data-field="supplier" placeholder="поставщик" readonly />
         <span class="spec-icon" data-field="spec-url" data-url="">
           <i class="material-symbols-outlined">captive_portal</i>
@@ -664,16 +682,25 @@ export function initModal4() {
   ];
 
   const formatCreatedAt = value => {
-    if (!value) return '';
+    if (!value) {
+      return { time: '', date: '' };
+    }
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
+    if (Number.isNaN(date.getTime())) {
+      return { time: '', date: '' };
+    }
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const month = MONTHS_RU[date.getMonth()] ?? '';
     const year = date.getFullYear();
-    if (!month) return '';
-    return `${hours}:${minutes} ${day} ${month} ${year} г.`;
+    if (!month) {
+      return { time: '', date: '' };
+    }
+    return {
+      time: `${hours}:${minutes}`,
+      date: `${day} ${month} ${year} г.`,
+    };
   };
 
   const parseNumberNullable = str => {
@@ -703,10 +730,24 @@ export function initModal4() {
   sumInputs.forEach(el => {
     if (el.dataset.bindSum === '1') return;
     el.addEventListener('focus', () => {
-      const raw = el.dataset.raw ?? parseFloatSafe(el.value);
-      if (!isNaN(raw)) el.value = Number(raw).toFixed(2);
+      const hasStoredRaw = Object.prototype.hasOwnProperty.call(el.dataset, 'raw');
+      const trimmed = el.value.trim();
+      if (!hasStoredRaw && !trimmed) {
+        el.value = '';
+        return;
+      }
+      const rawCandidate = hasStoredRaw ? Number(el.dataset.raw) : parseFloatSafe(el.value);
+      if (!Number.isNaN(rawCandidate)) {
+        el.value = Number(rawCandidate).toFixed(2);
+      }
     });
     el.addEventListener('blur', () => {
+      const trimmed = el.value.trim();
+      if (!trimmed) {
+        el.value = '';
+        delete el.dataset.raw;
+        return;
+      }
       const raw = parseFloatSafe(el.value);
       if (isNaN(raw)) {
         el.value = '';
@@ -898,13 +939,28 @@ export function initModal4() {
     baseElement.dataset.price = String(totalPrice ?? 0);
 
     const assignValue = (field, value) => {
-      const normalized = value ?? '';
       const target = baseElement.querySelector(`[data-field="${field}"]`);
       if (!target) return;
+
+      if (field === 'date-time' && target.classList.contains('date-time-field')) {
+        const timeValue = value && typeof value === 'object' ? value.time ?? '' : '';
+        const dateValue = value && typeof value === 'object' ? value.date ?? '' : '';
+        const timeEl = target.querySelector('.date-time-field__time');
+        const dateEl = target.querySelector('.date-time-field__date');
+        if (timeEl) timeEl.textContent = timeValue;
+        if (dateEl) dateEl.textContent = dateValue;
+        target.dataset.time = timeValue;
+        target.dataset.date = dateValue;
+        return;
+      }
+
+      const normalized = value ?? '';
       if (target instanceof HTMLInputElement) {
         target.value = normalized;
       } else if (target instanceof HTMLElement && field === 'spec-url') {
         target.dataset.url = normalized;
+        } else if (target instanceof HTMLElement) {
+        target.textContent = normalized;
       }
     };
 
