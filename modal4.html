@@ -870,6 +870,7 @@
     const variation = 0.0025;
     const baseSpeed = 0.000275;
     const speedSpread = 0.00014;
+    const speedDampening = 0.5;
 
     let width = 0;
     let height = 0;
@@ -940,11 +941,12 @@
       ctx.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
       ctx.clearRect(0, 0, width, height);
 
-      const amplitude = Math.min(height * 0.75, 220);
-      const step = Math.max(1, Math.round(width / 320));
+      const baseAmplitude = Math.min(height * 0.6, 160);
+      const lineSeparation = baseAmplitude * 0.05;
+      const step = Math.max(1, Math.round(width / 420));
 
-      ctx.shadowColor = 'rgba(33, 33, 33, 0.35)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(43, 205, 255, 0.45)';
+      ctx.shadowBlur = 14;
 
       for (let i = 0; i < lineCount; i++) {
         ctx.beginPath();
@@ -952,41 +954,41 @@
         const depthOffset = depthOffsets[i];
         const phaseOffset = phaseOffsets[i];
         const direction = directions[i] || 1;
-        const baselineDrift = Math.sin(variators[i] * 0.25 + phaseOffset) * amplitude * 0.12;
-        const localAmplitude = amplitude * (0.65 + Math.sin(variators[i] * 0.6 + phaseOffset) * 0.35);
+        const verticalOffset = (i - (lineCount - 1) / 2) * lineSeparation;
+        const localAmplitude = baseAmplitude * (0.55 + Math.sin(phaseOffset) * 0.1 + (i / Math.max(1, lineCount - 1)) * 0.3);
 
-        let previousY = null;
+        let peakNoise = 0;
 
         for (let x = 0; x <= width; x += step) {
+          const noiseSample = x * variation;
           const noiseValue = perlin.noise(
-            x * variation + variators[i],
-            x * variation * 0.35 + depthOffset,
-            depthOffset * 0.15 + variators[i] * 0.5
+            noiseSample + variators[i],
+            noiseSample * 0.65 + depthOffset * 0.2,
+            variators[i] * 0.4 + phaseOffset * 0.25
           );
-          const y = startY + baselineDrift + noiseValue * localAmplitude;
+          const y = startY + verticalOffset + noiseValue * localAmplitude;
 
           if (x === 0) {
             ctx.moveTo(x, y);
           } else {
-            const mixY = previousY === null ? y : (y * 0.7 + previousY * 0.3);
-            ctx.lineTo(x, mixY);
+            ctx.lineTo(x, y);
           }
-          previousY = y;
+          peakNoise = Math.max(peakNoise, Math.abs(noiseValue));
         }
-        const alphaBase = 0.08;
-        const alphaRange = 0.22;
-        const alpha = alphaBase + (i / Math.max(1, lineCount - 1)) * alphaRange;
+        const baseAlpha = 0.035;
+        const alpha = baseAlpha + peakNoise * 0.09;
 
         ctx.globalAlpha = alpha;
-        ctx.lineWidth = Math.max(0.45, 1.4 - i * 0.02);
-        ctx.strokeStyle = '#212121';
+        ctx.lineWidth = Math.max(0.35, 1.15 - i * 0.018);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
 
         ctx.stroke();
         ctx.closePath();
 
-        variators[i] += speeds[i] * delta * direction;
-        phaseOffsets[i] += speeds[i] * delta * 0.25 * direction;
-        depthOffsets[i] += speeds[i] * delta * 0.05 * direction;
+        const dampenedDelta = delta * speedDampening;
+        variators[i] += speeds[i] * dampenedDelta * direction;
+        phaseOffsets[i] += speeds[i] * dampenedDelta * 0.25 * direction;
+        depthOffsets[i] += speeds[i] * dampenedDelta * 0.05 * direction;
       }
 
       ctx.globalAlpha = 1;
