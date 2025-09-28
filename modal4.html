@@ -67,7 +67,7 @@
       top: 10px;
       left: 10px;
       margin-top: -20px;
-      margin-left: -1500px;
+      margin-left: -1480px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -886,7 +886,7 @@
     let directions = new Int8Array(0);
 
     const rebuildLines = () => {
-      const desiredLines = Math.max(18, Math.min(48, Math.round(width / 48)));
+      const desiredLines = Math.max(9, Math.min(28, Math.round(width / 28)));
       if (desiredLines === lineCount) return;
 
       const nextVariators = new Float32Array(desiredLines);
