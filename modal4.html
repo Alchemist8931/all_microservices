@@ -273,52 +273,6 @@
       gap: 12px;
     }
 
-    #modal4-container .radio-inputs {
-      position: relative;
-      display: flex;
-      flex-wrap: wrap;
-      border-radius: 0.5rem;
-      background-color: #EEE;
-      box-sizing: border-box;
-      box-shadow: 0 0 0px 1px rgba(0, 0, 0, 0.06);
-      padding: 0.25rem;
-      width: 300px;
-      height: 30px;
-      font-size: 14px;
-      align-self: center;
-      margin-top: 10px;
-      gap: 0.25rem;
-    }
-
-    #modal4-container .radio-inputs .radio {
-      flex: 1 1 auto;
-      text-align: center;
-    }
-
-    #modal4-container .radio-inputs .radio input {
-      display: none;
-    }
-
-    #modal4-container .radio-inputs .radio .name {
-      display: flex;
-      cursor: pointer;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0.5rem;
-      border: none;
-      padding: .5rem 0;
-      color: rgba(51, 65, 85, 1);
-      transition: all .15s ease-in-out;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 500;
-    }
-
-    #modal4-container .radio-inputs .radio input:checked + .name {
-      background-color: #fff;
-      font-weight: 600;
-    }
-
     #modal4-container .modalVNUT-content .modalBLOCK {
       display: flex;
       flex-direction: column;
@@ -390,6 +344,59 @@
     #modal4-container .select-input:focus {
       background: rgba(255, 255, 255, 0.12);
       border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    #modal4-container .radio-inputs {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius: 0.5rem;
+      
+      background: var(--content-color, #212121);
+      border: 1px solid var(--content-color, #212121);
+      color: var(--fon, #f5f5f5);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      
+      box-sizing: border-box;
+      box-shadow: 0 0 0px 1px rgba(0, 0, 0, 0.06);
+      width: 300px;
+      height: 30px;
+      align-self: center;
+      margin-top: 10px;
+      gap: 0.25rem;
+    }
+
+    #modal4-container .radio-inputs .radio {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    #modal4-container .radio-inputs .radio input {
+      display: none;
+    }
+
+    #modal4-container .radio-inputs .radio .name {
+      display: flex;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      border: none;
+      padding: .5rem 0;
+      color: rgba(51, 65, 85, 1);
+      transition: all .15s ease-in-out;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+
+    #modal4-container .radio-inputs .radio input:checked + .name {
+      background-color: #fff;
+      font-weight: 600;
     }
 
     #modal4-container .button-form {
