@@ -1307,15 +1307,6 @@ export async function initModal9() {
         row.dataset.selectionIndex = String(index + 1);
         if (record?.article) row.dataset.article = record.article;
         if (record?.pos_id) row.dataset.posId = String(record.pos_id);
-        const metaParts = [];
-        if (record?.article) metaParts.push(`Артикул: ${record.article}`);
-        if (record?.model_name) metaParts.push(record.model_name);
-        if (metaParts.length) {
-          const meta = document.createElement('div');
-          meta.className = 'block21-meta';
-          meta.textContent = metaParts.join(' • ');
-          row.insertBefore(meta, row.firstChild);
-        }
       }
     const setOffer = (n, amount, curr, store, url) => {
         const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
