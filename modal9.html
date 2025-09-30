@@ -514,6 +514,20 @@
     }
     .modal-block.open .modal-content { opacity:1; }
     .modal-block.open .modal-title { opacity:0.15; }
+    .block21-entry {
+      display:flex;
+      align-items:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .block21-meta {
+      font-size:12px;
+      color:var(--content-color);
+      padding:4px 0;
+      min-width:160px;
+      font-weight:500;
+      white-space:nowrap;
+    }
     .dynamic-modals .modal-block { width:50px; }
     .dynamic-modals .modal-block.open { width:max-content; border:none; }
     /* раскрытие блоков только по двойному клику, убираем ховер-эффекты */
@@ -1278,39 +1292,65 @@ export async function initModal9() {
 
   function appendBlock21Content(target, selections = []) {
     if (!target || !block21Template) return;
-    const frag = block21Template.content.cloneNode(true);
-    const record = Array.isArray(selections) && selections.length ? selections[0] : {};
-    const setOffer = (n, amount, curr, store, url) => {
-      const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
-      const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
-      const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
-      if (priceEl) priceEl.value = formatOfferPrice(amount, curr);
-      if (storeEl) storeEl.value = store || '';
-      if (urlEl) {
-        const href = url || '';
-        if (href) {
-          urlEl.setAttribute('href', href);
-          urlEl.removeAttribute('aria-disabled');
-          urlEl.removeAttribute('tabindex');
-          urlEl.classList.remove('disabled');
-          urlEl.style.pointerEvents = '';
-          urlEl.style.opacity = '';
-        } else {
-          urlEl.setAttribute('href', '#');
-          urlEl.setAttribute('aria-disabled', 'true');
-          urlEl.setAttribute('tabindex', '-1');
-          urlEl.classList.add('disabled');
-          urlEl.style.pointerEvents = 'none';
-          urlEl.style.opacity = '0.5';
+    target.innerHTML = '';
+    const records = Array.isArray(selections) ? selections.filter(Boolean) : [];
+    if (!records.length) {
+      target.appendChild(block21Template.content.cloneNode(true));
+      return;
+    }
+
+    records.forEach((record, index) => {
+      const frag = block21Template.content.cloneNode(true);
+      const row = frag.firstElementChild;
+      if (row) {
+        row.classList.add('block21-entry');
+        row.dataset.selectionIndex = String(index + 1);
+        if (record?.article) row.dataset.article = record.article;
+        if (record?.pos_id) row.dataset.posId = String(record.pos_id);
+        const metaParts = [];
+        if (record?.article) metaParts.push(`Артикул: ${record.article}`);
+        if (record?.model_name) metaParts.push(record.model_name);
+        if (metaParts.length) {
+          const meta = document.createElement('div');
+          meta.className = 'block21-meta';
+          meta.textContent = metaParts.join(' • ');
+          row.insertBefore(meta, row.firstChild);
         }
       }
-    };
+    const setOffer = (n, amount, curr, store, url) => {
+        const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
+        const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
+        const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
+        if (priceEl) priceEl.value = formatOfferPrice(amount, curr);
+        if (storeEl) storeEl.value = store || '';
+        if (urlEl) {
+          const href = url || '';
+          if (href) {
+            urlEl.setAttribute('href', href);
+            urlEl.removeAttribute('aria-disabled');
+            urlEl.removeAttribute('tabindex');
+            urlEl.classList.remove('disabled');
+            urlEl.style.pointerEvents = '';
+            urlEl.style.opacity = '';
+            urlEl.setAttribute('title', href);
+          } else {
+            urlEl.setAttribute('href', '#');
+            urlEl.setAttribute('aria-disabled', 'true');
+            urlEl.setAttribute('tabindex', '-1');
+            urlEl.classList.add('disabled');
+            urlEl.style.pointerEvents = 'none';
+            urlEl.style.opacity = '0.5';
+            urlEl.removeAttribute('title');
+          }
+        }
+      };
 
-    setOffer(1, record.price1_amount, record.price1_currency, record.price1_store, record.price1_url);
-    setOffer(2, record.price2_amount, record.price2_currency, record.price2_store, record.price2_url);
-    setOffer(3, record.price3_amount, record.price3_currency, record.price3_store, record.price3_url);
+      setOffer(1, record?.price1_amount, record?.price1_currency, record?.price1_store, record?.price1_url);
+      setOffer(2, record?.price2_amount, record?.price2_currency, record?.price2_store, record?.price2_url);
+      setOffer(3, record?.price3_amount, record?.price3_currency, record?.price3_store, record?.price3_url);
 
     target.appendChild(frag);
+    });
   }
 
   let selectedFile = null;
