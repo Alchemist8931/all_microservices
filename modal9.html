@@ -2,7 +2,7 @@
 <div id="modal9-container" class="spec-modal">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
-    /* --- базовые стили из modal5  --- */
+    /* --- базовые стили из modal5 --- */
     .spec-modal {
       display: flex;
       flex-direction: column;
@@ -153,49 +153,6 @@
     .tooltip-modal::-webkit-scrollbar { width:6px; }
     .tooltip-modal::-webkit-scrollbar-track { background:#e0e0e0; }
     .tooltip-modal::-webkit-scrollbar-thumb { background:var(--content-color); border-radius:10px; }
-    .modal9-maintenance-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 5000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 15, 15, 0.82);
-      backdrop-filter: blur(6px);
-      padding: 40px 20px;
-      text-align: center;
-    }
-    .modal9-maintenance-hidden { display: none !important; }
-    .modal9-maintenance-message {
-      max-width: 640px;
-      padding: 32px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-      color: var(--content-color, #f5f5f5);
-    }
-    .modal9-maintenance-message h2 {
-      margin: 0 0 12px;
-      font-size: 28px;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-    .modal9-maintenance-message p {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.5;
-      color: rgba(245, 245, 245, 0.85);
-    }
-    #modal9-container.modal9-maintenance-active .modal9-top-window,
-    #modal9-container.modal9-maintenance-active .modal9-scroll-wrapper {
-      filter: blur(4px);
-      pointer-events: none;
-      user-select: none;
-    }
-    #modal9-container.modal9-maintenance-active .modal9-scroll-wrapper {
-      opacity: 0.35;
-    }
     .ans5-close { position:absolute; top:4px; right:8px; font-size:24px; background:none; border:none; cursor:pointer; }
 
     .modalRow { display:flex; gap:10px; margin-top:10px; }
@@ -683,12 +640,6 @@
     }
     
   </style>
-  <div class="modal9-maintenance-overlay modal9-maintenance-hidden" role="alert">
-    <div class="modal9-maintenance-message">
-      <h2>Ведутся технические работы</h2>
-      <p>Доступ к разделу временно ограничен. Пожалуйста, попробуйте зайти позже или обратитесь к вашему администратору.</p>
-    </div>
-  </div>
   <div class="spec-context-menu" aria-hidden="true">
     <button type="button" data-action="copy">Скопировать спецификацию</button>
     <button type="button" data-action="excel">Скачать спецификацию Excel</button>
@@ -1150,45 +1101,6 @@ export async function initModal9() {
   let contextSpecContent = null;
   let currentUserEmail = null;
   let lastSupportSpecId = null;
-
-  const PAGE_ACCESS_CODE = 'PAGE9';
-
-  const parseLevels = (levelsRaw) => {
-    if (!levelsRaw) return [];
-    return String(levelsRaw)
-      .split(',')
-      .map(item => item.trim().toUpperCase())
-      .filter(Boolean);
-  };
-
-  const toggleMaintenanceOverlay = (show) => {
-    if (!maintenanceOverlay) return;
-    if (show) {
-      maintenanceOverlay.classList.remove('modal9-maintenance-hidden');
-      root.classList.add('modal9-maintenance-active');
-    } else {
-      maintenanceOverlay.classList.add('modal9-maintenance-hidden');
-      root.classList.remove('modal9-maintenance-active');
-    }
-  };
-
-  const evaluateMaintenanceAccess = () => {
-    try {
-      const levels = parseLevels(window.USER_LEVELS || '');
-      const relatedLevels = levels.filter(level => level.replace(/^!+/, '').trim() === PAGE_ACCESS_CODE);
-      if (!relatedLevels.length) {
-        toggleMaintenanceOverlay(false);
-        return;
-      }
-      const hasBypass = relatedLevels.some(level => level.startsWith('!'));
-      toggleMaintenanceOverlay(!hasBypass);
-    } catch (err) {
-      console.error('[modal9] maintenance access evaluation error:', err);
-      toggleMaintenanceOverlay(false);
-    }
-  };
-
-  evaluateMaintenanceAccess();
 
   if (supabase?.auth?.getUser) {
     try {
