@@ -42,6 +42,9 @@
     .spec-info-icon { margin-left:8px; cursor:pointer; color:#007bff; }
     .spec-info-icon.disabled { color:#6c757d; pointer-events:none; }
     .spec-done-icon { margin-left:8px; color:#28a745; }
+    .history-controls { width:100%; display:flex; justify-content:center; margin:12px 0 0; }
+    .history-load-more { min-width:200px; }
+    .history-load-more.loading { opacity:0.7; pointer-events:none; }
     .spec-row { width:100%; max-width:600px; margin-bottom:10px; }
     .spec-input-group { display:flex; gap:8px; }
     .spec-upload-progress { width:100%; margin-top:6px; }
@@ -710,6 +713,10 @@
    <div class="modal9-content">
     <div class="page spec-page active" data-page="1">
       <div class="history-list spec-history-list"></div>
+
+      <div class="history-controls">
+        <button type="button" class="darkmatter-btn history-load-more" style="display:none;">показать ещё</button>
+      </div>
       
       <template id="history-row-template">
         <div class="history-item spec-history-item input-row" style="display: flex; flex-direction: row; padding-top: 5px;">
@@ -1056,11 +1063,15 @@ export async function initModal9() {
   const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
   const SELECTOR_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-selector';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
+  const HISTORY_LIMIT_DEFAULT = 30;
+  const HISTORY_LIMIT_STEP = 30;
+  const AUTO_REFRESH_INTERVAL = 20000;
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
   const navSlider = root.querySelector('nav.nav_copy .slider');
   const pages = root.querySelectorAll('.page');
+  const loadMoreBtn = root.querySelector('.history-load-more');
   const historyList = root.querySelector('.history-list');
   const dropzone = root.querySelector('.js-dropzone');
   const rowTemplate = root.querySelector('#history-row-template');
@@ -1094,6 +1105,7 @@ export async function initModal9() {
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   let realtimeSub = null;
+  let autoRefreshTimer = null;
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
@@ -1101,6 +1113,11 @@ export async function initModal9() {
   let contextSpecContent = null;
   let currentUserEmail = null;
   let lastSupportSpecId = null;
+  let historyLimit = HISTORY_LIMIT_DEFAULT;
+  let historyTotalCount = 0;
+  let isLoadingHistory = false;
+  let queuedHistoryOptions = null;
+  let filterDebounceTimer = null;
 
   if (supabase?.auth?.getUser) {
     try {
@@ -1202,6 +1219,19 @@ export async function initModal9() {
       block1ReloadTimer = null;
       await loadBlock1();
     }, 500);
+  }
+
+  function startAutoRefresh() {
+    if (autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(() => {
+      loadHistory();
+    }, AUTO_REFRESH_INTERVAL);
+  }
+
+  function stopAutoRefresh() {
+    if (!autoRefreshTimer) return;
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
   }
 
   const DELIM = window.__DELIM || "###";
@@ -1346,19 +1376,52 @@ export async function initModal9() {
 
   let selectedFile = null;
   filterInput.addEventListener('input', () => {
+    const hasValue = !!filterInput.value.trim();
+    filterClear.style.display = hasValue ? 'block' : 'none';
     applySecondFilter();
-    filterClear.style.display = filterInput.value ? 'block' : 'none';
+    historyLimit = HISTORY_LIMIT_DEFAULT;
+    if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = setTimeout(() => {
+      loadHistory();
+    }, 350);
   });
 
   filterClear.addEventListener('click', () => {
     filterInput.value = '';
     filterClear.style.display = 'none';
     applySecondFilter();
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
+    historyLimit = HISTORY_LIMIT_DEFAULT;
+    loadHistory({ resetLimit: true });
   });
   myFilesToggle.addEventListener('change', async () => {
     toggleText.textContent = myFilesToggle.checked ? 'демонстрация только моих файлов' : 'демонстрация файлов компании';
-    await loadHistory();
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
+    historyLimit = HISTORY_LIMIT_DEFAULT;
+    await loadHistory({ resetLimit: true });
   });
+  if (loadMoreBtn) {
+    const loadMoreDefaultText = loadMoreBtn.textContent.trim() || 'показать ещё';
+    loadMoreBtn.addEventListener('click', async () => {
+      historyLimit += HISTORY_LIMIT_STEP;
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.classList.add('loading');
+      loadMoreBtn.textContent = 'загрузка...';
+      try {
+        await loadHistory();
+      } finally {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.classList.remove('loading');
+        loadMoreBtn.textContent = loadMoreDefaultText;
+      }
+    });
+  }
   fileInput.addEventListener('change', () => {
     selectedFile = fileInput.files[0] || null;
     renderFileList();
@@ -1547,28 +1610,93 @@ export async function initModal9() {
 
   let history = [];
   let lastHistoryStatus = {};
-  async function loadHistory() {
-    const oldMap = { ...lastHistoryStatus };
-     let query = supabase
-      .from(TABLE)
-      .select('id, file_number, user_login, created_at, file_name, file_ext, status')
-      .order('created_at', { ascending: false });
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (myFilesToggle.checked && session?.user?.email) {
-      query = query.eq('user_login', session.user.email);
+  function escapeSearchValue(value) {
+    return value.replace(/[\\%_]/g, '\\$&');
+  }
+  function updateLoadMoreVisibility() {
+    if (!loadMoreBtn) return;
+    const hasMore = history.length > 0 && history.length < historyTotalCount;
+    loadMoreBtn.style.display = hasMore ? 'inline-flex' : 'none';
+  }
+  async function loadHistory(options = {}) {
+    const { resetLimit = false } = options;
+    if (resetLimit) {
+      historyLimit = HISTORY_LIMIT_DEFAULT;
     }
+    if (isLoadingHistory) {
+      queuedHistoryOptions = {
+        resetLimit: queuedHistoryOptions?.resetLimit || resetLimit,
+      };
+      return;
+    }
+    isLoadingHistory = true;
+    try {
+      const oldMap = { ...lastHistoryStatus };
+      let query = supabase
+        .from(TABLE)
+        .select('id, file_number, user_login, created_at, file_name, file_ext, status', { count: 'exact' })
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+      try {
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        const sessionEmail = session?.user?.email || null;
+        if (sessionEmail && !currentUserEmail) currentUserEmail = sessionEmail;
+        if (myFilesToggle.checked && sessionEmail) {
+          query = query.eq('user_login', sessionEmail);
+        }
+      } catch (err) {
+        console.error('[modal9] loadHistory session error:', err);
+      }
 
-    if (error) { console.error(error); return; }
-    history = data || [];
-    lastHistoryStatus = {};
-    history.forEach(h => {
-      if (h?.id !== undefined) lastHistoryStatus[h.id] = h.status;
-    });
-    renderHistory(oldMap);
-    renderBlock1();
+    const searchValue = filterInput.value.trim();
+      if (searchValue) {
+        const escaped = escapeSearchValue(searchValue);
+        const pattern = `%${escaped}%`;
+        query = query.or([
+          `file_number.ilike.${pattern}`,
+          `user_login.ilike.${pattern}`,
+          `file_name.ilike.${pattern}`,
+          `file_ext.ilike.${pattern}`,
+          `status.ilike.${pattern}`,
+          `id::text.ilike.${pattern}`,
+          `created_at::text.ilike.${pattern}`,
+        ].join(','));
+      }
+
+    query = query.limit(historyLimit);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error(error);
+        updateLoadMoreVisibility();
+        return;
+      }
+      history = data || [];
+      historyTotalCount = typeof count === 'number' ? count : history.length;
+      lastHistoryStatus = {};
+      history.forEach(h => {
+        if (h?.id !== undefined) lastHistoryStatus[h.id] = h.status;
+      });
+      renderHistory(oldMap);
+      applySecondFilter();
+      updateLoadMoreVisibility();
+      if (history.length) {
+        await loadBlock1({ fromHistory: true });
+      } else {
+        block1Rows = [];
+        specGroups = {};
+        selectionMap = {};
+        renderBlock1();
+      }
+    } finally {
+      isLoadingHistory = false;
+      if (queuedHistoryOptions) {
+        const next = { ...queuedHistoryOptions };
+        queuedHistoryOptions = null;
+        await loadHistory(next);
+      }
+    }
   }
 
   function renderHistory(oldMap = {}) {
@@ -1724,23 +1852,44 @@ export async function initModal9() {
   let specGroups = {};
   let selectionMap = {};
   let loadingBlock1 = false;
-  let pendingLoad = false;
-  async function loadBlock1() {
+  let pendingLoad = null;
+  async function loadBlock1(options = {}) {
+    const { fromHistory = false } = options;
     if (loadingBlock1) {
-      pendingLoad = true;
+      pendingLoad = fromHistory ? 'history' : 'default';
       return;
     }
     loadingBlock1 = true;
+    const specIds = Array.from(new Set((history || []).map(h => h?.id).filter(id => id !== null && id !== undefined)));
+    if (!specIds.length) {
+      block1Rows = [];
+      specGroups = {};
+      selectionMap = {};
+      renderBlock1();
+      loadingBlock1 = false;
+      pendingLoad = null;
+      return;
+    }
     const { data, error } = await supabase
-      .from(POS_TABLE)                                // ← заменили константу
+      .from(POS_TABLE)
       .select(
         'file_number, user_login, file_name, id, spec_id,' +
         'pos_number, pos_number_int, name, qty, unit, attrs'
       )
-     .order('spec_id', { ascending: false })
+     .in('spec_id', specIds)
+      .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
 
-    if (error) { console.error(error); loadingBlock1 = false; if (pendingLoad) { pendingLoad = false; loadBlock1(); } return; }
+    if (error) {
+      console.error(error);
+      loadingBlock1 = false;
+      const next = pendingLoad;
+      pendingLoad = null;
+      if (next) {
+        loadBlock1({ fromHistory: next === 'history' });
+      }
+      return;
+    }
     block1Rows = data || [];
     const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
@@ -1764,13 +1913,14 @@ const { data: sels, error: selErr } = await supabase
       (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
     });
     renderBlock1();
-    if (history.length) {
+    if (!fromHistory && history.length) {
       renderHistory({ ...lastHistoryStatus });
     }
     loadingBlock1 = false;
-    if (pendingLoad) {
-      pendingLoad = false;
-      loadBlock1();
+    const next = pendingLoad;
+    pendingLoad = null;
+    if (next) {
+      loadBlock1({ fromHistory: next === 'history' });
     }
   }
 
@@ -2699,7 +2849,6 @@ const { data: sels, error: selErr } = await supabase
       } catch (err) {
         if (err?.name !== 'AbortError') console.error('trackerPromise error:', err);
       }
-      await loadBlock1();
       await loadHistory();
     }
   }
@@ -2710,7 +2859,6 @@ const { data: sels, error: selErr } = await supabase
     .channel('modal9-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
       loadHistory();
-      scheduleLoadBlock1();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => scheduleLoadBlock1())
     .on('postgres_changes', { event: '*', schema: 'public', table: STATUS_TABLE }, () => scheduleLoadBlock1())
@@ -2722,9 +2870,19 @@ const { data: sels, error: selErr } = await supabase
       realtimeSub.unsubscribe();
       realtimeSub = null;
     }
+    stopAutoRefresh();
   }
 
   window.cleanupRealtime = cleanupRealtime;
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAutoRefresh();
+    } else {
+      startAutoRefresh();
+      loadHistory();
+    }
+  });
   
   function setProgress(progressEl, info) {
     if (!progressEl) return;
@@ -2825,9 +2983,9 @@ const { data: sels, error: selErr } = await supabase
     }
   } catch (_) {}
 
-  await loadBlock1();
-  await loadHistory();
+  await loadHistory({ resetLimit: true });
   setupRealtime();
+  startAutoRefresh();
 }
 
 initModal9();
