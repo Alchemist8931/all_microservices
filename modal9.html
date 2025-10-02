@@ -1151,6 +1151,45 @@ export async function initModal9() {
   let currentUserEmail = null;
   let lastSupportSpecId = null;
 
+  const PAGE_ACCESS_CODE = 'PAGE9';
+
+  const parseLevels = (levelsRaw) => {
+    if (!levelsRaw) return [];
+    return String(levelsRaw)
+      .split(',')
+      .map(item => item.trim().toUpperCase())
+      .filter(Boolean);
+  };
+
+  const toggleMaintenanceOverlay = (show) => {
+    if (!maintenanceOverlay) return;
+    if (show) {
+      maintenanceOverlay.classList.remove('modal9-maintenance-hidden');
+      root.classList.add('modal9-maintenance-active');
+    } else {
+      maintenanceOverlay.classList.add('modal9-maintenance-hidden');
+      root.classList.remove('modal9-maintenance-active');
+    }
+  };
+
+  const evaluateMaintenanceAccess = () => {
+    try {
+      const levels = parseLevels(window.USER_LEVELS || '');
+      const relatedLevels = levels.filter(level => level.replace(/^!+/, '').trim() === PAGE_ACCESS_CODE);
+      if (!relatedLevels.length) {
+        toggleMaintenanceOverlay(false);
+        return;
+      }
+      const hasBypass = relatedLevels.some(level => level.startsWith('!'));
+      toggleMaintenanceOverlay(!hasBypass);
+    } catch (err) {
+      console.error('[modal9] maintenance access evaluation error:', err);
+      toggleMaintenanceOverlay(false);
+    }
+  };
+
+  evaluateMaintenanceAccess();
+
   if (supabase?.auth?.getUser) {
     try {
       supabase.auth.getUser()
