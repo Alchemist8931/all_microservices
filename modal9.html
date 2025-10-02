@@ -153,6 +153,49 @@
     .tooltip-modal::-webkit-scrollbar { width:6px; }
     .tooltip-modal::-webkit-scrollbar-track { background:#e0e0e0; }
     .tooltip-modal::-webkit-scrollbar-thumb { background:var(--content-color); border-radius:10px; }
+    .modal9-maintenance-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 15, 15, 0.82);
+      backdrop-filter: blur(6px);
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .modal9-maintenance-hidden { display: none !important; }
+    .modal9-maintenance-message {
+      max-width: 640px;
+      padding: 32px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      color: var(--content-color, #f5f5f5);
+    }
+    .modal9-maintenance-message h2 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .modal9-maintenance-message p {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.5;
+      color: rgba(245, 245, 245, 0.85);
+    }
+    #modal9-container.modal9-maintenance-active .modal9-top-window,
+    #modal9-container.modal9-maintenance-active .modal9-scroll-wrapper {
+      filter: blur(4px);
+      pointer-events: none;
+      user-select: none;
+    }
+    #modal9-container.modal9-maintenance-active .modal9-scroll-wrapper {
+      opacity: 0.35;
+    }
     .ans5-close { position:absolute; top:4px; right:8px; font-size:24px; background:none; border:none; cursor:pointer; }
 
     .modalRow { display:flex; gap:10px; margin-top:10px; }
@@ -640,6 +683,12 @@
     }
     
   </style>
+  <div class="modal9-maintenance-overlay modal9-maintenance-hidden" role="alert">
+    <div class="modal9-maintenance-message">
+      <h2>Ведутся технические работы</h2>
+      <p>Доступ к разделу временно ограничен. Пожалуйста, попробуйте зайти позже или обратитесь к вашему администратору.</p>
+    </div>
+  </div>
   <div class="spec-context-menu" aria-hidden="true">
     <button type="button" data-action="copy">Скопировать спецификацию</button>
     <button type="button" data-action="excel">Скачать спецификацию Excel</button>
