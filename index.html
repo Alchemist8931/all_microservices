@@ -833,23 +833,13 @@
     });
 
     function filterMenuByUserLevels(userLevels) {
-      const userKeysSet = new Set();
-      String(userLevels || '')
-        .split(',')
-        .map(key => key.trim().toUpperCase())
-        .filter(Boolean)
-        .forEach(level => {
-          userKeysSet.add(level);
-          if (level.startsWith('!') && level.length > 1) {
-            userKeysSet.add(level.slice(1));
-          }
-        });
+      const userKeys = userLevels.split(',').map(key => key.trim().toUpperCase());
       const menuItems = document.querySelectorAll('.navbar__item');
       menuItems.forEach(item => {
         const levelsAttr = item.getAttribute('data-levels');
         if (levelsAttr) {
           const itemLevels = levelsAttr.split(',').map(key => key.trim().toUpperCase());
-          const hasAccess = itemLevels.every(level => userKeysSet.has(level));
+          const hasAccess = itemLevels.every(level => userKeys.includes(level));
           item.style.display = hasAccess ? '' : 'none';
         }
       });
