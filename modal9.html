@@ -43,7 +43,12 @@
     .spec-info-icon.disabled { color:#6c757d; pointer-events:none; }
     .spec-done-icon { margin-left:8px; color:#28a745; }
     .history-controls { width:100%; display:flex; justify-content:center; margin:12px 0 0; }
-    .history-load-more { min-width:200px; }
+    .history-load-more {
+      min-width:200px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
     .history-load-more.loading { opacity:0.7; pointer-events:none; }
     .spec-row { width:100%; max-width:600px; margin-bottom:10px; }
     .spec-input-group { display:flex; gap:8px; }
@@ -1699,36 +1704,35 @@ export async function initModal9() {
     }
   }
 
-  function renderHistory(oldMap = {}) {
-    historyList.querySelectorAll('.spec-content').forEach(el => {
-      const openBlock = el.querySelector('.modal-block.open');
-      if (openBlock) {
-        const cls = Array.from(openBlock.classList).find(c => c.startsWith('block'));
-        if (cls) historyOpenBlocks[el.dataset.specId] = cls;
-      }
+  function renderHistory(oldMap = {}, options = {}) {
+    const { updateOnly = false } = options;
+    if (updateOnly) {
+      updateHistorySpecContainers({ forceAll: true });
+      setupOverflowTooltips(historyList);
+      applySecondFilter();
+      return;
+    }
+    const existingRows = new Map();
+    historyList.querySelectorAll('.history-item').forEach(row => {
+      existingRows.set(row.dataset.specId, row);
     });
-    const openIds = Array.from(historyList.querySelectorAll('.spec-content'))
-      .filter(el => !el.classList.contains('hidden'))
-      .map(el => el.dataset.specId);
-    historyList.innerHTML = '';
+    const processed = new Set();
+    let anchor = historyList.firstChild;
     history.forEach(item => {
+      const idStr = String(item.id);
+      processed.add(idStr);
+      let rowEl = existingRows.get(idStr);
+      if (!rowEl) {
         const fragment = rowTemplate.content.cloneNode(true);
-        const rowEl = fragment.querySelector('.history-item');
-        rowEl.dataset.specId = item.id;
+        rowEl = fragment.querySelector('.history-item');
+        if (!rowEl) return;
+        rowEl.dataset.specId = idStr;
         rowEl.classList.add('fade-in');
         rowEl.addEventListener('click', () => openRowGroup(item.id, historyOpenBlocks[item.id]));
         fragment.querySelectorAll('[data-field]').forEach(el => {
           const field = el.dataset.field;
-          let val = item[field];
-          if (field === 'created_at') {
-            val = new Date(item.created_at).toLocaleString();
-          }
-          if (el.tagName === 'INPUT') {
-            el.value = val || '';
-          } else {
-            el.textContent = val || '';
-          }
-           if (field === 'id') {
+          if (!field) return;
+          if (field === 'id') {
             el.addEventListener('click', e => {
               e.stopPropagation();
               openRowGroup(item.id, historyOpenBlocks[item.id]);
@@ -1740,89 +1744,43 @@ export async function initModal9() {
               showCopyTip(el);
             });
           }
-          if (field === 'status') {
-            updateStatus(el, val);
-            if (oldMap[item.id] && oldMap[item.id] !== val) {
-              animateStatus(el, val);
-            }
-          }
         });
-      const specRows = specGroups[item.id] || [];
-        if (specRows.length) {
-          const specFrag = specTemplate.content.cloneNode(true);
-          const container = specFrag.querySelector('.spec-container');
-          container.dataset.specId = item.id;
-          const content = specFrag.querySelector('.spec-content');
-          const title = specFrag.querySelector('.spec-title');
-          const btn = specFrag.querySelector('.group-close');
-          const progressFrag = specProgressTemplate.content.cloneNode(true);
-          const progress = progressFrag.querySelector('.spec-progress');
-          progress.dataset.specId = item.id;
-          progress.classList.add('fade-toggle', 'hidden');
-          progress.style.display = 'none';
-          container.insertBefore(progressFrag, content);
-          insertActionButtons(container, item.id);
-          initProgressHandlers(progress, item.id);
-          setProgress(progress, item.status);
-          if (btn) btn.remove();
-          if (title) title.style.display = 'none';
-          content.dataset.specId = item.id;
-          content.classList.add('fade-toggle', 'hidden');
-          content.style.display = 'none';
-         specRows.sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0)).forEach(r => {
-            const rf = specRowTemplate.content.cloneNode(true);
-            rf.querySelector('[data-field="pos_number"]').value = r.pos_number;
-            rf.querySelector('[data-field="name"]').value = r.name;
-            rf.querySelector('[data-field="qty"]').value = r.qty;
-            const attrsWrap = rf.querySelector('.block1 .modal-content');
-            (r.attrs || '').split('|').forEach(pair => {
-              pair = pair.trim();
-              if(!pair) return;
-              const [p,v] = pair.split(/[:=]/);
-              const fragPair = attrPairTemplate.content.cloneNode(true);
-              const pInp = fragPair.querySelector('.param-input');
-              const vInp = fragPair.querySelector('.value-input');
-              if(pInp){ pInp.value = p || ''; pInp.readOnly = true; }
-              if(vInp){ vInp.value = v || ''; vInp.readOnly = true; }
-              attrsWrap.appendChild(fragPair);
-            });
-            const b2 = rf.querySelector('.block2 .modal-content');
-            if (b2) {
-              const sels = selectionMap[r.id] || [];
-              if (sels.length) {
-                sels.forEach(sel => {
-                  const b2Frag = block2Template.content.cloneNode(true);
-                  const b2El = b2Frag.firstElementChild;
-                  if (b2El) b2El.classList.add('fade-in');
-                  const inputs = b2Frag.querySelectorAll('input');
-                 if (inputs[0]) inputs[0].value = sel.article || '';
-                if (inputs[1]) inputs[1].value = sel.model_name || '';
-                if (inputs[2]) inputs[2].value = sel.qty || '';
-                if (inputs[3]) inputs[3].value = sel.unit || '';
-                if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
-                if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
-                b2.appendChild(b2Frag);
-              });
-              } else {
-                const b2Frag = block2Template.content.cloneNode(true);
-                const b2El = b2Frag.firstElementChild;
-                if (b2El) b2El.classList.add('fade-in');
-                b2.appendChild(b2Frag);
-              }
-            }
-            const b21 = rf.querySelector('.block21 .modal-content');
-            if (b21) appendBlock21Content(b21, selectionMap[r.id] || []);
-            rf.querySelector('.block1').classList.add('open');
-            content.appendChild(rf);
-          });
-          fragment.appendChild(specFrag);
+      historyList.insertBefore(fragment, anchor);
+        rowEl = historyList.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+      }
+      if (!rowEl) return;
+      const fields = rowEl.querySelectorAll('[data-field]');
+      fields.forEach(el => {
+        const field = el.dataset.field;
+        if (!field) return;
+        let val = item[field];
+        if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+        if (el.tagName === 'INPUT') {
+          if (el.value !== (val || '')) el.value = val || '';
+        } else if (el.textContent !== (val || '')) {
+          el.textContent = val || '';
         }
-        historyList.appendChild(fragment);
+        if (field === 'status') {
+          updateStatus(el, val);
+          if (oldMap[item.id] && oldMap[item.id] !== val) animateStatus(el, val);
+          updateSpecProgress(item.id, val);
+        }
+        });
+      if (anchor && rowEl !== anchor) {
+        historyList.insertBefore(rowEl, anchor);
+      }
+      const specContainer = historyList.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
+      if (specContainer && specContainer.previousSibling !== rowEl) {
+        historyList.insertBefore(specContainer, rowEl.nextSibling);
+      }
+      anchor = specContainer ? specContainer.nextSibling : rowEl.nextSibling;
     });
-    setupDynamicBlocks(historyList);
-    openIds.forEach(id => {
-      if (historyList.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
-       openRowGroup(id, historyOpenBlocks[id]);
+    existingRows.forEach((rowEl, id) => {
+      if (!processed.has(id)) {
+        rowEl.remove();
+        const specContainer = historyList.querySelector(`.spec-container[data-spec-id="${id}"]`);
+        if (specContainer) specContainer.remove();
+        delete historyOpenBlocks[id];
       }
     });
     setupOverflowTooltips(historyList);
@@ -1851,8 +1809,300 @@ export async function initModal9() {
   let block1Rows = [];
   let specGroups = {};
   let selectionMap = {};
+  const specRenderCache = new Map();
   let loadingBlock1 = false;
   let pendingLoad = null;
+
+  function computeSpecHash(specId) {
+    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const summary = rows.map(row => {
+      const selections = (selectionMap[row.id] || []).map(sel => ({
+        article: sel.article ?? '',
+        model_name: sel.model_name ?? '',
+        qty: sel.qty ?? '',
+        unit: sel.unit ?? '',
+        price: sel.price ?? '',
+        sum: sel.sum ?? '',
+        price1_amount: sel.price1_amount ?? '',
+        price1_currency: sel.price1_currency ?? '',
+        price1_store: sel.price1_store ?? '',
+        price1_url: sel.price1_url ?? '',
+        price2_amount: sel.price2_amount ?? '',
+        price2_currency: sel.price2_currency ?? '',
+        price2_store: sel.price2_store ?? '',
+        price2_url: sel.price2_url ?? '',
+        price3_amount: sel.price3_amount ?? '',
+        price3_currency: sel.price3_currency ?? '',
+        price3_store: sel.price3_store ?? '',
+        price3_url: sel.price3_url ?? '',
+        pricer_status: sel.pricer_status ?? '',
+        prices_json: sel.prices_json ?? '',
+      }));
+      return {
+        id: row.id,
+        pos_number: row.pos_number ?? '',
+        pos_number_int: row.pos_number_int ?? '',
+        name: row.name ?? '',
+        qty: row.qty ?? '',
+        unit: row.unit ?? '',
+        attrs: row.attrs ?? '',
+        selections,
+      };
+    });
+    return JSON.stringify(summary);
+  }
+
+  function createSpecContainer(specId, options = {}) {
+    const { mode = 'history' } = options;
+    if (!specTemplate) return {};
+    const fragment = specTemplate.content.cloneNode(true);
+    const container = fragment.querySelector('.spec-container');
+    if (!container) return {};
+    const idStr = String(specId);
+    container.dataset.specId = idStr;
+    const header = container.querySelector('.spec-header');
+    const closeBtn = container.querySelector('.group-close');
+    const content = container.querySelector('.spec-content');
+    if (content) {
+      content.dataset.specId = idStr;
+      content.classList.add('fade-toggle', 'hidden');
+      content.style.display = 'none';
+    }
+    let progress = null;
+    if (specProgressTemplate && content) {
+      const progressFrag = specProgressTemplate.content.cloneNode(true);
+      progress = progressFrag.querySelector('.spec-progress');
+      if (progress) {
+        progress.dataset.specId = idStr;
+        progress.classList.add('fade-toggle', 'hidden');
+        progress.style.display = 'none';
+      }
+      container.insertBefore(progressFrag, content);
+      if (progress) {
+        initProgressHandlers(progress, specId);
+        const status = history.find(h => String(h.id) === idStr)?.status;
+        setProgress(progress, status);
+      }
+    }
+    const actions = insertActionButtons(container, specId);
+    if (actions) actions.dataset.mode = mode;
+    if (mode === 'history') {
+      if (closeBtn) closeBtn.remove();
+    } else {
+      if (closeBtn) {
+        closeBtn.classList.add('fade-toggle', 'hidden');
+        closeBtn.style.display = 'none';
+        closeBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          closeGroup(specId);
+        });
+      }
+      if (header) header.addEventListener('click', () => openGroup(specId, block1OpenBlocks[specId]));
+    }
+    return { fragment, container, progress, content };
+  }
+
+  function restoreHistoryBlockState(specId, content) {
+    if (!content) return;
+    const saved = historyOpenBlocks[specId];
+    if (!saved) {
+      const first = content.querySelector('.modal-block');
+      if (first) first.classList.add('open');
+      return;
+    }
+    const targets = content.querySelectorAll(`.modal-block.${saved}`);
+    if (targets.length) {
+      content.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
+      targets.forEach(t => t.classList.add('open'));
+    }
+  }
+
+  function restoreBlock1State(specId, content) {
+    if (!content) return;
+    const saved = block1OpenBlocks[specId];
+    let row = null;
+    if (saved?.pos) {
+      row = Array.from(content.querySelectorAll('.modalCONTEINERpost')).find(node => {
+        const input = node.querySelector('[data-field="pos_number"]');
+        return input && input.value === saved.pos;
+      }) || null;
+    }
+    if (!row) row = content.querySelector('.modalCONTEINERpost');
+    if (!row) return;
+    const blockToOpen = saved?.block ? row.querySelector(`.${saved.block}`) : null;
+    row.querySelectorAll('.modal-block').forEach(block => block.classList.remove('open'));
+    (blockToOpen || row.querySelector('.modal-block') || row)?.classList.add('open');
+  }
+
+  function updateSpecContent(content, specId, options = {}) {
+    if (!content || !specRowTemplate) return;
+    const { mode = 'history' } = options;
+    const idStr = String(specId);
+    const rows = (specGroups[idStr] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    if (!rows.length) {
+      content.innerHTML = '';
+      content.dataset.renderHash = '';
+      return;
+    }
+    const hash = computeSpecHash(specId);
+    if (content.dataset.renderHash === hash) return;
+    const fragment = document.createDocumentFragment();
+    rows.forEach(row => {
+      const rf = specRowTemplate.content.cloneNode(true);
+      const posInput = rf.querySelector('[data-field="pos_number"]');
+      if (posInput) posInput.value = row.pos_number || '';
+      const nameInput = rf.querySelector('[data-field="name"]');
+      if (nameInput) nameInput.value = row.name || '';
+      const qtyInput = rf.querySelector('[data-field="qty"]');
+      if (qtyInput) qtyInput.value = row.qty || '';
+      const unitInput = rf.querySelector('[data-field="unit"]');
+      if (unitInput) unitInput.value = row.unit || '';
+      const attrsWrap = rf.querySelector('.block1 .modal-content');
+      if (attrsWrap) {
+        attrsWrap.innerHTML = '';
+        (row.attrs || '').split('|').forEach(pair => {
+          const normalized = (pair || '').trim();
+          if (!normalized) return;
+          const [p, v] = normalized.split(/[:=]/);
+          const attrFrag = attrPairTemplate?.content.cloneNode(true);
+          if (!attrFrag) return;
+          const pInp = attrFrag.querySelector('.param-input');
+          const vInp = attrFrag.querySelector('.value-input');
+          if (pInp) {
+            pInp.value = (p || '').trim();
+            pInp.readOnly = true;
+          }
+          if (vInp) {
+            vInp.value = (v || '').trim();
+            vInp.readOnly = true;
+          }
+          attrsWrap.appendChild(attrFrag);
+        });
+      }
+      const sels = selectionMap[row.id] || [];
+      const block2 = rf.querySelector('.block2 .modal-content');
+      if (block2) {
+        block2.innerHTML = '';
+        if (sels.length) {
+          sels.forEach(sel => {
+            const frag = block2Template?.content.cloneNode(true);
+            if (!frag) return;
+            const inputs = frag.querySelectorAll('input');
+            if (inputs[0]) inputs[0].value = sel.article || '';
+            if (inputs[1]) inputs[1].value = sel.model_name || '';
+            if (inputs[2]) inputs[2].value = sel.qty || '';
+            if (inputs[3]) inputs[3].value = sel.unit || '';
+            if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
+            if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
+            const rowEl = frag.firstElementChild;
+            if (rowEl) rowEl.classList.add('fade-in');
+            block2.appendChild(frag);
+          });
+        } else {
+          const frag = block2Template?.content.cloneNode(true);
+          if (frag) {
+            const rowEl = frag.firstElementChild;
+            if (rowEl) rowEl.classList.add('fade-in');
+            block2.appendChild(frag);
+          }
+        }
+      }
+      const block21 = rf.querySelector('.block21 .modal-content');
+      if (block21) appendBlock21Content(block21, sels);
+      const block1 = rf.querySelector('.block1');
+      if (block1) block1.classList.add('open');
+      fragment.appendChild(rf);
+    });
+    content.innerHTML = '';
+    content.appendChild(fragment);
+    content.dataset.renderHash = hash;
+    if (mode === 'history') restoreHistoryBlockState(specId, content);
+    else restoreBlock1State(specId, content);
+    setupDynamicBlocks(content);
+    setupOverflowTooltips(content);
+  }
+
+  function updateSpecProgress(specId, status) {
+    const idStr = String(specId);
+    root.querySelectorAll(`.spec-progress[data-spec-id="${idStr}"]`).forEach(el => setProgress(el, status));
+  }
+
+  function updateHistorySpecContainers(options = {}) {
+    const { changedIds = new Set(), removedIds = [], forceAll = false } = options;
+    if (!historyList) return;
+    removedIds.forEach(id => {
+      const idStr = String(id);
+      const container = historyList.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
+      if (container) container.remove();
+      delete historyOpenBlocks[idStr];
+    });
+    const idsForUpdate = forceAll ? new Set(history.map(item => String(item.id))) : new Set(Array.from(changedIds, id => String(id)));
+    if (!idsForUpdate.size) return;
+    history.forEach(item => {
+      const idStr = String(item.id);
+      if (!idsForUpdate.has(idStr)) return;
+      const rows = specGroups[idStr];
+      let container = historyList.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
+      if (!rows || !rows.length) {
+        if (container) container.remove();
+        return;
+      }
+      if (!container) {
+        const { fragment, container: newContainer } = createSpecContainer(item.id, { mode: 'history' });
+        const rowEl = historyList.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+        const anchor = rowEl ? rowEl.nextSibling : null;
+        historyList.insertBefore(fragment, anchor);
+        container = newContainer;
+      }
+      if (!container) return;
+      const progress = container.querySelector('.spec-progress');
+      if (progress) setProgress(progress, item.status);
+      const content = container.querySelector('.spec-content');
+      updateSpecContent(content, idStr, { mode: 'history' });
+    });
+    setupOverflowTooltips(historyList);
+    setupDynamicBlocks(historyList);
+  }
+
+  function updateBlock1SpecContainers(options = {}) {
+    let { changedIds = new Set(), removedIds = [], forceAll = false } = options;
+    if (!block1List) return;
+    removedIds.forEach(id => {
+      const idStr = String(id);
+      const container = block1List.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
+      if (container) container.remove();
+      delete block1OpenBlocks[idStr];
+    });
+    if (forceAll) {
+      changedIds = new Set(Object.keys(specGroups));
+    }
+    const orderedIds = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
+    let anchor = block1List.firstChild;
+    orderedIds.forEach(id => {
+      const idStr = String(id);
+      let container = block1List.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
+      if (!container) {
+        const { fragment, container: newContainer } = createSpecContainer(id, { mode: 'block1' });
+        block1List.insertBefore(fragment, anchor);
+        container = newContainer;
+      } else if (anchor && container !== anchor) {
+        block1List.insertBefore(container, anchor);
+      }
+      if (container) {
+        const progress = container.querySelector('.spec-progress');
+        const status = history.find(h => String(h.id) === idStr)?.status;
+        if (progress) setProgress(progress, status);
+        if (changedIds.has(idStr)) {
+          const content = container.querySelector('.spec-content');
+          updateSpecContent(content, idStr, { mode: 'block1' });
+        }
+      }
+      anchor = container ? container.nextSibling : anchor;
+    });
+    setupOverflowTooltips(block1List);
+    setupDynamicBlocks(block1List);
+  }
+  
   async function loadBlock1(options = {}) {
     const { fromHistory = false } = options;
     if (loadingBlock1) {
@@ -1860,12 +2110,16 @@ export async function initModal9() {
       return;
     }
     loadingBlock1 = true;
+    const prevCache = new Map(specRenderCache);
     const specIds = Array.from(new Set((history || []).map(h => h?.id).filter(id => id !== null && id !== undefined)));
     if (!specIds.length) {
       block1Rows = [];
       specGroups = {};
       selectionMap = {};
-      renderBlock1();
+      const removedIds = Array.from(specRenderCache.keys());
+      specRenderCache.clear();
+      updateBlock1SpecContainers({ removedIds });
+      updateHistorySpecContainers({ removedIds });
       loadingBlock1 = false;
       pendingLoad = null;
       return;
@@ -1885,17 +2139,14 @@ export async function initModal9() {
       loadingBlock1 = false;
       const next = pendingLoad;
       pendingLoad = null;
-      if (next) {
-        loadBlock1({ fromHistory: next === 'history' });
-      }
+      if (next) loadBlock1({ fromHistory: next === 'history' });
       return;
     }
     block1Rows = data || [];
     const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
     if (posIds.length) {
-      // //фронтенд: выборка с полями прайсера
-const { data: sels, error: selErr } = await supabase
+      const { data: sels, error: selErr } = await supabase
         .from(SELECT_TABLE)
         .select('pos_id, article, model_name, qty, unit, price, sum, \
           price1_amount, price1_currency, price1_store, price1_url, \
@@ -1910,129 +2161,36 @@ const { data: sels, error: selErr } = await supabase
     }
     specGroups = {};
     block1Rows.forEach(r => {
-      (specGroups[r.spec_id] = specGroups[r.spec_id] || []).push(r);
+      const key = String(r.spec_id);
+      (specGroups[key] = specGroups[key] || []).push(r);
     });
-    renderBlock1();
+    const nextCache = new Map();
+    Object.keys(specGroups).forEach(id => {
+      nextCache.set(String(id), computeSpecHash(id));
+    });
+    const changedIds = new Set();
+    nextCache.forEach((hash, id) => {
+      if (prevCache.get(id) !== hash) changedIds.add(id);
+    });
+    const removedIds = [];
+    prevCache.forEach((_, id) => {
+      if (!nextCache.has(id)) removedIds.push(id);
+    });
+    specRenderCache.clear();
+    nextCache.forEach((hash, id) => specRenderCache.set(id, hash));
+    updateBlock1SpecContainers({ changedIds, removedIds, forceAll: fromHistory });
+    updateHistorySpecContainers({ changedIds, removedIds });
     if (!fromHistory && history.length) {
-      renderHistory({ ...lastHistoryStatus });
+      applySecondFilter();
     }
     loadingBlock1 = false;
     const next = pendingLoad;
     pendingLoad = null;
-    if (next) {
-      loadBlock1({ fromHistory: next === 'history' });
-    }
+    if (next) loadBlock1({ fromHistory: next === 'history' });
   }
 
   function renderBlock1() {
-    block1List.querySelectorAll('.spec-content').forEach(el => {
-      const openBlock = el.querySelector('.modal-block.open');
-      if (openBlock) {
-        const cls = Array.from(openBlock.classList).find(c => c.startsWith('block'));
-        const posInput = openBlock.closest('.modalCONTEINERpost')?.querySelector('[data-field="pos_number"]');
-        if (cls && posInput) {
-          block1OpenBlocks[el.dataset.specId] = { block: cls, pos: posInput.value };
-        }
-      }
-    });
-    const openIds = Array.from(block1List.querySelectorAll('.spec-content'))
-        .filter(el => !el.classList.contains('hidden'))
-        .map(el => el.dataset.specId);
-      block1List.innerHTML = '';
-      const ids = Object.keys(specGroups).sort((a, b) => Number(b) - Number(a));
-      ids.forEach(id => {
-        const frag = specTemplate.content.cloneNode(true);
-        const container = frag.querySelector('.spec-container');
-        container.dataset.specId = id;
-        const header = frag.querySelector('.spec-header');
-        const btn = frag.querySelector('.group-close');
-        const content = frag.querySelector('.spec-content');
-        const progressFrag = specProgressTemplate.content.cloneNode(true);
-        const progress = progressFrag.querySelector('.spec-progress');
-        progress.dataset.specId = id;
-        progress.classList.add('fade-toggle', 'hidden');
-        progress.style.display = 'none';
-        container.insertBefore(progressFrag, content);
-        insertActionButtons(container, id);
-        initProgressHandlers(progress, id);
-        content.dataset.specId = id;
-        btn.classList.add('fade-toggle', 'hidden');
-        content.classList.add('fade-toggle', 'hidden');
-        btn.style.display = 'none';
-        content.style.display = 'none';
-        const specStatus = history.find(h => h.id === Number(id))?.status;
-        setProgress(progress, specStatus);
-        header.addEventListener('click', () => {
-          openGroup(id, block1OpenBlocks[id]);
-        });
-        btn.addEventListener('click', e => { e.stopPropagation(); closeGroup(id); });
-
-       specGroups[id].sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0)).forEach(row => {
-          const rf = specRowTemplate.content.cloneNode(true);
-          rf.querySelector('[data-field="pos_number"]').value = row.pos_number;
-          rf.querySelector('[data-field="name"]').value = row.name;
-          rf.querySelector('[data-field="qty"]').value = row.qty;
-          const unitInput = rf.querySelector('[data-field="unit"]');
-          if (unitInput) unitInput.value = row.unit || '';
-          const attrsWrap = rf.querySelector('.block1 .modal-content');
-          (row.attrs || '').split('|').forEach(pair => {
-            pair = pair.trim();
-            if(!pair) return;
-            const [p, v] = pair.split(/[:=]/);
-            const fragPair = attrPairTemplate.content.cloneNode(true);
-            const pInp = fragPair.querySelector('.param-input');
-            const vInp = fragPair.querySelector('.value-input');
-            if(pInp) {
-              pInp.value = p || '';
-              pInp.readOnly = true;
-            }
-            if(vInp) {
-              vInp.value = v || '';
-              vInp.readOnly = true;
-            }
-            attrsWrap.appendChild(fragPair);
-          });
-          const b2 = rf.querySelector('.block2 .modal-content');
-          if (b2) {
-            const sels = selectionMap[row.id] || [];
-            if (sels.length) {
-              sels.forEach(sel => {
-                const b2Frag = block2Template.content.cloneNode(true);
-                const b2El = b2Frag.firstElementChild;
-                const inputs = b2Frag.querySelectorAll('input');
-                if (inputs[0]) inputs[0].value = sel.article || '';
-                if (inputs[1]) inputs[1].value = sel.model_name || '';
-                if (inputs[2]) inputs[2].value = sel.qty || '';
-                if (inputs[3]) inputs[3].value = sel.unit || '';
-                if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
-                if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
-                b2.appendChild(b2Frag);
-                if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
-              });
-            } else {
-              const b2Frag = block2Template.content.cloneNode(true);
-              const b2El = b2Frag.firstElementChild;
-              if (b2El) b2El.classList.add('fade-in');
-              b2.appendChild(b2Frag);
-              if (b2El) requestAnimationFrame(() => b2El.classList.add('fade-in'));
-            }
-          }
-          // //фронтенд: заполнение BLOCK 2/1
-         const b21 = rf.querySelector('.block21 .modal-content');
-          if (b21) appendBlock21Content(b21, selectionMap[row.id] || []);
-
-          rf.querySelector('.block1').classList.add('open');
-          content.appendChild(rf);
-        });
-        block1List.appendChild(frag);
-      });
-    setupDynamicBlocks(block1List);
-    openIds.forEach(id => {
-      if (block1List.querySelector(`.spec-content[data-spec-id="${id}"]`)) {
-        openGroup(id, block1OpenBlocks[id]);
-      }
-    });
-    setupOverflowTooltips(block1List);
+    updateBlock1SpecContainers({ forceAll: true });
   }
 
   function openGroup(id, saved) {
