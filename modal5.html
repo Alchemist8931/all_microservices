@@ -442,58 +442,9 @@
       </h2>
     </section>
 
-    <div class="modalRow stats-row">
-      <div class="stat-card">
-        <div class="stat-title">всего рецептов</div>
-        <div class="stat-value">18</div>
-        <div class="stat-subtitle">активная коллекция шефа</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">категории</div>
-        <div class="stat-value">6</div>
-        <div class="stat-subtitle">закуски, горячее, десерты</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">последнее обновление</div>
-        <div class="stat-value">12.04</div>
-        <div class="stat-subtitle">добавлен &laquo;карри манго&raquo;</div>
-      </div>
-    </div>
-
     <div class="modalRow form-row" style="margin-top: 35px;">
       <div class="modalBLOCK form-fields">
         <div class="modalRow" style="margin-left: -20px;">
-          <input class="input name-field" placeholder="поиск по рецептам" />
-          <input class="inputT supplier-field" placeholder="тег или категория" />
-          <div class="select-wrapper">
-            <input class="input select-input" style="width: 140px; border: 1px solid #212121;" placeholder="сложность" readonly />
-          </div>
-          <input class="inputT url-field" placeholder="автор рецепта" />
-          <input class="inputSUM" style="width: 120px;" placeholder="время, мин" />
-        </div>
-        <div class="modalRow">
-          <span class="filters-hint">используйте фильтры для быстрого отбора рецептов и подбора меню.</span>
-        </div>
-      </div>
-      <div class="radio-inputs" role="radiogroup" aria-label="режим отображения рецептов">
-        <label class="radio">
-          <input type="radio" name="modal5-view" value="cards" checked />
-          <span class="name">карточки</span>
-        </label>
-        <label class="radio">
-          <input type="radio" name="modal5-view" value="list" />
-          <span class="name">список</span>
-        </label>
-      </div>
-      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe">создать рецепт</button>
-    </div>
-  </div>
-
-  <div class="modal5-scroll-wrapper">
-    <div class="modal-bottom glass-panel modal5-window">
-      <div class="modalVNUT-content modal5-content">
-        <div class="modalBLOCK create-recipe-row">
-          <div class="modalRow" style="margin-left: -20px;">
             <input class="inputT code-field" placeholder="RCP-0001" />
             <input class="input name-field" placeholder="название рецепта" />
             <input class="inputT url-field" placeholder="URL на инструкцию" />
@@ -504,7 +455,14 @@
             <input class="inputSUM qty-field" placeholder="время, мин" />
             <input class="inputSUM price-field" placeholder="калории" />
           </div>
-        </div>
+      </div>
+      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe">создать рецепт</button>
+    </div>
+  </div>
+
+  <div class="modal5-scroll-wrapper">
+    <div class="modal-bottom glass-panel modal5-window">
+      <div class="modalVNUT-content modal5-content">
 
         <div class="modalBLOCK recipe-card">
           <div class="modalRow">
@@ -531,30 +489,6 @@
           </div>
         </div>
 
-        <div class="modalBLOCK recipe-card">
-          <div class="modalRow">
-            <label class="checkbox">
-              <input type="checkbox" />
-            </label>
-            <input class="inputT code-field" value="RCP-0012" readonly />
-            <input class="input name-field" value="карри манго" readonly />
-            <input class="input" style="width: 140px; text-align: center;" value="острота: средняя" readonly />
-            <div class="input date-time-field" style="width: 200px;" aria-label="характеристики">
-              <span class="date-time-field__time">55 мин</span>
-              <span class="date-time-field__date">3 порции</span>
-            </div>
-            <input class="inputT supplier-field" style="width: 160px;" value="кухня: паназиатская" readonly />
-            <span class="spec-icon" data-url="https://example.com/mango-curry">
-              <i class="material-symbols-outlined">menu_book</i>
-            </span>
-            <input class="inputSUM" style="width: 90px;" value="910 ккал" readonly />
-            <input class="inputSUM" style="width: 120px;" value="22 ингредиента" readonly />
-            <input class="input" style="width: 420px;" value="фруктово-пряное карри с курицей, манго и ароматом лайма." readonly />
-          </div>
-          <div class="recipe-notes">
-            Для маринада используется смесь специй со склада специй и кокосовые сливки из холодильного блока.
-          </div>
-        </div>
       </div>
     </div>
   </div>
