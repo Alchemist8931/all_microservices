@@ -1,16 +1,564 @@
 <!-- ========= modal5.html  (Проект 5) ========= -->
-<div id="modal5-container" class="spec-modal">
+<div id="modal5-container" class="modal5-shell">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
     #modal5-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      width: 100%;
+      height: 100vh;
+      padding: 20px 0;
+      margin: 0;
+      box-sizing: border-box;
+      color: var(--content-color, #212121);
+      font-family: 'Comfortaa', sans-serif;
+    }
+
+    #modal5-container .glass-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--content-color, #212121);
+      border-radius: 12px;
+      box-shadow:
+        0 0 0.75px hsl(205 20% 10% / 0.24),
+        0.7px 0.8px 1.2px -0.4px hsl(205 20% 10% / 0.16),
+        1.3px 1.5px 2.2px -0.8px hsl(205 20% 10% / 0.16),
+        2.3px 2.6px 3.9px -1.2px hsl(205 20% 10% / 0.16),
+        3.9px 4.4px 6.6px -1.7px hsl(205 20% 10% / 0.16),
+        6.5px 7.2px 10.9px -2.1px hsl(205 20% 10% / 0.18);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    #modal5-container .modal-top {
+      width: 1930px;
+      max-width: 90vw;
+      min-height: 255px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: -20px;
+      padding: 20px;
+      box-sizing: border-box;
+      color: var(--black-color, var(--content-color, #212121));
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    #modal5-container .modal5-signature {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      margin-top: -20px;
+      margin-left: -1450px;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    #modal5-container .modal5-signature h2 {
       margin: 0;
+      font-size: 1.4em;
+      color: #212121;
+      text-transform: uppercase;
+      display: flex;
+      gap: 2px;
+    }
+
+    #modal5-container .modal5-signature h2 span {
+      transition: 1.5s;
+      display: inline-block;
+    }
+
+    #modal5-container .modal5-signature h2:hover span {
+      filter: blur(20px);
+      opacity: 0;
+      transform: scale(2);
+    }
+
+    #modal5-container .modal5-signature h2 span:nth-child(1) { transition-delay: 0s; }
+    #modal5-container .modal5-signature h2 span:nth-child(2) { transition-delay: 0.1s; }
+    #modal5-container .modal5-signature h2 span:nth-child(3) { transition-delay: 0.2s; }
+    #modal5-container .modal5-signature h2 span:nth-child(4) { transition-delay: 0.3s; }
+    #modal5-container .modal5-signature h2 span:nth-child(5) { transition-delay: 0.4s; }
+    #modal5-container .modal5-signature h2 span:nth-child(6) { transition-delay: 0.5s; }
+    #modal5-container .modal5-signature h2 span:nth-child(7) { transition-delay: 0.6s; }
+    #modal5-container .modal5-signature h2 span:nth-child(8) { transition-delay: 0.7s; }
+    #modal5-container .modal5-signature h2 span:nth-child(9) { transition-delay: 0.8s; }
+    #modal5-container .modal5-signature h2 span:nth-child(10) { transition-delay: 0.9s; }
+    #modal5-container .modal5-signature h2 span:nth-child(11) { transition-delay: 1s; }
+    #modal5-container .modal5-signature h2 span:nth-child(12) { transition-delay: 1.1s; }
+    #modal5-container .modal5-signature h2 span:nth-child(13) { transition-delay: 1.2s; }
+
+    #modal5-container .modalRow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #modal5-container .stats-row {
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    #modal5-container .stat-card {
+      flex: 1;
+      min-width: 240px;
+      padding: 18px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #modal5-container .stat-title {
+      text-transform: uppercase;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .stat-subtitle {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    #modal5-container .form-row {
+      align-items: stretch;
+      gap: 18px;
+    }
+
+    #modal5-container .form-fields {
+      flex: 1;
+      padding: 18px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #modal5-container .form-fields .modalRow {
+      gap: 12px;
+    }
+
+    #modal5-container .form-fields .filters-hint {
+      font-size: 11px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #modal5-container .radio-inputs {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius: 0.5rem;
+      background: var(--content-color, #212121);
+      border: 1px solid var(--content-color, #212121);
+      color: var(--fon, #f5f5f5);
+      padding: 2px 2px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      box-sizing: border-box;
+      box-shadow: 0 0 0px 1px rgba(0, 0, 0, 0.06);
+      width: 300px;
+      height: 30px;
+      align-self: center;
+      margin-top: 10px;
+      gap: 0.25rem;
+    }
+
+    #modal5-container .radio-inputs .radio {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    #modal5-container .radio-inputs .radio input {
+      display: none;
+    }
+
+    #modal5-container .radio-inputs .radio .name {
+      display: flex;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      border: none;
+      padding: .5rem 0;
+      color: rgba(51, 65, 85, 1);
+      transition: all .15s ease-in-out;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+
+    #modal5-container .radio-inputs .radio input:checked + .name {
+      color: var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal5-container .button-form {
+      position: relative;
+      min-width: 220px;
+      height: 30px;
+      background: var(--content-color, #212121);
+      border: 1px solid var(--content-color, #212121);
+      color: var(--fon, #f5f5f5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 15px;
+    }
+
+    #modal5-container .button-form:hover {
+      color: var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal5-container .button-form.primary {
+      min-width: 200px;
+    }
+
+    #modal5-container .modal5-scroll-wrapper {
+      width: 1950px;
+      max-width: 90vw;
+      flex: 1;
+      padding-bottom: 20px;
+      overflow: visible;
+    }
+
+    #modal5-container .modal5-window {
+      color: var(--black-color, var(--content-color, #212121));
+      width: 1930px;
+      max-width: 90vw;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      padding-left: 20px;
+      padding-right: 10px;
+      box-sizing: border-box;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 275px;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      max-height: calc(100vh - 220px);
+      overflow-x: visible;
+    }
+
+    #modal5-container .modal5-content {
+      width: 1930px;
+      height: 100%;
+      box-sizing: border-box;
+      overflow-y: auto;
+      padding-right: 10px;
+      margin-right: -10px;
+      transition: opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    #modal5-container .modal5-content::-webkit-scrollbar { width: 6px; }
+    #modal5-container .modal5-content::-webkit-scrollbar-track { background: transparent; }
+    #modal5-container .modal5-content::-webkit-scrollbar-thumb { background-color: var(--content-color, #212121); border-radius: 10px; }
+
+    #modal5-container .modalVNUT-content .modalBLOCK {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      margin-bottom: 12px;
+      padding: 18px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    #modal5-container .modalVNUT-content .modalBLOCK:hover {
+      transform: translateY(-2px);
+    }
+
+    #modal5-container .inputT,
+    #modal5-container .input,
+    #modal5-container .inputSUM {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #212121;
+      outline: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--content-color, #212121);
+      transition: border-color 0.3s ease, transform 0.2s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal5-container .inputT:focus,
+    #modal5-container .input:focus,
+    #modal5-container .inputSUM:focus {
+      border-color: var(--content-color, #30333C);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal5-container .inputSUM {
+      text-align: right;
+      width: 116px;
+    }
+
+    #modal5-container .code-field { width: 130px; text-transform: uppercase; }
+    #modal5-container .name-field { width: 340px; }
+    #modal5-container .url-field { width: 200px; }
+    #modal5-container .supplier-field { width: 220px; }
+    #modal5-container .select-wrapper {
+      width: 100px;
+      position: relative;
+    }
+
+    #modal5-container .select-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+
+    #modal5-container .select-input:focus {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    #modal5-container label.checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #modal5-container .checkbox input[type="checkbox"] {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--content-color, #212121);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    #modal5-container .checkbox input[type="checkbox"]:checked {
+      background: var(--content-color, #212121);
+    }
+
+    #modal5-container .checkbox input[type="checkbox"]::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 6px;
+      width: 4px;
+      height: 10px;
+      border: solid #f5f5f5;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #modal5-container .checkbox input[type="checkbox"]:checked::after {
+      opacity: 1;
+    }
+
+    #modal5-container .recipe-notes {
+      padding-left: 40px;
+      font-size: 12px;
+      line-height: 1.6;
+      opacity: 0.85;
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .spec-icon {
+      color: var(--content-color, #212121);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    #modal5-container .spec-icon:hover {
+      color: rgba(98, 90, 86, 0.85);
+      transform: scale(1.05);
     }
   </style>
-  страница "Мои рецепты" в разработке, позднее здесь будет располагаться функционал создания рецептов и подсчет расходных материалов для каждого на основе данных страницы "Мой склад"
+  
+  <div class="modal-top glass-panel">
+    <section class="modal5-signature">
+      <h2>
+        <span>R</span>
+        <span>I</span>
+        <span>V</span>
+        <span>A</span>
+        <span>&nbsp;&nbsp;</span>
+        <span>R</span>
+        <span>E</span>
+        <span>C</span>
+        <span>I</span>
+        <span>P</span>
+        <span>E</span>
+        <span>&nbsp;&nbsp;</span>
+        <span>H</span>
+        <span>U</span>
+        <span>B</span>
+      </h2>
+    </section>
+
+    <div class="modalRow stats-row">
+      <div class="stat-card">
+        <div class="stat-title">всего рецептов</div>
+        <div class="stat-value">18</div>
+        <div class="stat-subtitle">активная коллекция шефа</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">категории</div>
+        <div class="stat-value">6</div>
+        <div class="stat-subtitle">закуски, горячее, десерты</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">последнее обновление</div>
+        <div class="stat-value">12.04</div>
+        <div class="stat-subtitle">добавлен &laquo;карри манго&raquo;</div>
+      </div>
+    </div>
+
+    <div class="modalRow form-row" style="margin-top: 35px;">
+      <div class="modalBLOCK form-fields">
+        <div class="modalRow" style="margin-left: -20px;">
+          <input class="input name-field" placeholder="поиск по рецептам" />
+          <input class="inputT supplier-field" placeholder="тег или категория" />
+          <div class="select-wrapper">
+            <input class="input select-input" style="width: 140px; border: 1px solid #212121;" placeholder="сложность" readonly />
+          </div>
+          <input class="inputT url-field" placeholder="автор рецепта" />
+          <input class="inputSUM" style="width: 120px;" placeholder="время, мин" />
+        </div>
+        <div class="modalRow">
+          <span class="filters-hint">используйте фильтры для быстрого отбора рецептов и подбора меню.</span>
+        </div>
+      </div>
+      <div class="radio-inputs" role="radiogroup" aria-label="режим отображения рецептов">
+        <label class="radio">
+          <input type="radio" name="modal5-view" value="cards" checked />
+          <span class="name">карточки</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="modal5-view" value="list" />
+          <span class="name">список</span>
+        </label>
+      </div>
+      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe">создать рецепт</button>
+    </div>
   </div>
+
+  <div class="modal5-scroll-wrapper">
+    <div class="modal-bottom glass-panel modal5-window">
+      <div class="modalVNUT-content modal5-content">
+        <div class="modalBLOCK create-recipe-row">
+          <div class="modalRow" style="margin-left: -20px;">
+            <input class="inputT code-field" placeholder="RCP-0001" />
+            <input class="input name-field" placeholder="название рецепта" />
+            <input class="inputT url-field" placeholder="URL на инструкцию" />
+            <input class="inputT supplier-field" placeholder="тип кухни" />
+            <div class="select-wrapper">
+              <input class="input select-input" style="width: 100px; border: 1px solid #212121;" placeholder="порций" readonly />
+            </div>
+            <input class="inputSUM qty-field" placeholder="время, мин" />
+            <input class="inputSUM price-field" placeholder="калории" />
+          </div>
+        </div>
+
+        <div class="modalBLOCK recipe-card">
+          <div class="modalRow">
+            <label class="checkbox">
+              <input type="checkbox" />
+            </label>
+            <input class="inputT code-field" value="RCP-0008" readonly />
+            <input class="input name-field" value="тыквенный крем-суп" readonly />
+            <input class="input" style="width: 140px; text-align: center;" value="сезон: осень" readonly />
+            <div class="input date-time-field" style="width: 200px;" aria-label="характеристики">
+              <span class="date-time-field__time">40 мин</span>
+              <span class="date-time-field__date">4 порции</span>
+            </div>
+            <input class="inputT supplier-field" style="width: 160px;" value="кухня: европейская" readonly />
+            <span class="spec-icon" data-url="https://example.com/pumpkin-soup">
+              <i class="material-symbols-outlined">menu_book</i>
+            </span>
+            <input class="inputSUM" style="width: 90px;" value="680 ккал" readonly />
+            <input class="inputSUM" style="width: 120px;" value="30 ингредиентов" readonly />
+            <input class="input" style="width: 420px;" value="бархатистый суп-пюре с кокосовым молоком и жареными семечками." readonly />
+          </div>
+          <div class="recipe-notes">
+            Используйте запас тыквенного пюре со склада и кокосовое молоко из раздела &laquo;молочная группа&raquo;.
+          </div>
+        </div>
+
+        <div class="modalBLOCK recipe-card">
+          <div class="modalRow">
+            <label class="checkbox">
+              <input type="checkbox" />
+            </label>
+            <input class="inputT code-field" value="RCP-0012" readonly />
+            <input class="input name-field" value="карри манго" readonly />
+            <input class="input" style="width: 140px; text-align: center;" value="острота: средняя" readonly />
+            <div class="input date-time-field" style="width: 200px;" aria-label="характеристики">
+              <span class="date-time-field__time">55 мин</span>
+              <span class="date-time-field__date">3 порции</span>
+            </div>
+            <input class="inputT supplier-field" style="width: 160px;" value="кухня: паназиатская" readonly />
+            <span class="spec-icon" data-url="https://example.com/mango-curry">
+              <i class="material-symbols-outlined">menu_book</i>
+            </span>
+            <input class="inputSUM" style="width: 90px;" value="910 ккал" readonly />
+            <input class="inputSUM" style="width: 120px;" value="22 ингредиента" readonly />
+            <input class="input" style="width: 420px;" value="фруктово-пряное карри с курицей, манго и ароматом лайма." readonly />
+          </div>
+          <div class="recipe-notes">
+            Для маринада используется смесь специй со склада специй и кокосовые сливки из холодильного блока.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <script type="module">
 export function initModal5() {
   console.log('[modal5.html] PAGE 5 активирован');
