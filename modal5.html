@@ -317,6 +317,186 @@
       transform: translateY(-2px);
     }
 
+    #modal5-container .recipe-card {
+      border: 1px solid #212121;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-top: 16px;
+      margin-left: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #modal5-container .recipe-card__header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #modal5-container .recipe-card__body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #modal5-container .recipe-card__controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #modal5-container .recipe-card__picker {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      border: 1px solid #212121;
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    #modal5-container .recipe-card__picker.is-visible {
+      display: flex;
+    }
+
+    #modal5-container .recipe-card__search {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #212121;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--content-color, #212121);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #modal5-container .recipe-card__list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    #modal5-container .recipe-card__list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #modal5-container .recipe-card__list::-webkit-scrollbar-thumb {
+      background: var(--content-color, #212121);
+      border-radius: 10px;
+    }
+
+    #modal5-container .recipe-card__items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #modal5-container .recipe-item-row {
+      border: 1px solid #212121;
+      border-radius: 10px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #modal5-container .recipe-item-row .modalRow {
+      margin-left: 0;
+    }
+
+    #modal5-container .recipe-picker__item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid #212121;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--content-color, #212121);
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+      font-size: 12px;
+      text-align: left;
+      outline: none;
+      text-decoration: none;
+    }
+
+    #modal5-container .recipe-picker__item:hover,
+    #modal5-container .recipe-picker__item:focus {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    #modal5-container .recipe-picker__item span {
+      pointer-events: none;
+    }
+
+    #modal5-container .recipe-picker__item span.recipe-picker__code {
+      font-weight: 600;
+      min-width: 90px;
+    }
+
+    #modal5-container .recipe-picker__item span.recipe-picker__name {
+      flex: 1;
+      white-space: normal;
+    }
+
+    #modal5-container .recipe-card__empty {
+      font-size: 12px;
+      opacity: 0.75;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    #modal5-container .button-remove {
+      align-self: flex-end;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      background: transparent;
+      color: var(--content-color, #212121);
+      cursor: pointer;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    #modal5-container .button-remove:hover,
+    #modal5-container .button-remove:focus {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal5-container .button-form.secondary {
+      background: transparent;
+      color: var(--content-color, #212121);
+      border-color: #212121;
+    }
+
+    #modal5-container .button-form.secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .input--error {
+      border-color: #c62828;
+      box-shadow: 0 0 0 1px rgba(198, 40, 40, 0.35);
+    }
+
     #modal5-container .inputT,
     #modal5-container .input,
     #modal5-container .inputSUM {
@@ -466,48 +646,565 @@
     <div class="modalRow form-row" style="margin-top: 35px;">
       <div class="modalBLOCK form-fields">
         <div class="modalRow" style="margin-left: -20px;">
-            <input class="inputT code-field" placeholder="RCP-0001"/>
-            <input class="input name-field" placeholder="категория рецепта" />
-            <input class="input name-field" placeholder="наименование рецепта" />
+            <input id="recipe-code" class="inputT code-field" type="text" placeholder="RCP-0001" autocomplete="off"/>
+            <input id="recipe-category" class="input name-field" type="text" placeholder="категория рецепта" autocomplete="off" />
+            <input id="recipe-name" class="input name-field" type="text" placeholder="наименование рецепта" autocomplete="off" />
           </div>
       </div>
-      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe">создать рецепт</button>
+      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe" type="button">создать рецепт</button>
     </div>
   </div>
 
   <div class="modal5-scroll-wrapper">
     <div class="modal-bottom glass-panel modal5-window">
-      <div class="modalVNUT-content modal5-content">
+      <div class="modalVNUT-content modal5-content" id="recipe-list"></div>
 
-        <div class="modalBLOCK recipe-card">
-          <div class="modalRow">
-            <label class="checkbox">
-              <input type="checkbox" />
-            </label>
-            <input class="inputT code-field" value="RCP-0008" readonly />
-            <input class="input name-field" value="тыквенный крем-суп" readonly />
-            <input class="input" style="width: 140px; text-align: center;" value="сезон: осень" readonly />
-            <div class="input date-time-field" style="width: 200px;" aria-label="характеристики">
-              <span class="date-time-field__time">40 мин</span>
-              <span class="date-time-field__date">4 порции</span>
+        <template id="recipe-card-template">
+        <div class="recipe-card" data-recipe-id="">
+          <div class="modalRow recipe-card__header">
+            <input class="inputT code-field" data-field="recipe_code" readonly />
+            <input class="input name-field" data-field="recipe_category" readonly />
+            <input class="input name-field" data-field="recipe_name" readonly />
+            <div class="input date-time-field" style="width: 200px;" data-field="date-time" aria-label="дата и время">
+              <span class="date-time-field__time"></span>
+              <span class="date-time-field__date"></span>
             </div>
-            <input class="inputT supplier-field" style="width: 160px;" value="кухня: европейская" readonly />
-            <span class="spec-icon" data-url="https://example.com/pumpkin-soup">
-              <i class="material-symbols-outlined">menu_book</i>
-            </span>
-            <input class="inputSUM" style="width: 90px;" value="680 ккал" readonly />
-            <input class="inputSUM" style="width: 120px;" value="30 ингредиентов" readonly />
-            <input class="input" style="width: 420px;" value="бархатистый суп-пюре с кокосовым молоком и жареными семечками." readonly />
+            <button class="button-form secondary recipe-card__delete" type="button">удалить рецепт</button>
+          </div>
+          <div class="recipe-card__body">
+            <div class="recipe-card__controls">
+              <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
+              <div class="recipe-card__picker" aria-hidden="true">
+                <input class="recipe-card__search" type="search" placeholder="Поиск по коду или наименованию" />
+                <div class="recipe-card__list"></div>
+                <button class="button-form secondary recipe-card__picker-close" type="button">закрыть</button>
+              </div>
+            </div>
+            <div class="recipe-card__items"></div>
           </div>
         </div>
+      </template>
 
-      </div>
+      <template id="recipe-item-template">
+        <div class="recipe-item-row" data-item-id="">
+          <div class="modalRow">
+            <input class="inputT code-field" data-field="order_code" style="width: 100px;" placeholder="RIV-0881" readonly />
+            <input class="input name-field" data-field="item_name" placeholder="наименование" readonly />
+            <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
+            <input class="inputSUM" style="width: 90px;" data-field="base_qty" placeholder="000 000" />
+            <input class="inputSUM" style="width: 90px;" data-field="base_price" placeholder="000 000 000" readonly />
+            <input class="inputSUM" style="width: 120px;" data-field="total" placeholder="000 000 000" readonly />
+          </div>
+          <button class="button-remove" type="button">
+            <i class="material-symbols-outlined">delete</i>
+            <span>удалить позицию</span>
+          </button>
+        </div>
+      </template>
+
     </div>
   </div>
 </div>
 <script type="module">
+
+  const MONTHS_RU = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+];
+  
 export function initModal5() {
+  const modal = document.getElementById('modal5-container');
+  if (!modal) return;
+
+  const supabaseClient = window.supabase ?? null;
+
+  const recipeCodeInput = modal.querySelector('#recipe-code');
+  const recipeCategoryInput = modal.querySelector('#recipe-category');
+  const recipeNameInput = modal.querySelector('#recipe-name');
+  const createButton = modal.querySelector('#create-recipe');
+  const recipeList = modal.querySelector('#recipe-list');
+  const cardTemplate = modal.querySelector('#recipe-card-template');
+  const itemTemplate = modal.querySelector('#recipe-item-template');
+
+  if (!(recipeCodeInput instanceof HTMLInputElement)
+    || !(recipeCategoryInput instanceof HTMLInputElement)
+    || !(recipeNameInput instanceof HTMLInputElement)
+    || !(createButton instanceof HTMLButtonElement)
+    || !(recipeList instanceof HTMLElement)
+    || !(cardTemplate instanceof HTMLTemplateElement)
+    || !(itemTemplate instanceof HTMLTemplateElement)) {
+    console.warn('[modal5.html] не найдены необходимые элементы для работы рецептов');
+    return;
+  }
+
+  let stockItems = [];
+  let stockMap = new Map();
+  let stocksLoaded = false;
+  let isLoadingStocks = false;
+  let refreshTimerId = null;
+
+  const fmtNum = (value, { minimumFractionDigits = 0, maximumFractionDigits = minimumFractionDigits } = {}) => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '';
+    const maxDigits = Math.max(minimumFractionDigits, maximumFractionDigits);
+    return num.toLocaleString('ru-RU', {
+      minimumFractionDigits,
+      maximumFractionDigits: maxDigits,
+    });
+  };
+
+  const parseNumber = value => {
+    if (value === null || value === undefined) return null;
+    const normalized = String(value)
+      .replace(/[\s\u202f]/g, '')
+      .replace(',', '.')
+      .trim();
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatDateTime = value => {
+    if (!value) return { time: '', date: '' };
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return { time: '', date: '' };
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = MONTHS_RU[date.getMonth()] ?? '';
+    const year = date.getFullYear();
+    return {
+      time: `${hours}:${minutes}`,
+      date: month ? `${day} ${month} ${year} г.` : '',
+    };
+  };
+
+  const applyDateTime = (target, value) => {
+    if (!(target instanceof HTMLElement)) return;
+    const { time, date } = formatDateTime(value);
+    const timeEl = target.querySelector('.date-time-field__time');
+    const dateEl = target.querySelector('.date-time-field__date');
+    if (timeEl) timeEl.textContent = time;
+    if (dateEl) dateEl.textContent = date;
+    target.dataset.time = time;
+    target.dataset.date = date;
+  };
+
+  const normalizeStockRow = row => {
+    if (!row) return null;
+    const id = row.id ?? row.order_code;
+    if (!id) return null;
+    const price = parseNumber(row.avg_price);
+    return {
+      id: String(id),
+      order_code: row.order_code ?? '',
+      item_name: row.item_name ?? '',
+      base_unit: row.modification ?? '',
+      price: price ?? null,
+      url: row.url ?? '',
+      supplier: row.supplier ?? '',
+    };
+  };
+
+  const filterStockItems = query => {
+    const normalized = String(query ?? '').trim().toLowerCase();
+    if (!normalized) return stockItems;
+    return stockItems.filter(item =>
+      item.order_code.toLowerCase().includes(normalized)
+      || item.item_name.toLowerCase().includes(normalized));
+  };
+
+  const togglePicker = (picker, visible) => {
+    if (!(picker instanceof HTMLElement)) return;
+    const shouldShow = Boolean(visible);
+    picker.classList.toggle('is-visible', shouldShow);
+    picker.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+    if (!shouldShow) {
+      const searchInput = picker.querySelector('.recipe-card__search');
+      if (searchInput instanceof HTMLInputElement) {
+        searchInput.value = '';
+      }
+      const list = picker.querySelector('.recipe-card__list');
+      if (list instanceof HTMLElement) {
+        list.scrollTop = 0;
+      }
+    }
+  };
+
+  const applyStockFields = (row, stock) => {
+    if (!(row instanceof HTMLElement) || !stock) return;
+    const setField = (field, value) => {
+      const target = row.querySelector(`[data-field="${field}"]`);
+      if (target instanceof HTMLInputElement) {
+        target.value = value ?? '';
+      }
+    };
+    setField('order_code', stock.order_code);
+    setField('item_name', stock.item_name);
+    setField('base_unit', stock.base_unit);
+
+    const priceInput = row.querySelector('[data-field="base_price"]');
+    const price = Number.isFinite(stock.price) ? stock.price : null;
+    if (priceInput instanceof HTMLInputElement) {
+      if (price !== null) {
+        priceInput.dataset.raw = String(price);
+        priceInput.value = fmtNum(price, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        priceInput.value = '';
+        delete priceInput.dataset.raw;
+      }
+    }
+    row.dataset.price = price !== null ? String(price) : '';
+  };
+
+  const getRowPrice = row => {
+    if (!(row instanceof HTMLElement)) return null;
+    let price = parseNumber(row.dataset.price ?? '');
+    if (price !== null) return price;
+    const priceInput = row.querySelector('[data-field="base_price"]');
+    if (priceInput instanceof HTMLInputElement) {
+      price = parseNumber(priceInput.dataset.raw ?? priceInput.value);
+    }
+    return price;
+  };
+
+  const updateTotalUsingRaw = (row, qtyRaw, { formatQty = false } = {}) => {
+    if (!(row instanceof HTMLElement)) return;
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    const totalInput = row.querySelector('[data-field="total"]');
+
+    if (qtyInput instanceof HTMLInputElement && formatQty) {
+      if (qtyRaw === null) {
+        qtyInput.value = '';
+        delete qtyInput.dataset.raw;
+      } else {
+        qtyInput.dataset.raw = String(qtyRaw);
+        qtyInput.value = fmtNum(qtyRaw, { maximumFractionDigits: 3 });
+      }
+    }
+
+    if (!(totalInput instanceof HTMLInputElement)) return;
+    const price = getRowPrice(row);
+    if (qtyRaw === null || !Number.isFinite(price)) {
+      totalInput.value = '';
+      return;
+    }
+    const total = qtyRaw * price;
+    totalInput.value = fmtNum(total, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleQtyInput = event => {
+    const input = event.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    const row = input.closest('.recipe-item-row');
+    if (!(row instanceof HTMLElement)) return;
+    const raw = parseNumber(input.value);
+    updateTotalUsingRaw(row, raw, { formatQty: false });
+  };
+
+  const handleQtyFocus = event => {
+    const input = event.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.dataset.raw) {
+      input.value = input.dataset.raw;
+    }
+  };
+
+  const handleQtyBlur = event => {
+    const input = event.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    const row = input.closest('.recipe-item-row');
+    if (!(row instanceof HTMLElement)) return;
+    const raw = parseNumber(input.value);
+    updateTotalUsingRaw(row, raw, { formatQty: true });
+  };
+
+  const addItemToCard = (card, stock) => {
+    const itemsContainer = card.querySelector('.recipe-card__items');
+    if (!(itemsContainer instanceof HTMLElement)) return;
+    const safeId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(stock.id)
+      : String(stock.id).replace(/"/g, '\\"');
+    const existing = itemsContainer.querySelector(`.recipe-item-row[data-item-id="${safeId}"]`);
+    if (existing instanceof HTMLElement) {
+      existing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const qtyInput = existing.querySelector('[data-field="base_qty"]');
+      if (qtyInput instanceof HTMLInputElement) {
+        qtyInput.focus();
+      }
+      return;
+    }
+
+    const templateContent = itemTemplate.content?.firstElementChild;
+    if (!(templateContent instanceof HTMLElement)) return;
+    const row = templateContent.cloneNode(true);
+    if (!(row instanceof HTMLElement)) return;
+    row.dataset.itemId = stock.id;
+    applyStockFields(row, stock);
+
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    if (qtyInput instanceof HTMLInputElement) {
+      qtyInput.value = '';
+      delete qtyInput.dataset.raw;
+      qtyInput.addEventListener('input', handleQtyInput);
+      qtyInput.addEventListener('focus', handleQtyFocus);
+      qtyInput.addEventListener('blur', handleQtyBlur);
+    }
+
+    const removeButton = row.querySelector('.button-remove');
+    if (removeButton instanceof HTMLButtonElement) {
+      removeButton.addEventListener('click', () => {
+        row.remove();
+      });
+    }
+
+    itemsContainer.appendChild(row);
+  };
+
+  const renderPickerList = (card, items) => {
+    const picker = card.querySelector('.recipe-card__picker');
+    if (!(picker instanceof HTMLElement)) return;
+    const list = picker.querySelector('.recipe-card__list');
+    if (!(list instanceof HTMLElement)) return;
+    list.innerHTML = '';
+
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'recipe-card__empty';
+      empty.textContent = 'Позиции склада не найдены';
+      list.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'recipe-picker__item';
+      const codeSpan = document.createElement('span');
+      codeSpan.className = 'recipe-picker__code';
+      codeSpan.textContent = item.order_code;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'recipe-picker__name';
+      nameSpan.textContent = item.item_name;
+      button.append(codeSpan, nameSpan);
+      button.addEventListener('click', () => {
+        addItemToCard(card, item);
+        togglePicker(picker, false);
+      });
+      list.appendChild(button);
+    });
+  };
+
+  const updateAllRecipeItems = () => {
+    const rows = recipeList.querySelectorAll('.recipe-item-row');
+    rows.forEach(row => {
+      if (!(row instanceof HTMLElement)) return;
+      const itemId = row.dataset.itemId;
+      if (!itemId) return;
+      const latest = stockMap.get(itemId);
+      if (!latest) return;
+      applyStockFields(row, latest);
+      const qtyInput = row.querySelector('[data-field="base_qty"]');
+      const hasStoredRaw = qtyInput instanceof HTMLInputElement && qtyInput.dataset.raw;
+      const qtyRaw = hasStoredRaw
+        ? parseNumber(qtyInput.dataset.raw)
+        : parseNumber(qtyInput instanceof HTMLInputElement ? qtyInput.value : null);
+      updateTotalUsingRaw(row, qtyRaw, { formatQty: Boolean(hasStoredRaw) });
+    });
+  };
+
+  const setupPicker = card => {
+    const picker = card.querySelector('.recipe-card__picker');
+    const addButton = card.querySelector('.recipe-card__add');
+    const closeButton = card.querySelector('.recipe-card__picker-close');
+    const searchInput = card.querySelector('.recipe-card__search');
+
+    if (addButton instanceof HTMLButtonElement) {
+      addButton.addEventListener('click', async () => {
+        await ensureStocksLoaded();
+        renderPickerList(card, stockItems);
+        togglePicker(picker, true);
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.focus();
+        }
+      });
+    }
+
+    if (closeButton instanceof HTMLButtonElement) {
+      closeButton.addEventListener('click', () => {
+        togglePicker(picker, false);
+      });
+    }
+
+    if (searchInput instanceof HTMLInputElement) {
+      searchInput.addEventListener('input', () => {
+        const filtered = filterStockItems(searchInput.value);
+        renderPickerList(card, filtered);
+      });
+    }
+  };
+
+  const createRecipeCard = data => {
+    const templateContent = cardTemplate.content?.firstElementChild;
+    if (!(templateContent instanceof HTMLElement)) {
+      throw new Error('[modal5.html] шаблон карточки рецепта недоступен');
+    }
+    const card = templateContent.cloneNode(true);
+    if (!(card instanceof HTMLElement)) {
+      throw new Error('[modal5.html] не удалось создать карточку рецепта');
+    }
+
+    const generatedId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `recipe-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    card.dataset.recipeId = generatedId;
+
+    const setField = (field, value) => {
+      const target = card.querySelector(`[data-field="${field}"]`);
+      if (target instanceof HTMLInputElement) {
+        target.value = value ?? '';
+      }
+    };
+
+    setField('recipe_code', data.code);
+    setField('recipe_category', data.category);
+    setField('recipe_name', data.name);
+
+    const dateField = card.querySelector('[data-field="date-time"]');
+    if (dateField) {
+      applyDateTime(dateField, data.createdAt);
+    }
+
+    const deleteButton = card.querySelector('.recipe-card__delete');
+    if (deleteButton instanceof HTMLButtonElement) {
+      deleteButton.addEventListener('click', () => {
+        card.remove();
+      });
+    }
+
+    setupPicker(card);
+    return card;
+  };
+
+  const clearForm = () => {
+    [recipeCodeInput, recipeCategoryInput, recipeNameInput].forEach(input => {
+      input.value = '';
+      input.classList.remove('input--error');
+    });
+  };
+
+  const createRecipeFromForm = () => {
+    const code = recipeCodeInput.value.trim();
+    const category = recipeCategoryInput.value.trim();
+    const name = recipeNameInput.value.trim();
+
+    const inputs = [
+      { el: recipeCodeInput, value: code },
+      { el: recipeCategoryInput, value: category },
+      { el: recipeNameInput, value: name },
+    ];
+
+    let hasError = false;
+    inputs.forEach(({ el, value }) => {
+      const empty = !value;
+      el.classList.toggle('input--error', empty);
+      if (empty) hasError = true;
+    });
+
+    if (hasError) return;
+
+    const createdAt = new Date();
+    const card = createRecipeCard({ code, category, name, createdAt });
+    recipeList.prepend(card);
+    clearForm();
+  };
+
+  const refreshStocks = async ({ silent = false } = {}) => {
+    if (!supabaseClient) {
+      stocksLoaded = true;
+      if (!silent) {
+        console.warn('[modal5.html] Supabase недоступен, складские позиции не будут загружены');
+      }
+      return stockItems;
+    }
+
+    if (isLoadingStocks) return stockItems;
+    isLoadingStocks = true;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('modal4_orders_uni')
+        .select('id, order_code, item_name, modification, avg_price, url, supplier, total_quantity, last_updated_at, company_id, user_key');
+
+      if (error) {
+        if (!silent) {
+          console.error('[modal5.html] ошибка загрузки modal4_orders_uni:', error);
+        }
+        return stockItems;
+      }
+
+      const normalized = Array.isArray(data)
+        ? data.map(normalizeStockRow).filter(Boolean)
+        : [];
+
+      stockItems = normalized;
+      stockMap = new Map(normalized.map(item => [item.id, item]));
+      stocksLoaded = true;
+      updateAllRecipeItems();
+      return stockItems;
+    } finally {
+      isLoadingStocks = false;
+    }
+  };
+
+  const ensureStocksLoaded = async () => {
+    if (stocksLoaded) return stockItems;
+    return refreshStocks({ silent: true });
+  };
+
+  const scheduleStocksRefresh = () => {
+    if (!supabaseClient) return;
+    if (refreshTimerId) clearInterval(refreshTimerId);
+    refreshTimerId = setInterval(() => {
+      refreshStocks({ silent: true }).catch(err => {
+        console.error('[modal5.html] ошибка фонового обновления складских позиций:', err);
+      });
+    }, 60_000);
+  };
+
+  createButton.addEventListener('click', createRecipeFromForm);
+
+  [recipeCodeInput, recipeCategoryInput, recipeNameInput].forEach(input => {
+    input.addEventListener('input', () => {
+      input.classList.remove('input--error');
+    });
+  });
+
+  if (supabaseClient) {
+    refreshStocks({ silent: true }).catch(err => {
+      console.error('[modal5.html] ошибка первоначальной загрузки склада:', err);
+    });
+    scheduleStocksRefresh();
+    window.addEventListener('focus', () => {
+      refreshStocks({ silent: true }).catch(err => {
+        console.error('[modal5.html] ошибка обновления склада при возвращении на вкладку:', err);
+      });
+    });
+  }
+
   console.log('[modal5.html] PAGE 5 активирован');
 }
+  
 initModal5();
 </script>
