@@ -1394,7 +1394,7 @@ export function initModal5() {
     try {
       const { data, error } = await supabaseClient
         .from('modal4_orders_uni')
-        .select('id, order_code, item_name, item_category, modification, avg_price, url, supplier, total_quantity, last_updated_at, company_id, user_key');
+        .select('order_code, item_name, item_category, modification, avg_price, url, supplier');
 
       if (error) {
         if (!silent) {
