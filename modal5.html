@@ -412,6 +412,8 @@
 
     #modal5-container .recipe-item-row .modalRow {
       margin-left: 0;
+      align-items: center;
+      gap: 14px;
     }
 
     #modal5-container .recipe-picker__item {
@@ -688,12 +690,16 @@
       <template id="recipe-item-template">
         <div class="recipe-item-row" data-item-id="">
           <div class="modalRow">
-            <input class="inputT code-field" data-field="order_code" style="width: 100px;" placeholder="RIV-0881" readonly />
-            <input class="input name-field" data-field="item_name" placeholder="наименование" readonly />
+            <label class="checkbox">
+              <input type="checkbox" />
+            </label>
+            <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" readonly />
+            <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" readonly />
+            <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" readonly />
             <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
-            <input class="inputSUM" style="width: 90px;" data-field="base_qty" placeholder="000 000" />
-            <input class="inputSUM" style="width: 90px;" data-field="base_price" placeholder="000 000 000" readonly />
-            <input class="inputSUM" style="width: 120px;" data-field="total" placeholder="000 000 000" readonly />
+            <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" />
+            <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
+            <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
           </div>
           <button class="button-remove" type="button">
             <i class="material-symbols-outlined">delete</i>
@@ -810,6 +816,7 @@ export function initModal5() {
       id: String(id),
       order_code: row.order_code ?? '',
       item_name: row.item_name ?? '',
+      item_category: row.item_category ?? '',
       base_unit: row.modification ?? '',
       price: price ?? null,
       url: row.url ?? '',
@@ -822,7 +829,8 @@ export function initModal5() {
     if (!normalized) return stockItems;
     return stockItems.filter(item =>
       item.order_code.toLowerCase().includes(normalized)
-      || item.item_name.toLowerCase().includes(normalized));
+      || item.item_name.toLowerCase().includes(normalized)
+      || item.item_category.toLowerCase().includes(normalized));
   };
 
   const togglePicker = (picker, visible) => {
@@ -852,6 +860,7 @@ export function initModal5() {
     };
     setField('order_code', stock.order_code);
     setField('item_name', stock.item_name);
+    setField('item_category', stock.item_category);
     setField('base_unit', stock.base_unit);
 
     const priceInput = row.querySelector('[data-field="base_price"]');
@@ -1145,7 +1154,7 @@ export function initModal5() {
     try {
       const { data, error } = await supabaseClient
         .from('modal4_orders_uni')
-        .select('id, order_code, item_name, modification, avg_price, url, supplier, total_quantity, last_updated_at, company_id, user_key');
+        .select('id, order_code, item_name, item_category, modification, avg_price, url, supplier, total_quantity, last_updated_at, company_id, user_key');
 
       if (error) {
         if (!silent) {
