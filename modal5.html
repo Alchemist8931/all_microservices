@@ -774,9 +774,7 @@
       <template id="recipe-item-template">
         <div class="recipe-item-row" data-item-id="">
           <div class="modalRow">
-            <label class="checkbox">
-              <input type="checkbox" />
-            </label>
+            <label class="checkbox"><input type="checkbox" /></label>
             <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" />
             <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" />
             <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" />
@@ -784,12 +782,9 @@
             <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" />
             <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
+            <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
-          <button class="button-remove" type="button">
-            <i class="material-symbols-outlined">delete</i>
-            <span>удалить позицию</span>
-          </button>
         </div>
       </template>
 
