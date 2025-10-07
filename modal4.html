@@ -1349,6 +1349,7 @@ export function initModal4() {
       return {
         order_code: record.order_code ?? '',
         item_name: record.item_name ?? '',
+        item_category: record.item_category ?? '',
         url: record.url ?? '',
         supplier: record.supplier ?? '',
         modification: record.modification ?? '',
@@ -1369,13 +1370,13 @@ export function initModal4() {
 
     if (isStocksMode(mode)) {
       query = query
-        .select('order_code, item_name, url, supplier, modification, total_quantity, avg_price, total_amount, statuses');
+        .select('order_code, item_name, item_category, url, supplier, modification, total_quantity, avg_price, total_amount, statuses');
       if (ORDER_STATUS) {
         query = query.contains('statuses', [ORDER_STATUS]);
       }
     } else {
       query = query
-        .select('order_code, item_name, url, supplier, modification, quantity_value, price_value')
+        .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value')
         .eq('status', ORDER_STATUS);
     }
 
@@ -1437,6 +1438,7 @@ export function initModal4() {
       id: order.id,
       order_code: order.order_code ?? '',
       item_name: order.item_name ?? '',
+      item_category: order.item_category ?? '',
       url: order.url ?? '',
       supplier: order.supplier ?? '',
       modification: order.modification ?? '',
@@ -1480,7 +1482,7 @@ export function initModal4() {
 
     if (stocksMode) {
       query = query
-        .select('order_code, item_name, url, supplier, modification, total_quantity, avg_price, total_amount, statuses, last_created_at, last_updated_at, company_id, user_key');
+        .select('order_code, item_name, item_category, url, supplier, modification, total_quantity, avg_price, total_amount, statuses, last_created_at, last_updated_at, company_id, user_key');
       if (ORDER_STATUS) {
         query = query.contains('statuses', [ORDER_STATUS]);
       }
@@ -1577,6 +1579,7 @@ export function initModal4() {
 
     assignValue('order_code', o.order_code ?? '');
     assignValue('item_name', o.item_name ?? '');
+    assignValue('item_category', o.item_category ?? '');
     assignValue('status', o.status ?? ORDER_STATUS);
     assignValue('date-time', formatCreatedAt(o.created_at));
     assignValue('spec-url', o.url ?? '');
@@ -1821,8 +1824,13 @@ export function initModal4() {
   async function setupAutocomplete() {
     if (!formRow || !autocompleteDropdown || !selectOverlay) return;
     await loadHints(activeMode);
-    const [codeInput, nameInput, urlInput, supplierInput, , qtyInput, priceInput] =
-      formRow.querySelectorAll('input');
+    const codeInput = formRow.querySelector('.code-field');
+    const nameInput = formRow.querySelector('.name-field');
+    const categoryInput = formRow.querySelector('.category-field');
+    const urlInput = formRow.querySelector('.url-field');
+    const supplierInput = formRow.querySelector('.supplier-field');
+    const qtyInput = formRow.querySelector('.qty-field');
+    const priceInput = formRow.querySelector('.price-field');
 
     if (!codeInput || !nameInput) return;
 
@@ -1875,6 +1883,7 @@ export function initModal4() {
       const record = JSON.parse(target.dataset.record ?? '{}');
       codeInput.value = record.order_code ?? '';
       nameInput.value = record.item_name ?? '';
+      if (categoryInput) categoryInput.value = record.item_category ?? '';
       if (urlInput) urlInput.value = record.url ?? '';
       if (supplierInput) supplierInput.value = record.supplier ?? '';
       if (selectInput) selectInput.value = record.modification ?? '';
@@ -1912,24 +1921,31 @@ export function initModal4() {
       return;
     }
     if (!formRow) return;
-    const inputs = formRow.querySelectorAll('input');
+    const codeInput = formRow.querySelector('.code-field');
+    const nameInput = formRow.querySelector('.name-field');
+    const categoryInput = formRow.querySelector('.category-field');
+    const urlInput = formRow.querySelector('.url-field');
+    const supplierInput = formRow.querySelector('.supplier-field');
+    const qtyInput = formRow.querySelector('.qty-field');
+    const priceInput = formRow.querySelector('.price-field');
+    const modificationInput = selectInput;
+    if (!codeInput || !nameInput || !qtyInput || !priceInput) return;
     const units = await unitsPromise;
 
-    const quantityInput = inputs[5];
-    const priceInput = inputs[6];
-    const quantityRaw = quantityInput?.dataset.raw ?? quantityInput?.value.trim() ?? '';
-    const priceRaw = priceInput?.dataset.raw ?? priceInput?.value.trim() ?? '';
+    const quantityRaw = qtyInput.dataset.raw ?? qtyInput.value.trim() ?? '';
+    const priceRaw = priceInput.dataset.raw ?? priceInput.value.trim() ?? '';
 
     const companyIdForUser = await resolveCompanyId();
 
     const orderData = {
       user_key: DB_USER_KEY,
       company_id: companyIdForUser,
-      order_code: inputs[0].value.trim(),
-      item_name: inputs[1].value.trim(),
-      url: inputs[2].value.trim(),
-      supplier: inputs[3].value.trim(),
-      modification: inputs[4].value.trim(),
+      order_code: codeInput.value.trim(),
+      item_name: nameInput.value.trim(),
+      item_category: categoryInput?.value.trim() ?? '',
+      url: urlInput?.value.trim() ?? '',
+      supplier: supplierInput?.value.trim() ?? '',
+      modification: modificationInput?.value.trim() ?? '',
       quantity_value: quantityRaw,
       price_value: priceRaw,
       status: ORDER_STATUS,
@@ -1964,6 +1980,7 @@ export function initModal4() {
       const dbPayload = {
         order_code: orderData.order_code,
         item_name: orderData.item_name,
+        item_category: orderData.item_category,
         url: orderData.url,
         supplier: orderData.supplier,
         modification: baseUnit,
@@ -1986,6 +2003,7 @@ export function initModal4() {
         id,
         order_code: orderData.order_code,
         item_name: orderData.item_name,
+        item_category: orderData.item_category,
         url: orderData.url,
         supplier: orderData.supplier,
         modification: baseUnit,
@@ -2019,6 +2037,7 @@ export function initModal4() {
       hintsCache[activeMode].push({
         order_code: orderData.order_code,
         item_name: orderData.item_name,
+        item_category: orderData.item_category,
         url: orderData.url,
         supplier: orderData.supplier,
         modification: baseUnit,
