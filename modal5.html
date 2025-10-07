@@ -342,6 +342,173 @@
       gap: 16px;
     }
 
+    #modal5-container .recipe-card__visual {
+      width: 100%;
+    }
+
+    #modal5-container .recipe-visual-card {
+      width: 100%;
+      padding: 10px;
+      background: #ffffff;
+      border-radius: 19.2px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    #modal5-container .recipe-visual-card__inner {
+      position: relative;
+      width: 100%;
+      height: 192px;
+      background: #ffffff;
+      border-bottom-right-radius: 0px;
+    }
+
+    #modal5-container .recipe-visual-card__box {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 25.6px;
+      overflow: hidden;
+    }
+
+    #modal5-container .recipe-visual-card__image {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      bottom: 0px;
+      left: 0px;
+    }
+
+    #modal5-container .recipe-visual-card__image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 16px;
+      transition: opacity 0.2s ease;
+    }
+
+    #modal5-container .recipe-visual-card__footer {
+      position: absolute;
+      bottom: -6px;
+      right: 0px;
+      width: 100%;
+      height: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      pointer-events: none;
+    }
+
+    #modal5-container .recipe-visual-card__footer h3 {
+      margin-left: 8px;
+      text-transform: uppercase;
+      font-size: 14px;
+      color: #c8c8c8;
+      font-weight: 400;
+    }
+
+    #modal5-container .recipe-visual-card__button {
+      position: relative;
+      margin-right: 20px;
+      height: 28px;
+      padding: 4px 14px;
+      border-radius: 8px;
+      background-color: #111111;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      pointer-events: auto;
+    }
+
+    #modal5-container .recipe-visual-card__button:hover,
+    #modal5-container .recipe-visual-card__button:focus {
+      background-color: #2a2a2a;
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    #modal5-container .recipe-visual-card__input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0px;
+      height: 0px;
+    }
+
+    #modal5-container .recipe-visual-card__footer::before {
+      position: absolute;
+      content: "";
+      bottom: 6px;
+      left: -20px;
+      background: transparent;
+      width: 20px;
+      height: 20px;
+      border-bottom-right-radius: 16px;
+      box-shadow: 5px 5px 0px 5px #ffffff;
+      pointer-events: none;
+    }
+
+    #modal5-container .recipe-visual-card__footer::after {
+      position: absolute;
+      content: "";
+      top: -20px;
+      right: 6px;
+      background: transparent;
+      width: 20px;
+      height: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 5px 5px 0px 5px #ffffff;
+      pointer-events: none;
+    }
+
+    @media screen and (min-width: 848px) {
+      #modal5-container .recipe-visual-card {
+        border-radius: 32px;
+      }
+
+      #modal5-container .recipe-visual-card__box {
+        border-radius: 40.96px;
+      }
+
+      #modal5-container .recipe-visual-card__image img {
+        border-radius: 25.6px;
+      }
+
+      #modal5-container .recipe-visual-card__footer {
+        width: 288px;
+        right: -6px;
+        border-top-left-radius: 16px;
+      }
+
+      #modal5-container .recipe-visual-card__footer h3 {
+        margin-left: 16px;
+      }
+
+      #modal5-container .recipe-visual-card__footer::before {
+        bottom: 6px;
+        left: -20px;
+        width: 20px;
+        height: 20px;
+        border-bottom-right-radius: 16px;
+      }
+
+      #modal5-container .recipe-visual-card__footer::after {
+        top: -20px;
+        right: 6px;
+        width: 20px;
+        height: 20px;
+        border-bottom-right-radius: 20px;
+      }
+    }
+
     #modal5-container .recipe-card__controls {
       display: flex;
       flex-wrap: wrap;
@@ -758,6 +925,26 @@
             <button class="button-form secondary recipe-card__delete" type="button">удалить рецепт</button>
           </div>
           <div class="recipe-card__body">
+
+            
+            <div class="recipe-card__visual">
+              <div class="recipe-visual-card">
+                <div class="recipe-visual-card__inner">
+                  <div class="recipe-visual-card__box">
+                    <div class="recipe-visual-card__image">
+                      <img src="https://images.unsplash.com/photo-1601049676869-702ea24cfd58?q=80&w=2073&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" data-placeholder="https://images.unsplash.com/photo-1601049676869-702ea24cfd58?q=80&w=2073&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="визуал рецепта">
+                    </div>
+                    <div class="recipe-visual-card__footer">
+                      <h3>визуал рецепта</h3>
+                      <button class="recipe-visual-card__button" type="button">загрузить</button>
+                      <input class="recipe-visual-card__input" type="file" accept="image/*" aria-label="загрузить изображение рецепта" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
             <div class="recipe-card__controls">
               <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
               <div class="recipe-card__picker" aria-hidden="true">
@@ -1257,6 +1444,71 @@ export function initModal5() {
     return row;
   };
 
+  const setupCardVisual = card => {
+    if (!(card instanceof HTMLElement)) return () => {};
+    const fileInput = card.querySelector('.recipe-visual-card__input');
+    const triggerButton = card.querySelector('.recipe-visual-card__button');
+    const previewImage = card.querySelector('.recipe-visual-card__image img');
+
+    if (!(fileInput instanceof HTMLInputElement) || !(previewImage instanceof HTMLImageElement)) {
+      return () => {};
+    }
+
+    const placeholder = previewImage.getAttribute('data-placeholder') || previewImage.src || '';
+
+    const revokePreview = () => {
+      const currentUrl = fileInput.dataset.previewUrl;
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+        delete fileInput.dataset.previewUrl;
+      }
+    };
+
+    const resetPreview = () => {
+      if (placeholder) {
+        previewImage.src = placeholder;
+      } else {
+        previewImage.removeAttribute('src');
+      }
+      try {
+        fileInput.value = '';
+      } catch (err) {
+        /* ignore resetting file input */
+      }
+    };
+
+    const updatePreview = () => {
+      const file = fileInput.files && fileInput.files[0];
+      revokePreview();
+      if (file) {
+        const objectUrl = URL.createObjectURL(file);
+        fileInput.dataset.previewUrl = objectUrl;
+        previewImage.src = objectUrl;
+      } else {
+        resetPreview();
+      }
+    };
+
+    if (triggerButton instanceof HTMLButtonElement) {
+      triggerButton.addEventListener('click', () => {
+        try {
+          fileInput.value = '';
+        } catch (err) {
+          /* ignore resetting file input before open */
+        }
+        fileInput.click();
+      });
+    }
+
+    fileInput.addEventListener('change', updatePreview);
+
+    return () => {
+      revokePreview();
+      resetPreview();
+    };
+  };
+  
+
   const setupAddButton = card => {
     const addButton = card.querySelector('.recipe-card__add');
     if (!(addButton instanceof HTMLButtonElement)) return;
@@ -1319,6 +1571,8 @@ export function initModal5() {
     setField('recipe_category', data.category);
     setField('recipe_name', data.name);
 
+    const cleanupVisual = setupCardVisual(card);
+
     const dateField = card.querySelector('[data-field="date-time"]');
     if (dateField) {
       applyDateTime(dateField, data.createdAt);
@@ -1327,6 +1581,7 @@ export function initModal5() {
     const deleteButton = card.querySelector('.recipe-card__delete');
     if (deleteButton instanceof HTMLButtonElement) {
       deleteButton.addEventListener('click', () => {
+        cleanupVisual();
         card.remove();
       });
     }
@@ -1426,6 +1681,19 @@ export function initModal5() {
       });
     }, 60_000);
   };
+
+  const preloadedCards = recipeList.querySelectorAll('.recipe-card');
+  preloadedCards.forEach(card => {
+    if (!(card instanceof HTMLElement)) return;
+    setupCardVisual(card);
+    setupAddButton(card);
+    const rows = card.querySelectorAll('.recipe-item-row');
+    rows.forEach(row => {
+      if (row instanceof HTMLElement) {
+        setupRecipeRow(row, card);
+      }
+    });
+  });
 
   createButton.addEventListener('click', createRecipeFromForm);
 
