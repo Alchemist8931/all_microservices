@@ -38,9 +38,11 @@
       min-height: 255px;
       display: flex;
       flex-direction: column;
+      justify-content: flex-end;
       gap: 18px;
       margin-top: -20px;
       padding: 20px;
+      padding-top: 80px;
       box-sizing: border-box;
       color: var(--black-color, var(--content-color, #212121));
       position: relative;
@@ -50,10 +52,8 @@
 
     #modal5-container .modal5-signature {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      margin-top: -20px;
-      margin-left: -1450px;
+      top: 20px;
+      left: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -152,8 +152,13 @@
     }
 
     #modal5-container .form-row {
-      align-items: stretch;
+      align-items: flex-end;
       gap: 18px;
+      margin-top: 0;
+    }
+
+    #modal5-container .form-row .button-form {
+      align-self: flex-end;
     }
 
     #modal5-container .form-fields {
@@ -910,7 +915,7 @@
       </h2>
     </section>
 
-    <div class="modalRow form-row" style="margin-top: 35px;">
+    <div class="modalRow form-row">
       <div class="modalBLOCK form-fields">
         <div class="modalRow" style="margin-left: -20px;">
             <input id="recipe-code" class="inputT code-field" type="text" placeholder="RCP-0001" autocomplete="off"/>
@@ -918,7 +923,7 @@
             <input id="recipe-name" class="input name-field" type="text" placeholder="наименование рецепта" autocomplete="off" />
           </div>
       </div>
-      <button class="button-form primary" style="margin-top: 23px;" id="create-recipe" type="button">создать рецепт</button>
+      <button class="button-form primary" id="create-recipe" type="button">создать рецепт</button>
     </div>
   </div>
 
