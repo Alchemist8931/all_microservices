@@ -1020,6 +1020,74 @@ export function initModal5() {
     return;
   }
 
+  const RECIPES_TABLE = 'modal5_recipes';
+  const rawUserKey = window.USER_KEY ?? null;
+  const authUserId = window.AUTH_ID ?? null;
+  const DB_USER_KEY = authUserId || rawUserKey;
+  let DB_COMPANY_ID = window.companyId || window.companyID || null;
+  let resolvingCompanyIdPromise = null;
+  const cardSaveTimers = new WeakMap();
+  const cardSaveChains = new WeakMap();
+
+  const resolveCompanyId = async () => {
+    if (DB_COMPANY_ID) return DB_COMPANY_ID;
+    if (!supabaseClient) return null;
+    if (resolvingCompanyIdPromise) return resolvingCompanyIdPromise;
+
+    const localId = window.LOCAL_USER_ID;
+    const isAdmin = Boolean(window.IS_ADMIN);
+    const tablesToCheck = isAdmin
+      ? ['administrators', 'employees']
+      : ['employees', 'administrators'];
+
+    resolvingCompanyIdPromise = (async () => {
+      for (const table of tablesToCheck) {
+        try {
+          let query = supabaseClient
+            .from(table)
+            .select('company_id')
+            .limit(1);
+
+          if (localId) {
+            query = query.eq('id', localId);
+          } else if (DB_USER_KEY) {
+            query = query.eq('user_key', DB_USER_KEY);
+          } else if (rawUserKey) {
+            query = query.eq('user_key', rawUserKey);
+          } else {
+            continue;
+          }
+
+          const { data, error } = await query;
+          if (error) {
+            console.warn(`[modal5.html] не удалось получить company_id из ${table}:`, error);
+            continue;
+          }
+
+          if (Array.isArray(data) && data.length) {
+            const companyId = data[0]?.company_id ?? null;
+            if (companyId) {
+              DB_COMPANY_ID = companyId;
+              if (!window.companyId) window.companyId = companyId;
+              return companyId;
+            }
+          }
+        } catch (err) {
+          console.warn(`[modal5.html] исключение при получении company_id из ${table}:`, err);
+        }
+      }
+
+      return DB_COMPANY_ID;
+    })();
+
+    try {
+      return await resolvingCompanyIdPromise;
+    } finally {
+      resolvingCompanyIdPromise = null;
+    }
+  };
+
+
   let stockItems = [];
   let stockMap = new Map();
   let stocksLoaded = false;
@@ -1169,6 +1237,239 @@ export function initModal5() {
     target.dataset.date = date;
   };
 
+  const toIsoString = value => {
+    if (!value) return new Date().toISOString();
+    if (value instanceof Date) return value.toISOString();
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return new Date().toISOString();
+    return date.toISOString();
+  };
+
+  const collectCardState = card => {
+    if (!(card instanceof HTMLElement)) return null;
+    const getHeaderValue = field => {
+      const input = card.querySelector(`[data-field="${field}"]`);
+      return input instanceof HTMLInputElement ? input.value.trim() : '';
+    };
+
+    const createdAtIso = toIsoString(card.dataset.createdAt || new Date());
+
+    const rows = Array.from(card.querySelectorAll('.recipe-item-row'));
+    const items = rows.map((row, index) => {
+      if (!(row instanceof HTMLElement)) return null;
+
+      const getFieldValue = field => {
+        const input = row.querySelector(`[data-field="${field}"]`);
+        return input instanceof HTMLInputElement ? input.value.trim() : '';
+      };
+
+      const qtyInput = row.querySelector('[data-field="base_qty"]');
+      const qtyRaw = qtyInput instanceof HTMLInputElement
+        ? (qtyInput.dataset.raw ? parseNumber(qtyInput.dataset.raw) : parseNumber(qtyInput.value))
+        : null;
+
+      const priceInput = row.querySelector('[data-field="base_price"]');
+      const priceRaw = priceInput instanceof HTMLInputElement
+        ? (priceInput.dataset.raw ? parseNumber(priceInput.dataset.raw) : parseNumber(priceInput.value))
+        : null;
+
+      const normalizedQty = typeof qtyRaw === 'number' && Number.isFinite(qtyRaw) ? qtyRaw : null;
+      const normalizedPrice = typeof priceRaw === 'number' && Number.isFinite(priceRaw) ? priceRaw : null;
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      const checked = checkbox instanceof HTMLInputElement ? checkbox.checked : false;
+      const total = normalizedQty !== null && normalizedPrice !== null
+        ? normalizedQty * normalizedPrice
+        : null;
+
+      return {
+        position: index,
+        stock_id: row.dataset.itemId || null,
+        order_code: getFieldValue('order_code'),
+        item_name: getFieldValue('item_name'),
+        item_category: getFieldValue('item_category'),
+        base_unit: getFieldValue('base_unit'),
+        base_qty: normalizedQty,
+        base_price: normalizedPrice,
+        total,
+        checked,
+      };
+    }).filter(Boolean);
+
+    return {
+      id: card.dataset.recipeId || null,
+      code: getHeaderValue('recipe_code'),
+      category: getHeaderValue('recipe_category'),
+      name: getHeaderValue('recipe_name'),
+      createdAt: createdAtIso,
+      items,
+    };
+  };
+
+  const computeCardStateHash = state => {
+    if (!state) return '';
+    return JSON.stringify({
+      code: state.code ?? '',
+      category: state.category ?? '',
+      name: state.name ?? '',
+      items: state.items.map(item => ({
+        position: item.position ?? 0,
+        stock_id: item.stock_id ?? null,
+        order_code: item.order_code ?? '',
+        item_name: item.item_name ?? '',
+        item_category: item.item_category ?? '',
+        base_unit: item.base_unit ?? '',
+        base_qty: item.base_qty ?? null,
+        base_price: item.base_price ?? null,
+        checked: Boolean(item.checked),
+      })),
+    });
+  };
+
+  const captureCardStateHash = card => {
+    const state = collectCardState(card);
+    if (!state) return '';
+    const hash = computeCardStateHash(state);
+    card.dataset.lastSavedState = hash;
+    if (!card.dataset.createdAt && state.createdAt) {
+      card.dataset.createdAt = state.createdAt;
+    }
+    return hash;
+  };
+
+  const persistRecipeCard = async card => {
+    if (!supabaseClient) return;
+    if (!(card instanceof HTMLElement)) return;
+
+    const state = collectCardState(card);
+    if (!state) return;
+
+    const stateHash = computeCardStateHash(state);
+    const existingId = state.id;
+    const lastHash = card.dataset.lastSavedState || '';
+    if (existingId && lastHash === stateHash) return;
+
+    const companyId = await resolveCompanyId();
+    if (!companyId) return;
+
+    const payload = {
+      recipe_code: state.code,
+      recipe_category: state.category,
+      recipe_name: state.name,
+      items: state.items,
+      updated_at: new Date().toISOString(),
+      company_id: companyId,
+      user_key: DB_USER_KEY ?? null,
+    };
+
+    try {
+      if (!existingId) {
+        const createdAtIso = state.createdAt || new Date().toISOString();
+        payload.created_at = createdAtIso;
+        const { data, error } = await supabaseClient
+          .from(RECIPES_TABLE)
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[modal5.html] ошибка создания рецепта:', error);
+          return;
+        }
+
+        const created = data ?? null;
+        if (created) {
+          card.dataset.recipeId = created.id ?? '';
+          const appliedCreatedAt = created.created_at ?? createdAtIso;
+          card.dataset.createdAt = appliedCreatedAt;
+          const dateField = card.querySelector('[data-field="date-time"]');
+          if (dateField) applyDateTime(dateField, appliedCreatedAt);
+          const rows = card.querySelectorAll('.recipe-item-row');
+          rows.forEach(row => {
+            if (row instanceof HTMLElement) {
+              row.dataset.recipeId = card.dataset.recipeId;
+            }
+          });
+        }
+      } else {
+        const { data, error } = await supabaseClient
+          .from(RECIPES_TABLE)
+          .update(payload)
+          .eq('id', existingId)
+          .eq('company_id', companyId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`[modal5.html] ошибка обновления рецепта ${existingId}:`, error);
+          return;
+        }
+
+        if (data?.updated_at) {
+          card.dataset.updatedAt = data.updated_at;
+        }
+        const rows = card.querySelectorAll('.recipe-item-row');
+        rows.forEach(row => {
+          if (row instanceof HTMLElement) {
+            row.dataset.recipeId = card.dataset.recipeId;
+          }
+        });
+      }
+
+      card.dataset.lastSavedState = stateHash;
+    } catch (err) {
+      console.error('[modal5.html] исключение при сохранении рецепта:', err);
+    }
+  };
+
+  const queueSaveRecipe = (card, { immediate = false } = {}) => {
+    if (!supabaseClient) return;
+    if (!(card instanceof HTMLElement)) return;
+    const existingTimer = cardSaveTimers.get(card);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const delay = immediate ? 0 : 800;
+    const timer = setTimeout(() => {
+      cardSaveTimers.delete(card);
+      const chain = cardSaveChains.get(card) ?? Promise.resolve();
+      const next = chain.then(() => persistRecipeCard(card));
+      cardSaveChains.set(card, next.catch(err => {
+        console.error('[modal5.html] ошибка сохранения рецепта:', err);
+      }));
+    }, delay);
+
+    cardSaveTimers.set(card, timer);
+  };
+
+  const cancelQueuedSave = card => {
+    const timer = cardSaveTimers.get(card);
+    if (timer) {
+      clearTimeout(timer);
+      cardSaveTimers.delete(card);
+    }
+  };
+
+  const deleteRecipeById = async recipeId => {
+    if (!supabaseClient || !recipeId) return;
+    try {
+      const companyId = await resolveCompanyId();
+      if (!companyId) return;
+      const { error } = await supabaseClient
+        .from(RECIPES_TABLE)
+        .delete()
+        .eq('id', recipeId)
+        .eq('company_id', companyId);
+
+      if (error) {
+        console.error(`[modal5.html] ошибка удаления рецепта ${recipeId}:`, error);
+      }
+    } catch (err) {
+      console.error(`[modal5.html] исключение при удалении рецепта ${recipeId}:`, err);
+    }
+  };
+
+
   const normalizeStockRow = row => {
     if (!row) return null;
     const id = row.id ?? row.order_code;
@@ -1258,6 +1559,71 @@ export function initModal5() {
     totalInput.value = fmtNum(total, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const applyItemDataToRow = (row, item) => {
+    if (!(row instanceof HTMLElement) || !item || typeof item !== 'object') return;
+
+    const setFieldValue = (field, value) => {
+      const input = row.querySelector(`[data-field="${field}"]`);
+      if (input instanceof HTMLInputElement) {
+        input.value = value ?? '';
+      }
+    };
+
+    setFieldValue('order_code', item.order_code ?? '');
+    setFieldValue('item_name', item.item_name ?? '');
+    setFieldValue('item_category', item.item_category ?? '');
+    setFieldValue('base_unit', item.base_unit ?? '');
+
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox instanceof HTMLInputElement) {
+      checkbox.checked = Boolean(item.checked);
+    }
+
+    const parsedPrice = typeof item.base_price === 'number' && Number.isFinite(item.base_price)
+      ? item.base_price
+      : parseNumber(item.base_price);
+    const normalizedPrice = typeof parsedPrice === 'number' && Number.isFinite(parsedPrice)
+      ? parsedPrice
+      : null;
+
+    const priceInput = row.querySelector('[data-field="base_price"]');
+    if (priceInput instanceof HTMLInputElement) {
+      if (normalizedPrice !== null) {
+        priceInput.dataset.raw = String(normalizedPrice);
+        priceInput.value = fmtNum(normalizedPrice, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        priceInput.value = '';
+        delete priceInput.dataset.raw;
+      }
+    }
+
+    row.dataset.itemId = item.stock_id ?? item.order_code ?? row.dataset.itemId ?? '';
+    row.dataset.price = normalizedPrice !== null ? String(normalizedPrice) : '';
+
+    const parsedQty = typeof item.base_qty === 'number' && Number.isFinite(item.base_qty)
+      ? item.base_qty
+      : parseNumber(item.base_qty);
+    const normalizedQty = typeof parsedQty === 'number' && Number.isFinite(parsedQty)
+      ? parsedQty
+      : null;
+
+    updateTotalUsingRaw(row, normalizedQty, { formatQty: true });
+
+    if (normalizedQty === null) {
+      const qtyInput = row.querySelector('[data-field="base_qty"]');
+      if (qtyInput instanceof HTMLInputElement && !qtyInput.value) {
+        delete qtyInput.dataset.raw;
+      }
+    }
+
+    if (normalizedPrice === null) {
+      const priceField = row.querySelector('[data-field="base_price"]');
+      if (priceField instanceof HTMLInputElement && !priceField.value) {
+        delete priceField.dataset.raw;
+      }
+    }
+  };
+
   const handleQtyInput = event => {
     const input = event.currentTarget;
     if (!(input instanceof HTMLInputElement)) return;
@@ -1265,6 +1631,10 @@ export function initModal5() {
     if (!(row instanceof HTMLElement)) return;
     const raw = parseNumber(input.value);
     updateTotalUsingRaw(row, raw, { formatQty: false });
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      queueSaveRecipe(card);
+    }
   };
 
   const handleQtyFocus = event => {
@@ -1282,6 +1652,10 @@ export function initModal5() {
     if (!(row instanceof HTMLElement)) return;
     const raw = parseNumber(input.value);
     updateTotalUsingRaw(row, raw, { formatQty: true });
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      queueSaveRecipe(card);
+    }
   };
 
   const bindQtyHandlers = row => {
@@ -1299,8 +1673,12 @@ export function initModal5() {
     if (!(removeButton instanceof HTMLButtonElement)) return;
     if (removeButton.dataset.boundRemove === '1') return;
     removeButton.addEventListener('click', () => {
+      const card = row.closest('.recipe-card');
       hideRowSuggestions(row);
       row.remove();
+      if (card instanceof HTMLElement) {
+        queueSaveRecipe(card);
+      }
     });
     removeButton.dataset.boundRemove = '1';
   };
@@ -1315,6 +1693,8 @@ export function initModal5() {
 
     clearRowStockData(row);
     input.dataset.lookupQuery = input.value;
+
+    queueSaveRecipe(card);
 
     ensureStocksLoaded().then(() => {
       if (input.dataset.lookupQuery !== input.value) return;
@@ -1370,6 +1750,16 @@ export function initModal5() {
     bindQtyHandlers(row);
     bindRemoveHandler(row);
     bindLookupHandlers(row);
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox instanceof HTMLInputElement && checkbox.type === 'checkbox' && checkbox.dataset.boundChange !== '1') {
+      checkbox.addEventListener('change', () => {
+        const hostCard = row.closest('.recipe-card');
+        if (hostCard instanceof HTMLElement) {
+          queueSaveRecipe(hostCard);
+        }
+      });
+      checkbox.dataset.boundChange = '1';
+    }
     if (card instanceof HTMLElement) {
       row.dataset.recipeId = card.dataset.recipeId ?? row.dataset.recipeId ?? '';
     }
@@ -1400,11 +1790,19 @@ export function initModal5() {
     const itemsContainer = card.querySelector('.recipe-card__items');
     if (!(itemsContainer instanceof HTMLElement)) return null;
     itemsContainer.appendChild(row);
-    focusFirstEditableField(row);
+    if (focus) {
+      focusFirstEditableField(row);
+    }
+    if (!silent) {
+      const hostCard = card instanceof HTMLElement ? card : row.closest('.recipe-card');
+      if (hostCard instanceof HTMLElement) {
+        queueSaveRecipe(hostCard);
+      }
+    }
     return row;
   };
 
-  const addItemToCard = (card, stock, { targetRow = null } = {}) => {
+  const createRecipeItemRow = (card, { focus = true, silent = false } = {}) => {
     if (!(card instanceof HTMLElement)) return null;
     const itemsContainer = card.querySelector('.recipe-card__items');
     if (!(itemsContainer instanceof HTMLElement)) return null;
@@ -1421,11 +1819,8 @@ export function initModal5() {
     }
 
     if (!(row instanceof HTMLElement)) {
-      const templateContent = itemTemplate.content?.firstElementChild;
-      if (!(templateContent instanceof HTMLElement)) return null;
-      row = templateContent.cloneNode(true);
+      row = createRecipeItemRow(card, { focus: false, silent: true });
       if (!(row instanceof HTMLElement)) return null;
-      itemsContainer.appendChild(row);
     }
 
     setupRecipeRow(row, card);
@@ -1440,6 +1835,8 @@ export function initModal5() {
         : parseNumber(qtyInput.value);
       updateTotalUsingRaw(row, qtyRaw, { formatQty: hasStoredRaw });
     }
+
+    queueSaveRecipe(card);
 
     return row;
   };
@@ -1525,6 +1922,7 @@ export function initModal5() {
 
   const updateAllRecipeItems = () => {
     const rows = recipeList.querySelectorAll('.recipe-item-row');
+    const changedCards = new Set();
     rows.forEach(row => {
       if (!(row instanceof HTMLElement)) return;
       const card = row.closest('.recipe-card');
@@ -1535,6 +1933,7 @@ export function initModal5() {
       if (!itemId) return;
       const latest = stockMap.get(itemId);
       if (!latest) return;
+      const beforePrice = row.dataset.price ?? '';
       applyStockFields(row, latest);
       const qtyInput = row.querySelector('[data-field="base_qty"]');
       const hasStoredRaw = qtyInput instanceof HTMLInputElement && qtyInput.dataset.raw;
@@ -1542,10 +1941,21 @@ export function initModal5() {
         ? parseNumber(qtyInput.dataset.raw)
         : parseNumber(qtyInput instanceof HTMLInputElement ? qtyInput.value : null);
       updateTotalUsingRaw(row, qtyRaw, { formatQty: Boolean(hasStoredRaw) });
+      if (card instanceof HTMLElement) {
+        const afterPrice = row.dataset.price ?? '';
+        if (beforePrice !== afterPrice) {
+          changedCards.add(card);
+        }
+      }
+    });
+    changedCards.forEach(card => {
+      if (card instanceof HTMLElement) {
+        queueSaveRecipe(card);
+      }
     });
   };
 
-  const createRecipeCard = data => {
+  const createRecipeCard = (data = {}) => {
     const templateContent = cardTemplate.content?.firstElementChild;
     if (!(templateContent instanceof HTMLElement)) {
       throw new Error('[modal5.html] шаблон карточки рецепта недоступен');
@@ -1555,10 +1965,12 @@ export function initModal5() {
       throw new Error('[modal5.html] не удалось создать карточку рецепта');
     }
 
-    const generatedId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `recipe-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    card.dataset.recipeId = generatedId;
+    const createdAtIso = toIsoString(data.createdAt || new Date());
+    card.dataset.recipeId = data.id ? String(data.id) : '';
+    card.dataset.createdAt = createdAtIso;
+    if (data.updatedAt) {
+      card.dataset.updatedAt = toIsoString(data.updatedAt);
+    }
 
     const setField = (field, value) => {
       const target = card.querySelector(`[data-field="${field}"]`);
@@ -1567,33 +1979,87 @@ export function initModal5() {
       }
     };
 
-    setField('recipe_code', data.code);
-    setField('recipe_category', data.category);
-    setField('recipe_name', data.name);
+    setField('recipe_code', data.code ?? '');
+    setField('recipe_category', data.category ?? '');
+    setField('recipe_name', data.name ?? '');
 
     const cleanupVisual = setupCardVisual(card);
 
     const dateField = card.querySelector('[data-field="date-time"]');
     if (dateField) {
-      applyDateTime(dateField, data.createdAt);
+      applyDateTime(dateField, createdAtIso);
     }
 
     const deleteButton = card.querySelector('.recipe-card__delete');
     if (deleteButton instanceof HTMLButtonElement) {
       deleteButton.addEventListener('click', () => {
         cleanupVisual();
+        cancelQueuedSave(card);
+        const recipeId = card.dataset.recipeId;
         card.remove();
+        if (recipeId) {
+          deleteRecipeById(recipeId);
+        }
       });
     }
 
     setupAddButton(card);
-    const initialRows = card.querySelectorAll('.recipe-item-row');
-    initialRows.forEach(row => {
-      if (row instanceof HTMLElement) {
-        setupRecipeRow(row, card);
+    const itemsContainer = card.querySelector('.recipe-card__items');
+    if (itemsContainer instanceof HTMLElement) {
+      itemsContainer.innerHTML = '';
+      if (Array.isArray(data.items)) {
+        data.items.forEach(item => {
+          const row = createRecipeItemRow(card, { focus: false, silent: true });
+          if (row instanceof HTMLElement) {
+            applyItemDataToRow(row, item);
+          }
       }
-    });
+    }
+
+    captureCardStateHash(card);
     return card;
+  };
+
+  const loadExistingRecipes = async () => {
+    if (!supabaseClient) return;
+    try {
+      const companyId = await resolveCompanyId();
+      if (!companyId) return;
+
+      const { data, error } = await supabaseClient
+        .from(RECIPES_TABLE)
+        .select('id, recipe_code, recipe_category, recipe_name, items, created_at, updated_at')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[modal5.html] ошибка загрузки рецептов:', error);
+        return;
+      }
+
+      if (!Array.isArray(data)) return;
+
+      data.forEach(row => {
+        const card = createRecipeCard({
+          id: row?.id ?? null,
+          code: row?.recipe_code ?? '',
+          category: row?.recipe_category ?? '',
+          name: row?.recipe_name ?? '',
+          createdAt: row?.created_at ?? row?.updated_at ?? new Date(),
+          updatedAt: row?.updated_at ?? null,
+          items: Array.isArray(row?.items) ? row.items : [],
+        });
+        recipeList.appendChild(card);
+      });
+
+      ensureStocksLoaded().then(() => {
+        updateAllRecipeItems();
+      }).catch(err => {
+        console.error('[modal5.html] ошибка обновления рецептов после загрузки склада:', err);
+      });
+    } catch (err) {
+      console.error('[modal5.html] исключение при загрузке рецептов:', err);
+    }
   };
 
   const clearForm = () => {
@@ -1626,6 +2092,7 @@ export function initModal5() {
     const createdAt = new Date();
     const card = createRecipeCard({ code, category, name, createdAt });
     recipeList.prepend(card);
+    queueSaveRecipe(card, { immediate: true });
     clearForm();
   };
 
@@ -1693,6 +2160,7 @@ export function initModal5() {
         setupRecipeRow(row, card);
       }
     });
+    captureCardStateHash(card);
   });
 
   createButton.addEventListener('click', createRecipeFromForm);
@@ -1704,6 +2172,9 @@ export function initModal5() {
   });
 
   if (supabaseClient) {
+    loadExistingRecipes().catch(err => {
+      console.error('[modal5.html] ошибка первичной загрузки рецептов:', err);
+    });
     refreshStocks({ silent: true }).catch(err => {
       console.error('[modal5.html] ошибка первоначальной загрузки склада:', err);
     });
