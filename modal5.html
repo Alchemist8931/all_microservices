@@ -1366,7 +1366,8 @@ export function initModal5() {
       user_key: DB_USER_KEY ?? null,
     };
 
-    payload.image_url = state.image?.url ?? null;
+    // URL изображения больше не сохраняется в таблице —
+    // при необходимости он подгружается напрямую из бакета Supabase.
 
     try {
       if (!existingId) {
@@ -2165,7 +2166,7 @@ export function initModal5() {
 
       const { data, error } = await supabaseClient
         .from(RECIPES_TABLE)
-        .select('id, recipe_code, recipe_category, recipe_name, image_url, items, created_at, updated_at')
+        .select('id, recipe_code, recipe_category, recipe_name, items, created_at, updated_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
@@ -2177,12 +2178,13 @@ export function initModal5() {
       if (!Array.isArray(data)) return;
 
       data.forEach(row => {
+        const storedImageUrl = typeof row?.image_url === 'string' ? row.image_url : '';
         const card = createRecipeCard({
           id: row?.id ?? null,
           code: row?.recipe_code ?? '',
           category: row?.recipe_category ?? '',
           name: row?.recipe_name ?? '',
-          imageUrl: row?.image_url ?? '',
+          imageUrl: storedImageUrl,
           createdAt: row?.created_at ?? row?.updated_at ?? new Date(),
           updatedAt: row?.updated_at ?? null,
           items: Array.isArray(row?.items) ? row.items : [],
