@@ -1774,7 +1774,8 @@ export function initModal5() {
     }
   };
 
-  const createRecipeItemRow = card => {
+  const createRecipeItemRow = (card, { focus = true, silent = false } = {}) => {
+    if (!(card instanceof HTMLElement)) return null;
     const templateContent = itemTemplate.content?.firstElementChild;
     if (!(templateContent instanceof HTMLElement)) return null;
     const row = templateContent.cloneNode(true);
@@ -1802,19 +1803,23 @@ export function initModal5() {
     return row;
   };
 
-  const createRecipeItemRow = (card, { focus = true, silent = false } = {}) => {
-    if (!(card instanceof HTMLElement)) return null;
+  const addItemToCard = (card, stock, { targetRow = null } = {}) => {
+    if (!(card instanceof HTMLElement) || !stock || typeof stock !== 'object') return null;
     const itemsContainer = card.querySelector('.recipe-card__items');
     if (!(itemsContainer instanceof HTMLElement)) return null;
-    const safeId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-      ? CSS.escape(stock.id)
-      : String(stock.id).replace(/"/g, '\\"');
+    const safeId = stock.id
+      ? (typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+        ? CSS.escape(String(stock.id))
+        : String(stock.id).replace(/"/g, '\\"'))
+      : '';
     let row = targetRow instanceof HTMLElement ? targetRow : null;
-    const existing = itemsContainer.querySelector(`.recipe-item-row[data-item-id="${safeId}"]`);
-    if (existing instanceof HTMLElement && existing !== row) {
-      row = existing;
-      if (targetRow instanceof HTMLElement && targetRow !== existing) {
-        targetRow.remove();
+    if (safeId) {
+      const existing = itemsContainer.querySelector(`.recipe-item-row[data-item-id="${safeId}"]`);
+      if (existing instanceof HTMLElement && existing !== row) {
+        row = existing;
+        if (targetRow instanceof HTMLElement && targetRow !== existing) {
+          targetRow.remove();
+        }
       }
     }
 
@@ -1824,7 +1829,9 @@ export function initModal5() {
     }
 
     setupRecipeRow(row, card);
-    row.dataset.itemId = stock.id;
+    if (stock.id !== undefined && stock.id !== null) {
+      row.dataset.itemId = String(stock.id);
+    }
     applyStockFields(row, stock);
 
     const qtyInput = row.querySelector('[data-field="base_qty"]');
