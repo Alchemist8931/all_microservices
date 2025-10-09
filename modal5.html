@@ -1019,8 +1019,9 @@ export function initModal5() {
     console.warn('[modal5.html] не найдены необходимые элементы для работы рецептов');
     return;
   }
-
+  
   const RECIPES_TABLE = 'modal5_recipes';
+  const RECIPE_IMAGE_BUCKET = 'modal5_recipe_images';
   const rawUserKey = window.USER_KEY ?? null;
   const authUserId = window.AUTH_ID ?? null;
   const DB_USER_KEY = authUserId || rawUserKey;
@@ -1028,6 +1029,7 @@ export function initModal5() {
   let resolvingCompanyIdPromise = null;
   const cardSaveTimers = new WeakMap();
   const cardSaveChains = new WeakMap();
+  const cardImageState = new WeakMap();
 
   const resolveCompanyId = async () => {
     if (DB_COMPANY_ID) return DB_COMPANY_ID;
@@ -1253,6 +1255,7 @@ export function initModal5() {
     };
 
     const createdAtIso = toIsoString(card.dataset.createdAt || new Date());
+    const imageUrl = card.dataset.imageUrl ? card.dataset.imageUrl : '';
 
     const rows = Array.from(card.querySelectorAll('.recipe-item-row'));
     const items = rows.map((row, index) => {
@@ -1301,6 +1304,7 @@ export function initModal5() {
       category: getHeaderValue('recipe_category'),
       name: getHeaderValue('recipe_name'),
       createdAt: createdAtIso,
+      image: imageUrl ? { url: imageUrl } : null,
       items,
     };
   };
@@ -1311,6 +1315,7 @@ export function initModal5() {
       code: state.code ?? '',
       category: state.category ?? '',
       name: state.name ?? '',
+      image: state.image?.url ?? '',
       items: state.items.map(item => ({
         position: item.position ?? 0,
         stock_id: item.stock_id ?? null,
@@ -1360,6 +1365,8 @@ export function initModal5() {
       company_id: companyId,
       user_key: DB_USER_KEY ?? null,
     };
+
+    payload.image_url = state.image?.url ?? null;
 
     try {
       if (!existingId) {
@@ -1848,7 +1855,90 @@ export function initModal5() {
     return row;
   };
 
-  const setupCardVisual = card => {
+  const loadCardImageFromStorage = async card => {
+    if (!supabaseClient) return null;
+    if (!(card instanceof HTMLElement)) return null;
+    const recipeId = card.dataset.recipeId;
+    if (!recipeId) return null;
+    const companyId = await resolveCompanyId();
+    if (!companyId) return null;
+
+    const bucket = supabaseClient.storage?.from(RECIPE_IMAGE_BUCKET);
+    if (!bucket) return null;
+
+    const path = `${companyId}/${recipeId}`;
+    const { data } = bucket.getPublicUrl(path);
+    const publicUrl = data?.publicUrl ?? '';
+    if (!publicUrl) return null;
+
+    const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+    card.dataset.imageUrl = cacheBustedUrl;
+    const meta = cardImageState.get(card) ?? {};
+    cardImageState.set(card, { ...meta, path });
+    return cacheBustedUrl;
+  };
+
+  const ensureRecipeId = async card => {
+    if (!(card instanceof HTMLElement)) return null;
+    if (card.dataset.recipeId) return card.dataset.recipeId;
+    queueSaveRecipe(card, { immediate: true });
+    const pending = cardSaveChains.get(card);
+    if (pending) {
+      try {
+        await pending;
+      } catch (err) {
+        console.error('[modal5.html] ошибка ожидания сохранения рецепта перед загрузкой изображения:', err);
+      }
+    }
+    return card.dataset.recipeId || null;
+  };
+
+  const uploadRecipeImage = async (card, file) => {
+    if (!supabaseClient) return null;
+    if (!(card instanceof HTMLElement)) return null;
+    if (!(file instanceof File)) return null;
+
+    const recipeId = await ensureRecipeId(card);
+    if (!recipeId) {
+      throw new Error('[modal5.html] невозможно загрузить изображение без идентификатора рецепта');
+    }
+
+    const companyId = await resolveCompanyId();
+    if (!companyId) {
+      throw new Error('[modal5.html] невозможно загрузить изображение без company_id');
+    }
+
+    const bucket = supabaseClient.storage?.from(RECIPE_IMAGE_BUCKET);
+    if (!bucket) {
+      throw new Error('[modal5.html] хранилище изображений недоступно');
+    }
+
+    const path = `${companyId}/${recipeId}`;
+    const { error: uploadError } = await bucket.upload(path, file, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: file.type || 'application/octet-stream',
+    });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = bucket.getPublicUrl(path);
+    const publicUrl = data?.publicUrl ?? '';
+    if (!publicUrl) {
+      throw new Error('[modal5.html] не удалось получить публичный URL изображения рецепта');
+    }
+
+    const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+    card.dataset.imageUrl = cacheBustedUrl;
+    const meta = cardImageState.get(card) ?? {};
+    cardImageState.set(card, { ...meta, path });
+    queueSaveRecipe(card, { immediate: true });
+    return cacheBustedUrl;
+  };
+
+  const setupCardVisual = (card, { imageUrl = '' } = {}) => {
     if (!(card instanceof HTMLElement)) return () => {};
     const fileInput = card.querySelector('.recipe-visual-card__input');
     const triggerButton = card.querySelector('.recipe-visual-card__button');
@@ -1859,6 +1949,15 @@ export function initModal5() {
     }
 
     const placeholder = previewImage.getAttribute('data-placeholder') || previewImage.src || '';
+    const state = cardImageState.get(card) ?? {};
+    cardImageState.set(card, { ...state, placeholder });
+
+    if (imageUrl) {
+      card.dataset.imageUrl = imageUrl;
+      previewImage.src = imageUrl;
+    } else if (card.dataset.imageUrl) {
+      previewImage.src = card.dataset.imageUrl;
+    }
 
     const revokePreview = () => {
       const currentUrl = fileInput.dataset.previewUrl;
@@ -1888,6 +1987,15 @@ export function initModal5() {
         const objectUrl = URL.createObjectURL(file);
         fileInput.dataset.previewUrl = objectUrl;
         previewImage.src = objectUrl;
+        if (supabaseClient) {
+          uploadRecipeImage(card, file).then(url => {
+            revokePreview();
+            previewImage.src = url;
+          }).catch(err => {
+            console.error('[modal5.html] ошибка загрузки изображения рецепта:', err);
+            resetPreview();
+          });
+        }
       } else {
         resetPreview();
       }
@@ -1905,6 +2013,22 @@ export function initModal5() {
     }
 
     fileInput.addEventListener('change', updatePreview);
+
+    if (!imageUrl && !card.dataset.imageUrl && supabaseClient) {
+      loadCardImageFromStorage(card).then(loadedUrl => {
+        if (loadedUrl) {
+          previewImage.src = loadedUrl;
+        }
+      }).catch(err => {
+        console.warn('[modal5.html] изображение рецепта не загружено из хранилища:', err);
+      });
+    }
+
+    previewImage.addEventListener('error', () => {
+      if (placeholder) {
+        previewImage.src = placeholder;
+      }
+    });
 
     return () => {
       revokePreview();
@@ -1978,6 +2102,11 @@ export function initModal5() {
     if (data.updatedAt) {
       card.dataset.updatedAt = toIsoString(data.updatedAt);
     }
+    if (data.imageUrl) {
+      card.dataset.imageUrl = data.imageUrl;
+    } else {
+      delete card.dataset.imageUrl;
+    }
 
     const setField = (field, value) => {
       const target = card.querySelector(`[data-field="${field}"]`);
@@ -1990,7 +2119,7 @@ export function initModal5() {
     setField('recipe_category', data.category ?? '');
     setField('recipe_name', data.name ?? '');
 
-    const cleanupVisual = setupCardVisual(card);
+    const cleanupVisual = setupCardVisual(card, { imageUrl: data.imageUrl ?? '' });
 
     const dateField = card.querySelector('[data-field="date-time"]');
     if (dateField) {
@@ -2036,7 +2165,7 @@ export function initModal5() {
 
       const { data, error } = await supabaseClient
         .from(RECIPES_TABLE)
-        .select('id, recipe_code, recipe_category, recipe_name, items, created_at, updated_at')
+        .select('id, recipe_code, recipe_category, recipe_name, image_url, items, created_at, updated_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
@@ -2053,6 +2182,7 @@ export function initModal5() {
           code: row?.recipe_code ?? '',
           category: row?.recipe_category ?? '',
           name: row?.recipe_name ?? '',
+          imageUrl: row?.image_url ?? '',
           createdAt: row?.created_at ?? row?.updated_at ?? new Date(),
           updatedAt: row?.updated_at ?? null,
           items: Array.isArray(row?.items) ? row.items : [],
@@ -2160,7 +2290,7 @@ export function initModal5() {
   const preloadedCards = recipeList.querySelectorAll('.recipe-card');
   preloadedCards.forEach(card => {
     if (!(card instanceof HTMLElement)) return;
-    setupCardVisual(card);
+    setupCardVisual(card, { imageUrl: card.dataset.imageUrl ?? '' });
     setupAddButton(card);
     const rows = card.querySelectorAll('.recipe-item-row');
     rows.forEach(row => {
