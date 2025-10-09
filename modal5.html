@@ -927,7 +927,7 @@
       <div class="modalVNUT-content modal5-content" id="recipe-list"></div>
 
         <template id="recipe-card-template">
-        <div class="recipe-card" data-recipe-id="" style="width: 1890px; padding-bottom: 20px;">
+        <div class="recipe-card" data-recipe-id="" style="width: 1890px; padding-bottom: 30px;">
           <div class="modalRow recipe-card__header" style="margin-top: 0px;">
             <input class="inputT code-field" data-field="recipe_code" readonly />
             <input class="input name-field" data-field="recipe_category" readonly />
@@ -961,7 +961,7 @@
             <div class="recipe-card__controls">
               <div class="modalRow recipe-card__header" style="margin-top: 0px;">
                 <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
-                <input class="inputSUM" style="width: 100px; margin-left: 695px;" placeholder="000 000 000"/>
+                <input class="inputSUM recipe-card__total" style="width: 100px; margin-left: 695px;" placeholder="000 000 000" readonly />
               </div>
               <div class="recipe-card__picker" aria-hidden="true">
                 <input class="recipe-card__search" type="search" placeholder="Поиск по коду или наименованию" />
@@ -1160,6 +1160,10 @@ export function initModal5() {
     if (totalInput instanceof HTMLInputElement) {
       totalInput.value = '';
     }
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      updateCardTotal(card);
+    }
   };
 
   const renderRowSuggestions = (card, row, items) => {
@@ -1227,6 +1231,25 @@ export function initModal5() {
     if (!normalized) return null;
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const updateCardTotal = card => {
+    if (!(card instanceof HTMLElement)) return;
+    const totalField = card.querySelector('.recipe-card__total');
+    if (!(totalField instanceof HTMLInputElement)) return;
+    const totalInputs = card.querySelectorAll('[data-field="total"]');
+    let sum = 0;
+    let hasValue = false;
+    totalInputs.forEach(input => {
+      if (!(input instanceof HTMLInputElement)) return;
+      const value = parseNumber(input.value);
+      if (value === null) return;
+      sum += value;
+      hasValue = true;
+    });
+    totalField.value = hasValue
+      ? fmtNum(sum, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '';
   };
 
   const formatDateTime = value => {
@@ -1577,10 +1600,18 @@ export function initModal5() {
     const price = getRowPrice(row);
     if (qtyRaw === null || !Number.isFinite(price)) {
       totalInput.value = '';
+      const card = row.closest('.recipe-card');
+      if (card instanceof HTMLElement) {
+        updateCardTotal(card);
+      }
       return;
     }
     const total = qtyRaw * price;
     totalInput.value = fmtNum(total, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      updateCardTotal(card);
+    }
   };
 
   const applyItemDataToRow = (row, item) => {
@@ -1657,6 +1688,7 @@ export function initModal5() {
     updateTotalUsingRaw(row, raw, { formatQty: false });
     const card = row.closest('.recipe-card');
     if (card instanceof HTMLElement) {
+      updateCardTotal(card);
       queueSaveRecipe(card);
     }
   };
@@ -1678,6 +1710,7 @@ export function initModal5() {
     updateTotalUsingRaw(row, raw, { formatQty: true });
     const card = row.closest('.recipe-card');
     if (card instanceof HTMLElement) {
+      updateCardTotal(card);
       queueSaveRecipe(card);
     }
   };
@@ -1701,6 +1734,7 @@ export function initModal5() {
       hideRowSuggestions(row);
       row.remove();
       if (card instanceof HTMLElement) {
+        updateCardTotal(card);
         queueSaveRecipe(card);
       }
     });
@@ -1815,6 +1849,7 @@ export function initModal5() {
     const itemsContainer = card.querySelector('.recipe-card__items');
     if (!(itemsContainer instanceof HTMLElement)) return null;
     itemsContainer.appendChild(row);
+    updateCardTotal(card);
     if (focus) {
       focusFirstEditableField(row);
     }
@@ -1867,6 +1902,7 @@ export function initModal5() {
       updateTotalUsingRaw(row, qtyRaw, { formatQty: hasStoredRaw });
     }
 
+    updateCardTotal(card);
     queueSaveRecipe(card);
 
     return row;
@@ -2094,6 +2130,7 @@ export function initModal5() {
         if (beforePrice !== afterPrice) {
           changedCards.add(card);
         }
+        updateCardTotal(card);
       }
     });
     changedCards.forEach(card => {
