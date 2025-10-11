@@ -346,7 +346,7 @@
       background: rgba(255, 255, 255, 0.05);
       display: grid;
       grid-template-columns: 1fr 300px;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto auto 1fr;
       column-gap: 20px;
       row-gap: 16px;
       box-sizing: border-box;
@@ -365,15 +365,37 @@
       flex-direction: column;
       gap: 16px;
       grid-column: 1;
+      grid-row: 3;
     }
 
     #modal5-container .recipe-card__visual {
       grid-column: 2;
-      grid-row: 1 / span 2;
+      grid-row: 1 / span 3;
       align-self: start;
       justify-self: end;
       margin: 0;
       width: 100%;
+    }
+
+    #modal5-container .recipe-card__notes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    #modal5-container .recipe-card__notes-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .recipe-card__notes-input {
+      min-height: 96px;
+      resize: vertical;
     }
 
     #modal5-container .recipe-card__delete {
@@ -976,6 +998,10 @@
               </div>
             </div>
 
+           <div class="recipe-card__notes">
+            <span class="recipe-card__notes-label">заметки</span>
+            <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+          </div>
           
           <div class="recipe-card__body">
             <div class="recipe-card__controls">
