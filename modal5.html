@@ -2269,11 +2269,11 @@ export function initModal5() {
     const applyState = () => {
       const enabled = toggle.checked;
       if (controls instanceof HTMLElement) {
-        controls.hidden = !enabled;
+        controls.toggleAttribute('hidden', !enabled);
         controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
       }
       if (notes instanceof HTMLElement) {
-        notes.hidden = enabled;
+        notes.toggleAttribute('hidden', enabled);
         notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
       }
     };
