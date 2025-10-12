@@ -1099,10 +1099,10 @@ input:checked + .slider:before {
                 <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
                 <input class="inputSUM recipe-card__total" style="width: 140px; margin-left: 660px; background: #212121; color: #ffffff; text-transform: uppercase; font-weight: 700;" placeholder="000 000 000" readonly />
                 <label class="switch">
-                   <input type="checkbox">
+                   <input class="recipe-card__manufacture-toggle" type="checkbox">
                    <span class="slider"></span>
                 </label>
-                <div class="modalRow">
+                <div class="modalRow recipe-card__manufacture-controls" hidden aria-hidden="true">
                    <input class="inputSUM" style="width: 70px; height: 30px; text-align: center; font-weight: 700;" placeholder="000 000"/>
                    <button class="button-form primary" type="button">изготовить товары</button>
                 </div>
@@ -1117,7 +1117,7 @@ input:checked + .slider:before {
     <div class="modalColumn">
             <div class="recipe-card__items"></div>
     </div>
-            <div class="recipe-card__notes">
+            <div class="recipe-card__notes" aria-hidden="false">
               <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
             </div>
   </div>
@@ -2257,7 +2257,31 @@ export function initModal5() {
       resetPreview();
     };
   };
-  
+
+  const setupManufactureToggle = card => {
+    if (!(card instanceof HTMLElement)) return;
+    const toggle = card.querySelector('.recipe-card__manufacture-toggle');
+    if (!(toggle instanceof HTMLInputElement)) return;
+
+    const controls = card.querySelector('.recipe-card__manufacture-controls');
+    const notes = card.querySelector('.recipe-card__notes');
+
+    const applyState = () => {
+      const enabled = toggle.checked;
+      if (controls instanceof HTMLElement) {
+        controls.hidden = !enabled;
+        controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+      }
+      if (notes instanceof HTMLElement) {
+        notes.hidden = enabled;
+        notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
+      }
+    };
+
+    toggle.addEventListener('change', applyState);
+    applyState();
+  };
+
 
   const setupAddButton = card => {
     const addButton = card.querySelector('.recipe-card__add');
@@ -2362,6 +2386,7 @@ export function initModal5() {
       });
     }
 
+    setupManufactureToggle(card);
     setupAddButton(card);
     const itemsContainer = card.querySelector('.recipe-card__items');
     if (itemsContainer instanceof HTMLElement) {
