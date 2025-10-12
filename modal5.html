@@ -438,6 +438,69 @@
       display: none !important;
     }
 
+    #modal5-container .recipe-card__manufacture-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 220px;
+      padding: 2px 0;
+    }
+
+    #modal5-container .recipe-card__manufacture-chart[hidden] {
+      display: none !important;
+    }
+
+    #modal5-container .manufacture-chart__row {
+      display: grid;
+      grid-template-columns: max-content 1fr max-content;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.3;
+      color: var(--content-color, #212121);
+    }
+
+    #modal5-container .manufacture-chart__label {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    #modal5-container .manufacture-chart__bar {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(33, 33, 33, 0.12);
+      overflow: hidden;
+    }
+
+    #modal5-container .manufacture-chart__bar-fill {
+      position: absolute;
+      inset: 0;
+      width: 0;
+      max-width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(106, 197, 162, 0.85), rgba(70, 143, 206, 0.85));
+      transition: width 0.35s ease;
+    }
+
+    #modal5-container .manufacture-chart__bar--required .manufacture-chart__bar-fill {
+      background: linear-gradient(90deg, rgba(255, 177, 66, 0.9), rgba(230, 87, 72, 0.9));
+    }
+
+    #modal5-container .manufacture-chart__bar--required.is-overflow .manufacture-chart__bar-fill {
+      background: linear-gradient(90deg, rgba(230, 87, 72, 1), rgba(186, 33, 45, 1));
+    }
+
+    #modal5-container .manufacture-chart__value {
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 80px;
+      text-align: right;
+    }
+
     #modal5-container .recipe-card__notes {
       display: flex;
       position: fixed;
@@ -1191,6 +1254,22 @@ input:checked + .slider:before {
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
             <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
+            <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
+              <div class="manufacture-chart__row">
+                <span class="manufacture-chart__label">на складе</span>
+                <div class="manufacture-chart__bar manufacture-chart__bar--stock">
+                  <div class="manufacture-chart__bar-fill"></div>
+                </div>
+                <span class="manufacture-chart__value"></span>
+              </div>
+              <div class="manufacture-chart__row">
+                <span class="manufacture-chart__label">требуется</span>
+                <div class="manufacture-chart__bar manufacture-chart__bar--required">
+                  <div class="manufacture-chart__bar-fill"></div>
+                </div>
+                <span class="manufacture-chart__value"></span>
+              </div>
+            </div>
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
         </div>
@@ -1313,10 +1392,125 @@ export function initModal5() {
 
   let stockItems = [];
   let stockMap = new Map();
+  let stockCodeMap = new Map();
   let stocksLoaded = false;
   let isLoadingStocks = false;
   let refreshTimerId = null;
   const MAX_SUGGESTIONS = 20;
+
+  const normalizeOrderCode = code => {
+    if (typeof code !== 'string') return '';
+    return code.trim().toLowerCase();
+  };
+
+  const getStockByOrderCode = code => {
+    const normalized = normalizeOrderCode(code);
+    if (!normalized) return null;
+    return stockCodeMap.get(normalized) ?? null;
+  };
+
+  const getRowStoredTotalQuantity = row => {
+    if (!(row instanceof HTMLElement)) return null;
+    if (!('totalQuantity' in row.dataset)) return null;
+    const parsed = parseNumber(row.dataset.totalQuantity);
+    return parsed !== null ? parsed : null;
+  };
+
+  const resetRowManufactureChart = row => {
+    if (!(row instanceof HTMLElement)) return;
+    const chart = row.querySelector('.recipe-card__manufacture-chart');
+    if (!(chart instanceof HTMLElement)) return;
+    const bars = chart.querySelectorAll('.manufacture-chart__bar');
+    bars.forEach(bar => {
+      if (bar instanceof HTMLElement) {
+        bar.classList.remove('is-overflow');
+      }
+    });
+    const fills = chart.querySelectorAll('.manufacture-chart__bar-fill');
+    fills.forEach(fill => {
+      if (fill instanceof HTMLElement) {
+        fill.style.width = '0%';
+      }
+    });
+    const values = chart.querySelectorAll('.manufacture-chart__value');
+    values.forEach(valueEl => {
+      if (valueEl instanceof HTMLElement) {
+        valueEl.textContent = '';
+      }
+    });
+  };
+
+  const updateRowManufactureChart = (row, { visible = false, totalQuantity = null, requiredQty = null } = {}) => {
+    if (!(row instanceof HTMLElement)) return;
+    const chart = row.querySelector('.recipe-card__manufacture-chart');
+    if (!(chart instanceof HTMLElement)) return;
+
+    resetRowManufactureChart(row);
+
+    if (!visible) {
+      chart.hidden = true;
+      chart.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    chart.hidden = false;
+    chart.setAttribute('aria-hidden', 'false');
+
+    const hasTotal = typeof totalQuantity === 'number' && Number.isFinite(totalQuantity);
+    const hasRequired = typeof requiredQty === 'number' && Number.isFinite(requiredQty);
+    const safeTotal = hasTotal ? Math.max(totalQuantity, 0) : 0;
+    const safeRequired = hasRequired ? Math.max(requiredQty, 0) : 0;
+    const baseline = Math.max(safeTotal, safeRequired, 1);
+
+    const stockBar = chart.querySelector('.manufacture-chart__bar--stock');
+    const stockFill = stockBar instanceof HTMLElement
+      ? stockBar.querySelector('.manufacture-chart__bar-fill')
+      : null;
+    const stockValue = stockBar instanceof HTMLElement && stockBar.parentElement instanceof HTMLElement
+      ? stockBar.parentElement.querySelector('.manufacture-chart__value')
+      : null;
+
+    if (stockFill instanceof HTMLElement) {
+      const width = baseline > 0 ? Math.min((safeTotal / baseline) * 100, 100) : 0;
+      stockFill.style.width = `${width}%`;
+    }
+
+    if (stockValue instanceof HTMLElement) {
+      stockValue.textContent = hasTotal
+        ? fmtNum(totalQuantity, { maximumFractionDigits: 3 })
+        : 'нет данных';
+    }
+
+    const requiredBar = chart.querySelector('.manufacture-chart__bar--required');
+    const requiredFill = requiredBar instanceof HTMLElement
+      ? requiredBar.querySelector('.manufacture-chart__bar-fill')
+      : null;
+    const requiredValue = requiredBar instanceof HTMLElement && requiredBar.parentElement instanceof HTMLElement
+      ? requiredBar.parentElement.querySelector('.manufacture-chart__value')
+      : null;
+
+    if (requiredFill instanceof HTMLElement) {
+      const width = baseline > 0 ? Math.min((safeRequired / baseline) * 100, 100) : 0;
+      requiredFill.style.width = `${width}%`;
+    }
+
+    const overflow = hasTotal && hasRequired && requiredQty > totalQuantity;
+    if (requiredBar instanceof HTMLElement) {
+      requiredBar.classList.toggle('is-overflow', Boolean(overflow));
+    }
+
+    if (requiredValue instanceof HTMLElement) {
+      if (hasRequired && hasTotal && totalQuantity > 0) {
+        const ratio = (requiredQty / totalQuantity) * 100;
+        requiredValue.textContent = `${fmtNum(requiredQty, { maximumFractionDigits: 3 })} из ${fmtNum(totalQuantity, { maximumFractionDigits: 3 })} (${fmtNum(ratio, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}%)`;
+      } else if (hasRequired) {
+        requiredValue.textContent = fmtNum(requiredQty, { maximumFractionDigits: 3 });
+      } else {
+        requiredValue.textContent = '—';
+      }
+    }
+  };
+
 
   const getSuggestionsContainer = row =>
     row instanceof HTMLElement ? row.querySelector('.recipe-item-suggestions') : null;
@@ -1352,6 +1546,7 @@ export function initModal5() {
     if (!(row instanceof HTMLElement)) return;
     row.dataset.itemId = '';
     row.dataset.price = '';
+    delete row.dataset.totalQuantity;
     const baseUnit = row.querySelector('[data-field="base_unit"]');
     if (baseUnit instanceof HTMLInputElement) {
       baseUnit.value = '';
@@ -1365,9 +1560,11 @@ export function initModal5() {
     if (totalInput instanceof HTMLInputElement) {
       totalInput.value = '';
     }
+    updateRowManufactureChart(row, { visible: false });
     const card = row.closest('.recipe-card');
     if (card instanceof HTMLElement) {
       updateCardTotal(card);
+      updateManufactureOutputs(card);
     }
   };
 
@@ -1477,6 +1674,7 @@ export function initModal5() {
         resultField.value = '';
         resultField.hidden = true;
         resultField.setAttribute('aria-hidden', 'true');
+        updateRowManufactureChart(row, { visible: false });
         return;
       }
 
@@ -1495,6 +1693,23 @@ export function initModal5() {
       resultField.value = product !== null
         ? fmtNum(product, { minimumFractionDigits: 0, maximumFractionDigits: 3 })
         : '';
+
+      const orderInput = row.querySelector('[data-field="order_code"]');
+      const orderCode = orderInput instanceof HTMLInputElement ? orderInput.value : '';
+      let totalQuantity = getRowStoredTotalQuantity(row);
+      if (totalQuantity === null && orderCode) {
+        const stock = getStockByOrderCode(orderCode);
+        if (stock && typeof stock.total_quantity === 'number' && Number.isFinite(stock.total_quantity)) {
+          totalQuantity = stock.total_quantity;
+          row.dataset.totalQuantity = String(totalQuantity);
+        }
+      }
+
+      updateRowManufactureChart(row, {
+        visible: true,
+        totalQuantity,
+        requiredQty: product,
+      });
     });
   };
 
@@ -1768,6 +1983,7 @@ export function initModal5() {
     const id = row.id ?? row.order_code;
     if (!id) return null;
     const price = parseNumber(row.avg_price);
+    const totalQuantity = parseNumber(row.total_quantity);
     return {
       id: String(id),
       order_code: row.order_code ?? '',
@@ -1775,6 +1991,7 @@ export function initModal5() {
       item_category: row.item_category ?? '',
       base_unit: row.modification ?? '',
       price: price ?? null,
+      total_quantity: totalQuantity ?? null,
       url: row.url ?? '',
       supplier: row.supplier ?? '',
     };
@@ -1814,6 +2031,20 @@ export function initModal5() {
       }
     }
     row.dataset.price = price !== null ? String(price) : '';
+
+    const totalQuantity = typeof stock.total_quantity === 'number' && Number.isFinite(stock.total_quantity)
+      ? stock.total_quantity
+      : null;
+    if (totalQuantity !== null) {
+      row.dataset.totalQuantity = String(totalQuantity);
+    } else {
+      delete row.dataset.totalQuantity;
+    }
+
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      updateManufactureOutputs(card);
+    }
   };
 
   const getRowPrice = row => {
@@ -1900,6 +2131,23 @@ export function initModal5() {
 
     row.dataset.itemId = item.stock_id ?? item.order_code ?? row.dataset.itemId ?? '';
     row.dataset.price = normalizedPrice !== null ? String(normalizedPrice) : '';
+
+    const savedTotalQuantity = typeof item.total_quantity === 'number' && Number.isFinite(item.total_quantity)
+      ? item.total_quantity
+      : parseNumber(item.total_quantity);
+    if (savedTotalQuantity !== null) {
+      row.dataset.totalQuantity = String(savedTotalQuantity);
+    } else {
+      delete row.dataset.totalQuantity;
+    }
+
+    const orderCode = typeof item.order_code === 'string' ? item.order_code.trim() : '';
+    if (orderCode) {
+      const stockMatch = getStockByOrderCode(orderCode);
+      if (stockMatch && typeof stockMatch.total_quantity === 'number' && Number.isFinite(stockMatch.total_quantity)) {
+        row.dataset.totalQuantity = String(stockMatch.total_quantity);
+      }
+    }
 
     const parsedQty = typeof item.base_qty === 'number' && Number.isFinite(item.base_qty)
       ? item.base_qty
@@ -2704,6 +2952,7 @@ export function initModal5() {
   const refreshStocks = async ({ silent = false } = {}) => {
     if (!supabaseClient) {
       stocksLoaded = true;
+      stockCodeMap = new Map();
       if (!silent) {
         console.warn('[modal5.html] Supabase недоступен, складские позиции не будут загружены');
       }
@@ -2716,7 +2965,7 @@ export function initModal5() {
     try {
       const { data, error } = await supabaseClient
         .from('modal4_orders_uni')
-        .select('order_code, item_name, item_category, modification, avg_price, url, supplier');
+        .select('order_code, item_name, item_category, modification, avg_price, total_quantity, url, supplier');
 
       if (error) {
         if (!silent) {
@@ -2731,6 +2980,13 @@ export function initModal5() {
 
       stockItems = normalized;
       stockMap = new Map(normalized.map(item => [item.id, item]));
+      stockCodeMap = new Map();
+      normalized.forEach(item => {
+        const key = normalizeOrderCode(item.order_code);
+        if (key) {
+          stockCodeMap.set(key, item);
+        }
+      });
       stocksLoaded = true;
       updateAllRecipeItems();
       return stockItems;
