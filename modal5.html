@@ -2268,13 +2268,16 @@ export function initModal5() {
     const notes = card.querySelector('.recipe-card__notes');
     const notesInput = notes?.querySelector('.recipe-card__notes-input');
 
+    const focusOptions = { preventScroll: true };
+
     const applyState = () => {
       const enabled = toggle.checked;
+      
       if (controls instanceof HTMLElement) {
         controls.toggleAttribute('hidden', !enabled);
         controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
         if (enabled && controlsPrimaryField instanceof HTMLElement) {
-          controlsPrimaryField.focus();
+          controlsPrimaryField.focus(focusOptions);
         }
       }
       if (notes instanceof HTMLElement) {
@@ -2282,6 +2285,9 @@ export function initModal5() {
         notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
         if (notesInput instanceof HTMLTextAreaElement) {
           notesInput.toggleAttribute('disabled', enabled);
+          if (!enabled) {
+            notesInput.focus(focusOptions);
+          }
         }
       }
     };
