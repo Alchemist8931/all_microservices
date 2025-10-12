@@ -421,7 +421,7 @@
     }
 
     #modal5-container .recipe-card__notes-input {
-      width: 420px;
+      width: 470px;
       height: 310px;
       resize: vertical;
     }
@@ -1029,7 +1029,7 @@
 
         <template id="recipe-card-template">
         <div class="recipe-card" data-recipe-id="" style="width: 1890px; padding-bottom: 30px;">
-          <div class="modalRow recipe-card__header" style="margin-top: 0px; border: 1px solid black">
+          <div class="modalRow recipe-card__header" style="margin-top: 0px;">
             <input class="inputT code-field" data-field="recipe_code" readonly />
             <input class="input name-field" data-field="recipe_category" readonly />
             <input class="input name-field" data-field="recipe_name" readonly />
@@ -1043,8 +1043,8 @@
           <div class="recipe-card__body">
   <div class="modalRow">
     <div class="modalColumn">
-            <div class="recipe-card__controls" style="border: 1px solid red; height: 30px; width: 1080px">
-              <div class="modalRow recipe-card__header" style="margin-top: 0px; height: 30px; border: 1px solid yellow;">
+            <div class="recipe-card__controls" style="height: 30px; width: 1080px">
+              <div class="modalRow recipe-card__header" style="margin-top: 0px; height: 30px;">
                 <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
                 <input class="inputSUM recipe-card__total" style="width: 140px; margin-left: 660px; background: #212121; color: #ffffff; text-transform: uppercase; font-weight: 700;" placeholder="000 000 000" readonly />
               </div>
@@ -1056,7 +1056,7 @@
             </div>
             <div class="recipe-card__items"></div>
      </div>
-    <div class="recipe-card__notes" style="border: 1px solid yellow">
+    <div class="recipe-card__notes">
       <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
     </div>
   </div>
