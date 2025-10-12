@@ -434,6 +434,10 @@
       display: none !important;
     }
 
+    #modal5-container .recipe-card__manufacture-result[hidden] {
+      display: none !important;
+    }
+
     #modal5-container .recipe-card__notes {
       display: flex;
       flex-direction: column;
@@ -1133,7 +1137,7 @@ input:checked + .slider:before {
                    <span class="slider"></span>
                 </label>
                 <div class="modalRow recipe-card__manufacture-controls" hidden aria-hidden="true">
-                   <input class="inputSUM" style="width: 70px; height: 30px; text-align: center; font-weight: 700;" placeholder="000 000"/>
+                   <input class="inputSUM recipe-card__manufacture-multiplier" style="width: 70px; height: 30px; text-align: center; font-weight: 700;" placeholder="000 000"/>
                    <button class="button-form primary" type="button">изготовить товары</button>
                 </div>
               </div>
@@ -1185,6 +1189,7 @@ input:checked + .slider:before {
             <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
             <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
+            <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
         </div>
@@ -1449,6 +1454,47 @@ export function initModal5() {
     totalField.value = hasValue
       ? fmtNum(sum, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : '';
+  };
+
+  const updateManufactureOutputs = card => {
+    if (!(card instanceof HTMLElement)) return;
+    const toggle = card.querySelector('.recipe-card__manufacture-toggle');
+    const controls = card.querySelector('.recipe-card__manufacture-controls');
+    const multiplierInput = controls?.querySelector('.recipe-card__manufacture-multiplier');
+    const enabled = toggle instanceof HTMLInputElement ? toggle.checked : false;
+    const multiplier = enabled && multiplierInput instanceof HTMLInputElement
+      ? parseNumber(multiplierInput.value)
+      : null;
+
+    const rows = card.querySelectorAll('.recipe-item-row');
+    rows.forEach(row => {
+      if (!(row instanceof HTMLElement)) return;
+      const resultField = row.querySelector('.recipe-card__manufacture-result');
+      if (!(resultField instanceof HTMLInputElement)) return;
+
+      if (!enabled) {
+        resultField.value = '';
+        resultField.hidden = true;
+        resultField.setAttribute('aria-hidden', 'true');
+        return;
+      }
+
+      resultField.hidden = false;
+      resultField.setAttribute('aria-hidden', 'false');
+
+      const qtyInput = row.querySelector('[data-field="base_qty"]');
+      const baseQty = qtyInput instanceof HTMLInputElement
+        ? (qtyInput.dataset.raw ? parseNumber(qtyInput.dataset.raw) : parseNumber(qtyInput.value))
+        : null;
+
+      const product = baseQty !== null && multiplier !== null
+        ? baseQty * multiplier
+        : null;
+
+      resultField.value = product !== null
+        ? fmtNum(product, { minimumFractionDigits: 0, maximumFractionDigits: 3 })
+        : '';
+    });
   };
 
   const formatDateTime = value => {
@@ -1862,6 +1908,10 @@ export function initModal5() {
       : null;
 
     updateTotalUsingRaw(row, normalizedQty, { formatQty: true });
+    const card = row.closest('.recipe-card');
+    if (card instanceof HTMLElement) {
+      updateManufactureOutputs(card);
+    }
 
     if (normalizedQty === null) {
       const qtyInput = row.querySelector('[data-field="base_qty"]');
@@ -1888,6 +1938,7 @@ export function initModal5() {
     const card = row.closest('.recipe-card');
     if (card instanceof HTMLElement) {
       updateCardTotal(card);
+      updateManufactureOutputs(card);
       queueSaveRecipe(card);
     }
   };
@@ -1910,6 +1961,7 @@ export function initModal5() {
     const card = row.closest('.recipe-card');
     if (card instanceof HTMLElement) {
       updateCardTotal(card);
+      updateManufactureOutputs(card);
       queueSaveRecipe(card);
     }
   };
@@ -1934,6 +1986,7 @@ export function initModal5() {
       row.remove();
       if (card instanceof HTMLElement) {
         updateCardTotal(card);
+        updateManufactureOutputs(card);
         queueSaveRecipe(card);
       }
     });
@@ -2019,6 +2072,7 @@ export function initModal5() {
     }
     if (card instanceof HTMLElement) {
       row.dataset.recipeId = card.dataset.recipeId ?? row.dataset.recipeId ?? '';
+      updateManufactureOutputs(card);
     }
   };
 
@@ -2049,6 +2103,7 @@ export function initModal5() {
     if (!(itemsContainer instanceof HTMLElement)) return null;
     itemsContainer.appendChild(row);
     updateCardTotal(card);
+    updateManufactureOutputs(card);
     if (focus) {
       focusFirstEditableField(row);
     }
@@ -2102,6 +2157,7 @@ export function initModal5() {
     }
 
     updateCardTotal(card);
+    updateManufactureOutputs(card);
     queueSaveRecipe(card);
 
     return row;
@@ -2295,6 +2351,7 @@ export function initModal5() {
 
     const controls = card.querySelector('.recipe-card__manufacture-controls');
     const controlsPrimaryField = controls?.querySelector('input, button, select, textarea');
+    const multiplierInput = controls?.querySelector('.recipe-card__manufacture-multiplier');
     const notes = card.querySelector('.recipe-card__notes');
     const notesInput = notes?.querySelector('.recipe-card__notes-input');
 
@@ -2414,10 +2471,25 @@ export function initModal5() {
           }
         }
       }
+      updateManufactureOutputs(card);
     };
+
+    if (multiplierInput instanceof HTMLInputElement && multiplierInput.dataset.boundManufacture !== '1') {
+      const handleMultiplierUpdate = () => updateManufactureOutputs(card);
+      multiplierInput.addEventListener('input', handleMultiplierUpdate);
+      multiplierInput.addEventListener('blur', () => {
+        handleMultiplierUpdate();
+        const parsed = parseNumber(multiplierInput.value);
+        if (parsed !== null) {
+          multiplierInput.value = fmtNum(parsed, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+        }
+      });
+      multiplierInput.dataset.boundManufacture = '1';
+    }
 
     toggle.addEventListener('change', applyState);
     applyState();
+    updateManufactureOutputs(card);
   };
 
 
@@ -2438,6 +2510,7 @@ export function initModal5() {
   const updateAllRecipeItems = () => {
     const rows = recipeList.querySelectorAll('.recipe-item-row');
     const changedCards = new Set();
+    const cardsToUpdate = new Set();
     rows.forEach(row => {
       if (!(row instanceof HTMLElement)) return;
       const card = row.closest('.recipe-card');
@@ -2462,6 +2535,12 @@ export function initModal5() {
           changedCards.add(card);
         }
         updateCardTotal(card);
+        cardsToUpdate.add(card);
+      }
+    });
+    cardsToUpdate.forEach(card => {
+      if (card instanceof HTMLElement) {
+        updateManufactureOutputs(card);
       }
     });
     changedCards.forEach(card => {
