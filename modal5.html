@@ -2264,17 +2264,25 @@ export function initModal5() {
     if (!(toggle instanceof HTMLInputElement)) return;
 
     const controls = card.querySelector('.recipe-card__manufacture-controls');
+    const controlsPrimaryField = controls?.querySelector('input, button, select, textarea');
     const notes = card.querySelector('.recipe-card__notes');
+    const notesInput = notes?.querySelector('.recipe-card__notes-input');
 
     const applyState = () => {
       const enabled = toggle.checked;
       if (controls instanceof HTMLElement) {
         controls.toggleAttribute('hidden', !enabled);
         controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+        if (enabled && controlsPrimaryField instanceof HTMLElement) {
+          controlsPrimaryField.focus();
+        }
       }
       if (notes instanceof HTMLElement) {
         notes.toggleAttribute('hidden', enabled);
         notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
+        if (notesInput instanceof HTMLTextAreaElement) {
+          notesInput.toggleAttribute('disabled', enabled);
+        }
       }
     };
 
