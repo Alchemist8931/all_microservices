@@ -413,6 +413,11 @@
       width: 100%;
     }
 
+    #modal5-container .recipe-card__manufacture-controls[hidden],
+    #modal5-container .recipe-card__notes[hidden] {
+      display: none !important;
+    }
+
     #modal5-container .recipe-card__notes {
       display: flex;
       flex-direction: column;
@@ -2274,17 +2279,17 @@ export function initModal5() {
       const enabled = toggle.checked;
       
       if (controls instanceof HTMLElement) {
-        controls.toggleAttribute('hidden', !enabled);
+        controls.hidden = !enabled;
         controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
         if (enabled && controlsPrimaryField instanceof HTMLElement) {
           controlsPrimaryField.focus(focusOptions);
         }
       }
       if (notes instanceof HTMLElement) {
-        notes.toggleAttribute('hidden', enabled);
+        notes.hidden = enabled;
         notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
         if (notesInput instanceof HTMLTextAreaElement) {
-          notesInput.toggleAttribute('disabled', enabled);
+          notesInput.disabled = enabled;
           if (!enabled) {
             notesInput.focus(focusOptions);
           }
