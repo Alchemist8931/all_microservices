@@ -986,6 +986,10 @@
               <div class="modalRow recipe-card__header" style="margin-top: 0px;">
                 <button class="button-form primary recipe-card__add" type="button">добавить позицию</button>
                 <input class="inputSUM recipe-card__total" style="width: 140px; margin-left: 660px; background: #212121; color: #ffffff; text-transform: uppercase; font-weight: 700;" placeholder="000 000 000" readonly />
+          <div class="recipe-card__notes" style="border: 1px solid yellow">
+              <span class="recipe-card__notes-label">заметки</span>
+              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+           </div>
               </div>
               <div class="recipe-card__picker" aria-hidden="true">
                 <input class="recipe-card__search" type="search" placeholder="Поиск по коду или наименованию" />
@@ -1012,12 +1016,10 @@
                 </div>
               </div>
             </div>
-          
         </div>
       </template>
 
       <template id="recipe-item-template">
-      <div class="modalRow">
         <div class="recipe-item-row" style="width: 1080px; padding: 0px; border: none" data-item-id="">
           <div class="modalRow">
             <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" />
@@ -1031,13 +1033,6 @@
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
         </div>
-
-        <div class="recipe-card__notes" style="border: 1px solid yellow">
-              <span class="recipe-card__notes-label">заметки</span>
-              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
-        </div>
-
-      </div>
       </template>
 
     </div>
