@@ -126,23 +126,33 @@
       flex-direction: row;
       gap: 14px;
     }
-
+   
     #modal5-container .recipe-card__header {
       height: 30px;
       align-items: center;
+      flex-wrap: nowrap;
     }
 
     #modal5-container .recipe-card__header .button-form,
     #modal5-container .recipe-card__header .inputSUM {
-      height: 30px;
+      height: 100%;
       line-height: 30px;
       padding-top: 0;
       padding-bottom: 0;
+      box-sizing: border-box;
     }
 
     #modal5-container .recipe-card__header .button-form {
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    #modal5-container .recipe-card__header .inputSUM {
+      padding-left: 10px;
+      padding-right: 10px;
     }
 
     #modal5-container .modalColumn {
