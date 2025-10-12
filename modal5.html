@@ -381,8 +381,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      grid-column: 1;
-      ggrid-row: 3;
+      width: 100%;
     }
 
     #modal5-container .recipe-card__notes-label {
@@ -394,7 +393,7 @@
     }
 
     #modal5-container .recipe-card__notes-input {
-      width: 300px;
+      width: 100%;
       height: 300px;
       resize: vertical;
     }
@@ -953,7 +952,7 @@
       </h2>
     </section>
 
-    <div class="modalRow form-row">
+    <div class="modalRow form-row" style="border: 1px solid red">
       <div class="modalBLOCK form-fields">
         <div class="modalRow" style="margin-left: -20px;">
             <input id="recipe-code" class="inputT code-field" type="text" placeholder="RCP-0001" autocomplete="off"/>
@@ -965,13 +964,13 @@
     </div>
   </div>
 
-  <div class="modal5-scroll-wrapper">
+  <div class="modal5-scroll-wrapper" style="border: 1px solid yellow">
     <div class="modal-bottom glass-panel modal5-window">
       <div class="modalVNUT-content modal5-content" id="recipe-list"></div>
 
         <template id="recipe-card-template">
         <div class="recipe-card" data-recipe-id="" style="width: 1890px; padding-bottom: 30px;">
-          <div class="modalRow recipe-card__header" style="margin-top: 0px;">
+          <div class="modalRow recipe-card__header" style="margin-top: 0px; border: 1px solid black">
             <input class="inputT code-field" data-field="recipe_code" readonly />
             <input class="input name-field" data-field="recipe_category" readonly />
             <input class="input name-field" data-field="recipe_name" readonly />
@@ -995,11 +994,10 @@
               </div>
             </div>
             <div class="recipe-card__items"></div>
-          </div>
-
           <div class="recipe-card__notes">
-            <span class="recipe-card__notes-label">заметки</span>
-            <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+              <span class="recipe-card__notes-label">заметки</span>
+              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+            </div>
           </div>
 
           <div class="recipe-card__visual" style="width: 300px;">
