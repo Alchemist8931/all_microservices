@@ -994,10 +994,6 @@
               </div>
             </div>
             <div class="recipe-card__items"></div>
-          <div class="recipe-card__notes" style="border: 1px solid yellow">
-              <span class="recipe-card__notes-label">заметки</span>
-              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
-            </div>
           </div>
 
           <div class="recipe-card__visual" style="width: 300px; border: 1px solid red">
@@ -1021,7 +1017,8 @@
       </template>
 
       <template id="recipe-item-template">
-        <div class="recipe-item-row" style="width: 1080px; padding: 0px; border: 1px solid red" data-item-id="">
+      <div class="modalRow">
+        <div class="recipe-item-row" style="width: 1080px; padding: 0px; border: none" data-item-id="">
           <div class="modalRow">
             <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" />
             <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" />
@@ -1034,6 +1031,13 @@
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
         </div>
+
+        <div class="recipe-card__notes" style="border: 1px solid yellow">
+              <span class="recipe-card__notes-label">заметки</span>
+              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+        </div>
+
+      </div>
       </template>
 
     </div>
