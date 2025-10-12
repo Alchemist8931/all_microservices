@@ -413,6 +413,22 @@
       width: 100%;
     }
 
+    #modal5-container .recipe-card__manufacture-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+    }
+
+    #modal5-container .recipe-card__manufacture-controls.is-visible {
+      max-height: 80px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     #modal5-container .recipe-card__manufacture-controls[hidden],
     #modal5-container .recipe-card__notes[hidden] {
       display: none !important;
@@ -423,6 +439,15 @@
       flex-direction: column;
       gap: 8px;
       width: 300px;
+      max-height: 500px;
+      opacity: 1;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+    }
+
+    #modal5-container .recipe-card__notes.is-hidden {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
     }
 
     #modal5-container .recipe-card__notes-input {
@@ -2275,23 +2300,117 @@ export function initModal5() {
 
     const focusOptions = { preventScroll: true };
 
+    const scheduleFrame = typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame.bind(window)
+      : (cb => setTimeout(cb, 0));
+    const delay = typeof window !== 'undefined' && typeof window.setTimeout === 'function'
+      ? window.setTimeout.bind(window)
+      : ((cb, ms) => setTimeout(cb, ms));
+    const cancelDelay = typeof window !== 'undefined' && typeof window.clearTimeout === 'function'
+      ? window.clearTimeout.bind(window)
+      : clearTimeout;
+
+    const hideTimeouts = new WeakMap();
+    const transitionHandlers = new WeakMap();
+    const FALLBACK_DURATION = 600;
+
+    const animateVisibility = (element, show, { visibleClass, hiddenClass } = {}) => {
+      if (!(element instanceof HTMLElement)) return;
+
+      const cancelFallback = () => {
+        const timeoutId = hideTimeouts.get(element);
+        if (typeof timeoutId === 'number') {
+          cancelDelay(timeoutId);
+          hideTimeouts.delete(element);
+        }
+      };
+
+      const clearTransitionHandler = () => {
+        const handler = transitionHandlers.get(element);
+        if (typeof handler === 'function') {
+          element.removeEventListener('transitionend', handler);
+          transitionHandlers.delete(element);
+        }
+      };
+
+      const applyHiddenState = () => {
+        if (visibleClass) {
+          element.classList.remove(visibleClass);
+        }
+        if (hiddenClass) {
+          element.classList.add(hiddenClass);
+        }
+        element.hidden = true;
+      };
+
+      element.setAttribute('aria-hidden', show ? 'false' : 'true');
+
+      if (show) {
+        clearTransitionHandler();
+        cancelFallback();
+        if (hiddenClass) {
+          element.classList.remove(hiddenClass);
+        }
+        element.hidden = false;
+        scheduleFrame(() => {
+          if (visibleClass) {
+            element.classList.add(visibleClass);
+          }
+        });
+        return;
+      }
+
+      if (element.hidden) {
+        if (visibleClass) {
+          element.classList.remove(visibleClass);
+        }
+        if (hiddenClass) {
+          element.classList.add(hiddenClass);
+        }
+        return;
+      }
+
+      const onTransitionEnd = event => {
+        if (event.target !== element) return;
+        clearTransitionHandler();
+        cancelFallback();
+        applyHiddenState();
+      };
+
+      transitionHandlers.set(element, onTransitionEnd);
+      element.addEventListener('transitionend', onTransitionEnd);
+
+      if (visibleClass) {
+        element.classList.remove(visibleClass);
+      }
+      if (hiddenClass) {
+        element.classList.add(hiddenClass);
+      }
+
+      const timeoutId = delay(() => {
+        clearTransitionHandler();
+        applyHiddenState();
+        hideTimeouts.delete(element);
+      }, FALLBACK_DURATION);
+
+      hideTimeouts.set(element, timeoutId);
+    };
+
     const applyState = () => {
       const enabled = toggle.checked;
       
       if (controls instanceof HTMLElement) {
-        controls.hidden = !enabled;
-        controls.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+        animateVisibility(controls, enabled, { visibleClass: 'is-visible' });
         if (enabled && controlsPrimaryField instanceof HTMLElement) {
-          controlsPrimaryField.focus(focusOptions);
+          scheduleFrame(() => controlsPrimaryField.focus(focusOptions));
         }
       }
       if (notes instanceof HTMLElement) {
-        notes.hidden = enabled;
-        notes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
+        animateVisibility(notes, !enabled, { hiddenClass: 'is-hidden' });
         if (notesInput instanceof HTMLTextAreaElement) {
           notesInput.disabled = enabled;
           if (!enabled) {
-            notesInput.focus(focusOptions);
+            scheduleFrame(() => notesInput.focus(focusOptions));
           }
         }
       }
