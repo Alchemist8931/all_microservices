@@ -562,6 +562,38 @@
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
+      position: relative;
+      padding-bottom: 320px;
+    }
+
+    #modal5-container .recipe-card__controls .recipe-card__header {
+      position: relative;
+    }
+
+    #modal5-container .recipe-card__controls .recipe-card__notes {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      width: 300px;
+    }
+
+    #modal5-container .recipe-card__controls .recipe-card__notes-input {
+      width: 100%;
+    }
+
+    @media screen and (max-width: 1280px) {
+      #modal5-container .recipe-card__controls {
+        padding-bottom: 0;
+      }
+
+      #modal5-container .recipe-card__controls .recipe-card__notes {
+        position: static;
+        width: 100%;
+      }
+
+      #modal5-container .recipe-card__controls .recipe-card__notes-input {
+        width: 100%;
+      }
     }
 
     #modal5-container .recipe-card__picker {
