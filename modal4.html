@@ -679,11 +679,6 @@
       </h2>
     </section>
 
-    <div class="modalRow action-bar" style="margin-top: 20px;">
-      <button class="button-form" id="move-warehouse">переместить на склад</button>
-      <button class="button-form" id="delete-selected">удалить выбранное</button>
-    </div>
-
     <div class="modalRow form-row" style="margin-top: 55px;">
       <div class="modalBLOCK form-fields">
         <div class="modalRow" style="margin-left: -10px;">
@@ -699,7 +694,10 @@
           <input class="inputSUM price-field" style="width: 100px;" placeholder="000 000 000" />
         </div>
       </div>
-      <div class="radio-inputs" style="margin-top: -45px; margin-left: 10px;" role="radiogroup" aria-label="режим отображения">
+      <button class="button-form primary" style="margin-top: 18px; margin-left: 10px;" id="create-order">создать позицию</button>
+    </div>
+  <div class="modalRow">
+    <div class="radio-inputs" style="margin-top: -45px; margin-left: 10px;" role="radiogroup" aria-label="режим отображения">
         <label class="radio">
           <input type="radio" name="modal4-mode" value="orders" checked />
           <span class="name">мои заказы</span>
@@ -716,10 +714,15 @@
           <input type="radio" name="modal4-mode" value="manufactured products" />
           <span class="name">готовая продукция</span>
         </label>
-      </div>
-      <button class="button-form primary" style="margin-top: 18px; margin-left: 10px;" id="create-order">создать позицию</button>
     </div>
+
+    <div class="modalRow action-bar" style="margin-top: 0px;">
+      <button class="button-form" id="move-warehouse">переместить на склад</button>
+      <button class="button-form" id="delete-selected">удалить выбранное</button>
+    </div>
+    
   </div>
+</div>
 
   <div class="modal4-scroll-wrapper">
     <div class="modal-bottom glass-panel modal4-window">
