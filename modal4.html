@@ -706,7 +706,7 @@
           <span class="name">мои заказы</span>
         </label>
         <label class="radio">
-          <input type="radio" name="modal4-mode" value="warehouse" checked />
+          <input type="radio" name="modal4-mode" value="warehouse" />
           <span class="name">склад, материалы</span>
         </label>
         <label class="radio">
@@ -1140,34 +1140,54 @@ export function initModal4() {
   const modeRadios = modal.querySelectorAll('input[name="modal4-mode"]');
   const DROPDOWN_POINTER_TOLERANCE = 0.1;
 
+  const MODE_ORDERS = 'orders';
   const MODE_WAREHOUSE = 'warehouse';
   const MODE_STOCKS = 'stocks';
+  const MODE_MANUFACTURED = 'manufactured products';
 
   const modeConfigs = {
+    [MODE_ORDERS]: {
+      table: 'modal4_orders',
+      template: modal.querySelector('#modal4-order-template'),
+      statuses: ['заказано'],
+    },
     [MODE_WAREHOUSE]: {
       table: 'modal4_orders',
       template: modal.querySelector('#modal4-order-template'),
+      statuses: ['на складе', 'списано'],
     },
     [MODE_STOCKS]: {
       table: 'modal4_orders_uni',
       template: modal.querySelector('#modal4-order-template-uni'),
     },
+    [MODE_MANUFACTURED]: {
+      table: 'modal4_orders',
+      template: modal.querySelector('#modal4-order-template'),
+      statuses: ['изготовлен'],
+    },
   };
 
-  let activeMode = MODE_WAREHOUSE;
+  let activeMode = MODE_ORDERS;
 
   const isStocksMode = (mode = activeMode) => String(mode ?? '').toLowerCase() === MODE_STOCKS;
 
   const hintsCache = {
+    [MODE_ORDERS]: null,
     [MODE_WAREHOUSE]: null,
     [MODE_STOCKS]: null,
+    [MODE_MANUFACTURED]: null,
   };
 
-  const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs.warehouse;
+  const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs[MODE_WAREHOUSE];
 
-  const getModeTable = (mode = activeMode) => getModeConfig(mode)?.table ?? modeConfigs.warehouse.table;
+  const getModeTable = (mode = activeMode) => getModeConfig(mode)?.table ?? modeConfigs[MODE_WAREHOUSE].table;
 
-  const getModeTemplate = (mode = activeMode) => getModeConfig(mode)?.template ?? modeConfigs.warehouse.template;
+  const getModeTemplate = (mode = activeMode) => getModeConfig(mode)?.template ?? modeConfigs[MODE_WAREHOUSE].template;
+
+  const getModeStatuses = (mode = activeMode) => {
+    const statuses = getModeConfig(mode)?.statuses;
+    return Array.isArray(statuses) && statuses.length ? statuses : null;
+  };
 
   const toggleFade = (element, fade) => {
     if (!element) return Promise.resolve();
@@ -1377,6 +1397,8 @@ export function initModal4() {
 
     let query = supabase.from(getModeTable(mode));
 
+    const statuses = getModeStatuses(mode);
+
     if (isStocksMode(mode)) {
       query = query
         .select('order_code, item_name, item_category, url, supplier, modification, total_quantity, avg_price, total_amount, statuses');
@@ -1386,6 +1408,9 @@ export function initModal4() {
     } else {
       query = query
         .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value');
+      if (statuses) {
+        query = query.in('status', statuses);
+      }
     }
 
     const companyId = await resolveCompanyId();
@@ -1486,6 +1511,7 @@ export function initModal4() {
     }
     const units = await unitsPromise;
     const stocksMode = isStocksMode(mode);
+    const statuses = getModeStatuses(mode);
     let query = supabase.from(getModeTable(mode));
 
     if (stocksMode) {
@@ -1499,6 +1525,9 @@ export function initModal4() {
       query = query
         .select('*')
         .order('created_at', { ascending: false });
+      if (statuses) {
+        query = query.in('status', statuses);
+      }
     }
 
     const companyId = await resolveCompanyId();
