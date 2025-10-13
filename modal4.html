@@ -1434,7 +1434,15 @@ export function initModal4() {
       ? data.filter(item => {
         if (!normalizedStatuses) return true;
         const itemStatus = String(item?.status ?? '').trim().toLowerCase();
-        return normalizedStatuses.includes(itemStatus);
+        if (itemStatus && normalizedStatuses.includes(itemStatus)) {
+          return true;
+        }
+        if (Array.isArray(item?.statuses)) {
+          return item.statuses
+            .map(status => String(status ?? '').trim().toLowerCase())
+            .some(status => status && normalizedStatuses.includes(status));
+        }
+        return false;
       })
       : [];
 
@@ -1466,13 +1474,20 @@ export function initModal4() {
     const total = totalCandidate ?? ((qty ?? 0) * (price ?? 0));
     const createdAt = order.created_at ?? order.last_created_at ?? order.last_updated_at ?? null;
     const statusText = (() => {
+      const combineStatuses = statuses => Array.isArray(statuses) && statuses.length
+        ? statuses.map(status => String(status ?? '')).filter(Boolean).join(', ')
+        : '';
       if (stocksMode) {
-        if (Array.isArray(order.statuses) && order.statuses.length) {
-          return order.statuses.join(', ');
-        }
-        return ORDER_STATUS;
+        const statusesFromArray = combineStatuses(order.statuses);
+        return statusesFromArray || ORDER_STATUS;
       }
-      return order.status ?? ORDER_STATUS;
+      const normalizedStatus = String(order.status ?? '').trim();
+      if (normalizedStatus) {
+        return normalizedStatus;
+      }
+
+      const statusesFromArray = combineStatuses(order.statuses);
+      return statusesFromArray || ORDER_STATUS;
     })();
 
     return {
@@ -1557,7 +1572,16 @@ export function initModal4() {
       ? orders.filter(order => {
         if (!normalizedStatuses) return true;
         const orderStatus = String(order?.status ?? '').trim().toLowerCase();
-        return normalizedStatuses.includes(orderStatus);
+        if (orderStatus && normalizedStatuses.includes(orderStatus)) {
+          return true;
+        }
+        if (Array.isArray(order?.statuses)) {
+          const normalizedOrderStatuses = order.statuses
+            .map(status => String(status ?? '').trim().toLowerCase())
+            .filter(Boolean);
+          return normalizedOrderStatuses.some(status => normalizedStatuses.includes(status));
+        }
+        return false;
       })
       : [];
 
