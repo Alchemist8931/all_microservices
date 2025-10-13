@@ -1191,6 +1191,39 @@ export function initModal4() {
     return Array.isArray(statuses) && statuses.length ? statuses : null;
   };
 
+  const createStatusVariants = statuses => {
+    if (!Array.isArray(statuses)) return [];
+    const variants = new Set();
+    statuses
+      .map(status => String(status ?? '').trim())
+      .filter(Boolean)
+      .forEach(status => {
+        const lower = status.toLowerCase();
+        const upper = status.toUpperCase();
+        const capitalized = lower
+          .split(' ')
+          .map(part => part ? part[0].toUpperCase() + part.slice(1) : part)
+          .join(' ');
+        variants.add(status);
+        variants.add(lower);
+        variants.add(upper);
+        variants.add(capitalized);
+      });
+    return Array.from(variants).filter(Boolean);
+  };
+
+  const applyStatusFilterToQuery = (query, statuses) => {
+    if (!query) return query;
+    const variants = createStatusVariants(statuses);
+    if (!variants.length) return query;
+    try {
+      return query.in('status', variants);
+    } catch (err) {
+      console.warn('[modal4.html] не удалось применить фильтр статусов через query.in', err);
+      return query;
+    }
+  };
+
   const toggleFade = (element, fade) => {
     if (!element) return Promise.resolve();
     const className = 'is-faded';
@@ -1413,6 +1446,7 @@ export function initModal4() {
     } else {
       query = query
         .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value, status');
+      query = applyStatusFilterToQuery(query, statuses);
     }
 
     const companyId = await resolveCompanyId();
@@ -1551,6 +1585,7 @@ export function initModal4() {
       query = query
         .select('*')
         .order('created_at', { ascending: false });
+      query = applyStatusFilterToQuery(query, statuses);
     }
 
     const companyId = await resolveCompanyId();
