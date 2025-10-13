@@ -1396,6 +1396,7 @@ export function initModal5() {
   let stocksLoaded = false;
   let isLoadingStocks = false;
   let refreshTimerId = null;
+  const latestOrderCache = new Map();
   const MAX_SUGGESTIONS = 20;
 
   const normalizeOrderCode = code => {
@@ -1633,6 +1634,81 @@ export function initModal5() {
     if (!normalized) return null;
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const numberToStorageString = value => {
+    if (value === null || value === undefined) return '';
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? String(numeric) : '';
+  };
+
+  const getCardFieldValue = (card, field) => {
+    if (!(card instanceof HTMLElement)) return '';
+    const input = card.querySelector(`[data-field="${field}"]`);
+    return input instanceof HTMLInputElement ? input.value.trim() : '';
+  };
+
+  const getRowFieldValue = (row, field) => {
+    if (!(row instanceof HTMLElement)) return '';
+    const input = row.querySelector(`[data-field="${field}"]`);
+    return input instanceof HTMLInputElement ? input.value.trim() : '';
+  };
+
+  const fetchLatestOrderSnapshot = async (orderCode, { companyId } = {}) => {
+    const normalized = String(orderCode ?? '').trim();
+    if (!normalized || !supabaseClient) return null;
+    const cacheKey = `${companyId || 'none'}::${normalized.toLowerCase()}`;
+    if (latestOrderCache.has(cacheKey)) {
+      try {
+        return await latestOrderCache.get(cacheKey);
+      } catch (err) {
+        latestOrderCache.delete(cacheKey);
+        throw err;
+      }
+    }
+
+    const loader = (async () => {
+      try {
+        let query = supabaseClient
+          .from('modal4_orders')
+          .select('order_code, item_name, item_category, url, supplier, modification, status')
+          .eq('order_code', normalized)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (companyId) {
+          query = query.eq('company_id', companyId);
+        } else if (DB_USER_KEY) {
+          query = query.eq('user_key', DB_USER_KEY);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error(`[modal5.html] ошибка получения modal4_orders по коду ${normalized}:`, error);
+          return null;
+        }
+
+        if (Array.isArray(data) && data.length) {
+          return data[0];
+        }
+
+        return null;
+      } catch (err) {
+        console.error(`[modal5.html] исключение при получении modal4_orders по коду ${normalized}:`, err);
+        return null;
+      }
+    })();
+
+    latestOrderCache.set(cacheKey, loader);
+
+    try {
+      const result = await loader;
+      latestOrderCache.set(cacheKey, Promise.resolve(result));
+      return result;
+    } catch (err) {
+      latestOrderCache.delete(cacheKey);
+      throw err;
+    }
   };
 
   const updateCardTotal = card => {
@@ -2735,6 +2811,149 @@ export function initModal5() {
       });
       multiplierInput.dataset.boundManufacture = '1';
     }
+
+    if (controls instanceof HTMLElement) {
+      const manufactureButton = controls.querySelector('.button-form.primary');
+      if (manufactureButton instanceof HTMLButtonElement && manufactureButton.dataset.boundManufacture !== '1') {
+        const handleManufacture = async () => {
+          updateManufactureOutputs(card);
+
+          if (!supabaseClient) {
+            alert('Supabase недоступен, создание записей невозможно.');
+            return;
+          }
+
+          if (!(multiplierInput instanceof HTMLInputElement)) {
+            alert('Поле количества недоступно.');
+            return;
+          }
+
+          const multiplier = parseNumber(multiplierInput.value);
+          if (multiplier === null || multiplier <= 0) {
+            alert('Укажите количество изготавливаемого товара.');
+            return;
+          }
+
+          const recipeCode = getCardFieldValue(card, 'recipe_code');
+          const recipeName = getCardFieldValue(card, 'recipe_name');
+
+          if (!recipeCode || !recipeName) {
+            alert('Заполните код и наименование рецепта перед изготовлением.');
+            return;
+          }
+
+          const rows = Array.from(card.querySelectorAll('.recipe-item-row'));
+          if (!rows.length) {
+            alert('Добавьте материалы в рецепт перед изготовлением.');
+            return;
+          }
+
+          const totalField = card.querySelector('.recipe-card__total');
+          const totalPrice = totalField instanceof HTMLInputElement
+            ? parseNumber(totalField.value)
+            : null;
+
+          const companyId = await resolveCompanyId();
+
+          const productRecord = {
+            order_code: recipeCode,
+            item_name: recipeName,
+            item_category: 'изготовленные мной товары',
+            url: '',
+            supplier: '-',
+            modification: 'шт',
+            quantity_value: numberToStorageString(multiplier),
+            price_value: numberToStorageString(totalPrice ?? 0),
+            status: 'на складе',
+          };
+
+          if (DB_USER_KEY) {
+            productRecord.user_key = DB_USER_KEY;
+          }
+          if (companyId) {
+            productRecord.company_id = companyId;
+          }
+
+          const materialRecords = [];
+
+          await Promise.all(rows.map(async row => {
+            if (!(row instanceof HTMLElement)) return;
+            const orderCode = getRowFieldValue(row, 'order_code');
+            if (!orderCode) return;
+
+            const resultField = row.querySelector('.recipe-card__manufacture-result');
+            const requiredQty = resultField instanceof HTMLInputElement
+              ? parseNumber(resultField.value)
+              : null;
+
+            if (requiredQty === null || requiredQty === 0) return;
+
+            const snapshot = await fetchLatestOrderSnapshot(orderCode, { companyId }).catch(() => null);
+            const rowName = getRowFieldValue(row, 'item_name');
+            const rowCategory = getRowFieldValue(row, 'item_category');
+            const rowUnit = getRowFieldValue(row, 'base_unit');
+            const unitPrice = getRowPrice(row);
+
+            const record = {
+              order_code: orderCode,
+              item_name: snapshot?.item_name ?? rowName,
+              item_category: snapshot?.item_category ?? rowCategory,
+              url: snapshot?.url ?? '',
+              supplier: snapshot?.supplier ?? '-',
+              modification: snapshot?.modification ?? rowUnit,
+              status: snapshot?.status ?? 'списано',
+              quantity_value: numberToStorageString(-Math.abs(requiredQty)),
+              price_value: numberToStorageString(unitPrice ?? 0),
+            };
+
+            if (DB_USER_KEY) {
+              record.user_key = DB_USER_KEY;
+            }
+            if (companyId) {
+              record.company_id = companyId;
+            }
+
+            materialRecords.push(record);
+          }));
+
+          const recordsToInsert = [productRecord, ...materialRecords];
+
+          if (recordsToInsert.length === 1) {
+            alert('Не удалось определить материалы для списания.');
+            return;
+          }
+
+          manufactureButton.disabled = true;
+          manufactureButton.dataset.loading = '1';
+
+          try {
+            const { error } = await supabaseClient
+              .from('modal4_orders')
+              .insert(recordsToInsert);
+
+            if (error) {
+              throw error;
+            }
+
+            multiplierInput.value = '';
+            delete multiplierInput.dataset.raw;
+            toggle.checked = false;
+            applyState();
+            updateManufactureOutputs(card);
+          } catch (err) {
+            alert('Не удалось создать записи в modal4_orders. Подробности в консоли.');
+            console.error('[modal5.html] ошибка создания записей modal4_orders:', err);
+          } finally {
+            manufactureButton.disabled = false;
+            delete manufactureButton.dataset.loading;
+          }
+        };
+
+        manufactureButton.addEventListener('click', handleManufacture);
+        manufactureButton.dataset.boundManufacture = '1';
+      }
+    }
+
 
     toggle.addEventListener('change', applyState);
     applyState();
