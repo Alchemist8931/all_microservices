@@ -2836,6 +2836,7 @@ export function initModal5() {
 
           const recipeCode = getCardFieldValue(card, 'recipe_code');
           const recipeName = getCardFieldValue(card, 'recipe_name');
+          const recipeCategory = getCardFieldValue(card, 'recipe_category');
 
           if (!recipeCode || !recipeName) {
             alert('Заполните код и наименование рецепта перед изготовлением.');
@@ -2858,13 +2859,13 @@ export function initModal5() {
           const productRecord = {
             order_code: recipeCode,
             item_name: recipeName,
-            item_category: 'изготовленные мной товары',
+            item_category: recipeCategory,
             url: '',
             supplier: '-',
             modification: 'шт',
             quantity_value: numberToStorageString(multiplier),
             price_value: numberToStorageString(totalPrice ?? 0),
-            status: 'на складе',
+            status: 'изготовлено',
           };
 
           if (DB_USER_KEY) {
@@ -2900,7 +2901,7 @@ export function initModal5() {
               item_category: snapshot?.item_category ?? rowCategory,
               url: '',
               supplier: '-',
-              modification: 'шт',
+              modification: rowUnit,
               status: 'списание',
               quantity_value: numberToStorageString(-Math.abs(requiredQty)),
               price_value: numberToStorageString(unitPrice ?? 0),
