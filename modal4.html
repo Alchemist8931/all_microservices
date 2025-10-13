@@ -1244,8 +1244,9 @@ export function initModal4() {
   };
 
   const numberToStorageString = num => {
-    if (num === null || num === undefined) return '';
-    return Number(num).toString();
+    if (num === null || num === undefined) return null;
+    const numeric = Number(num);
+    return Number.isFinite(numeric) ? numeric.toString() : null;
   };
 
   const isUniversalGroup = group => String(group ?? '')
