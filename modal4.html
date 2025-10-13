@@ -1376,8 +1376,7 @@ export function initModal4() {
       }
     } else {
       query = query
-        .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value')
-        .eq('status', ORDER_STATUS);
+        .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value');
     }
 
     const companyId = await resolveCompanyId();
@@ -1490,7 +1489,6 @@ export function initModal4() {
     } else {
       query = query
         .select('*')
-        .eq('status', ORDER_STATUS)
         .order('created_at', { ascending: false });
     }
 
@@ -2089,8 +2087,76 @@ export function initModal4() {
     }
   });
 
-  moveButton?.addEventListener('click', () => {
-    console.log('Перемещение на склад');
+  moveButton?.addEventListener('click', async () => {
+    const checkedBlocks = [...ordersContainer.querySelectorAll('input[type="checkbox"]:checked')]
+      .map(cb => cb.closest('.modalBLOCK'))
+      .filter(block => block instanceof HTMLElement);
+
+    if (!checkedBlocks.length) return;
+
+    if (activeMode !== MODE_WAREHOUSE) {
+      alert('Перемещение доступно только в режиме "Склад".');
+      return;
+    }
+
+    const ids = checkedBlocks
+      .map(block => block?.dataset?.id)
+      .filter(Boolean);
+
+    const nowISO = new Date().toISOString();
+
+    try {
+      if (ids.length) {
+        let updateQuery = supabase
+          .from(getModeTable(activeMode))
+          .update({
+            status: 'на складе',
+            created_at: nowISO,
+          })
+          .in('id', ids);
+
+        const updateCompanyId = await resolveCompanyId();
+        if (updateCompanyId) {
+          updateQuery = updateQuery.eq('company_id', updateCompanyId);
+        } else if (DB_USER_KEY) {
+          updateQuery = updateQuery.eq('user_key', DB_USER_KEY);
+        }
+
+        const { error } = await updateQuery;
+        if (error) throw error;
+      }
+
+      const formatted = formatCreatedAt(nowISO);
+
+      checkedBlocks.forEach(block => {
+        const checkbox = block.querySelector('input[type="checkbox"]');
+        if (checkbox instanceof HTMLInputElement) {
+          checkbox.checked = false;
+        }
+
+        const statusTarget = block.querySelector('[data-field="status"]');
+        if (statusTarget instanceof HTMLInputElement) {
+          statusTarget.value = 'на складе';
+        } else if (statusTarget instanceof HTMLElement) {
+          statusTarget.textContent = 'на складе';
+        }
+
+        const dateField = block.querySelector('[data-field="date-time"]');
+        if (dateField instanceof HTMLElement && dateField.classList.contains('date-time-field')) {
+          const timeEl = dateField.querySelector('.date-time-field__time');
+          const dateEl = dateField.querySelector('.date-time-field__date');
+          if (timeEl) timeEl.textContent = formatted.time;
+          if (dateEl) dateEl.textContent = formatted.date;
+          dateField.dataset.time = formatted.time ?? '';
+          dateField.dataset.date = formatted.date ?? '';
+        }
+      });
+
+      updateActionButtons();
+    } catch (error) {
+      alert('Ошибка перемещения: ' + error.message);
+      console.error(error);
+    }
   });
 
   async function applyMode(mode) {
