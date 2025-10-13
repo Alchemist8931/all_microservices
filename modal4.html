@@ -1967,13 +1967,24 @@ export function initModal4() {
     const qtyStored = quantityOriginal === null
       ? null
       : (canConvert ? quantityOriginal * multiplierSelected : quantityOriginal);
-    const priceStored = priceOriginal === null
-      ? null
-      : (canConvert && multiplierSelected ? priceOriginal / multiplierSelected : priceOriginal);
+    const priceStored = (() => {
+      if (priceOriginal === null) return null;
+      const effectiveMultiplier = canConvert ? multiplierSelected : 1;
+      if (quantityOriginal === null || quantityOriginal === 0) {
+        if (!effectiveMultiplier) return null;
+        return priceOriginal / effectiveMultiplier;
+      }
+      return priceOriginal / quantityOriginal / (effectiveMultiplier || 1);
+    })();
 
     const qtyStoredStr = numberToStorageString(qtyStored);
     const priceStoredStr = numberToStorageString(priceStored);
-    const total = (qtyStored ?? 0) * (priceStored ?? 0);
+    const total = (() => {
+      if (priceStored !== null && qtyStored !== null) {
+        return qtyStored * priceStored;
+      }
+      return priceOriginal ?? 0;
+    })();
 
     try {
       const dbPayload = {
