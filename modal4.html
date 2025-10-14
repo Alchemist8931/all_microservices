@@ -1173,9 +1173,8 @@ export function initModal4() {
   };
 
   const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs[MODE_WAREHOUSE];
-
   const getModeTable = (mode = activeMode) => getModeConfig(mode)?.table ?? modeConfigs[MODE_WAREHOUSE].table;
-
+  const canUseUserKeyFilter = (mode = activeMode) => !isStocksMode(mode);
   const getModeTemplate = (mode = activeMode) => getModeConfig(mode)?.template ?? modeConfigs[MODE_WAREHOUSE].template;
 
   const getModeStatuses = (mode = activeMode) => {
@@ -1466,7 +1465,7 @@ export function initModal4() {
     const companyId = await resolveCompanyId();
     if (companyId) {
       query = query.eq('company_id', companyId);
-    } else if (DB_USER_KEY) {
+    } else if (canUseUserKeyFilter(mode) && DB_USER_KEY) {
       query = query.eq('user_key', DB_USER_KEY);
     }
 
@@ -1592,7 +1591,7 @@ export function initModal4() {
 
     if (stocksMode) {
       query = query
-        .select('order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit, company_id, user_key');
+        .select('order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit, company_id');
       query = query.order('order_code', { ascending: true });
     } else {
       query = query
@@ -1604,7 +1603,7 @@ export function initModal4() {
     const companyId = await resolveCompanyId();
     if (companyId) {
       query = query.eq('company_id', companyId);
-    } else if (DB_USER_KEY) {
+    } else if (canUseUserKeyFilter(mode) && DB_USER_KEY) {
       query = query.eq('user_key', DB_USER_KEY);
     }
 
@@ -2207,7 +2206,7 @@ export function initModal4() {
         const deleteCompanyId = await resolveCompanyId();
         if (deleteCompanyId) {
           deleteQuery = deleteQuery.eq('company_id', deleteCompanyId);
-        } else if (DB_USER_KEY) {
+        } else if (canUseUserKeyFilter(activeMode) && DB_USER_KEY) {
           deleteQuery = deleteQuery.eq('user_key', DB_USER_KEY);
         }
 
@@ -2255,7 +2254,7 @@ export function initModal4() {
         const updateCompanyId = await resolveCompanyId();
         if (updateCompanyId) {
           updateQuery = updateQuery.eq('company_id', updateCompanyId);
-        } else if (DB_USER_KEY) {
+        } else if (canUseUserKeyFilter(activeMode) && DB_USER_KEY) {
           updateQuery = updateQuery.eq('user_key', DB_USER_KEY);
         }
 
