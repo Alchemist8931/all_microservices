@@ -1456,7 +1456,7 @@ export function initModal4() {
 
     if (isStocksMode(mode)) {
       query = query
-        .select('idx, order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit');
+        .select('order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit');
     } else {
       query = query
         .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value, status');
@@ -1541,7 +1541,7 @@ export function initModal4() {
     })();
 
     return {
-      id: order.id ?? order.idx ?? order.order_code ?? order.item_name ?? '',
+      id: order.id ?? order.order_code ?? order.item_name ?? '',
       order_code: order.order_code ?? '',
       item_name: order.item_name ?? '',
       item_category: order.item_category ?? '',
@@ -1592,7 +1592,7 @@ export function initModal4() {
 
     if (stocksMode) {
       query = query
-        .select('idx, order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit, company_id, user_key');
+        .select('order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit, company_id, user_key');
       query = query.order('order_code', { ascending: true });
     } else {
       query = query
