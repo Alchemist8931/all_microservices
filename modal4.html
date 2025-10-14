@@ -1744,7 +1744,23 @@ export function initModal4() {
 
   function updateActionButtons() {
     const hasChecked = !!ordersContainer.querySelector('input[type="checkbox"]:checked');
+    const showMove = hasChecked && activeMode === MODE_ORDERS;
     actionRow?.classList.toggle('visible', hasChecked);
+    if (moveButton) {
+      if (showMove) {
+        moveButton.removeAttribute('hidden');
+      } else {
+        moveButton.setAttribute('hidden', '');
+      }
+    }
+
+    if (deleteButton) {
+      if (hasChecked) {
+        deleteButton.removeAttribute('hidden');
+      } else {
+        deleteButton.setAttribute('hidden', '');
+      }
+    }
   }
 
   ordersContainer.addEventListener('change', event => {
@@ -2230,8 +2246,8 @@ export function initModal4() {
 
     if (!checkedBlocks.length) return;
 
-    if (activeMode !== MODE_WAREHOUSE) {
-      alert('Перемещение доступно только в режиме "Склад".');
+    if (activeMode !== MODE_WAREHOUSE && activeMode !== MODE_ORDERS) {
+      alert('Перемещение доступно только в режимах "Мои заказы" и "Склад".');
       return;
     }
 
