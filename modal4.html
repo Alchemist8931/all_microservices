@@ -766,20 +766,12 @@
         <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" readonly />
         <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" readonly />
         <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" readonly />
-        <input class="input" data-field="status" style="width: 100px; text-align: center; background: #212121" placeholder="статус" readonly />
-        <div class="input date-time-field" style="width: 190px; background: #212121" data-field="date-time" aria-label="дата и время">
-          <span class="date-time-field__time"></span>
-          <span class="date-time-field__date"></span>
-        </div>
-        <input class="inputT supplier-field" style="width: 120px; background: #212121" data-field="supplier" placeholder="поставщик" readonly />
-        <span class="spec-icon" data-field="spec-url" data-url="">
           <i class="material-symbols-outlined">captive_portal</i>
         </span>
         <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
         <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" readonly />
         <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
         <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
-        <input class="input" style="width: 375px; background: #212121;" placeholder="для заметок" readonly />
       </div>
     </div>
   </template>
@@ -1441,10 +1433,10 @@ export function initModal4() {
         item_category: record.item_category ?? '',
         url: record.url ?? '',
         supplier: record.supplier ?? '',
-        modification: record.modification ?? '',
+        modification: record.base_unit ?? '',
         quantity_value: record.total_quantity ?? '',
-        price_value: record.avg_price ?? '',
-        total_amount: record.total_amount ?? '',
+        price_value: record.avg_cost ?? '',
+        total_amount: record.stock_value ?? '',
       };
     }
     return { ...record };
@@ -1464,10 +1456,7 @@ export function initModal4() {
 
     if (isStocksMode(mode)) {
       query = query
-        .select('order_code, item_name, item_category, url, supplier, modification, total_quantity, avg_price, total_amount, statuses');
-      if (ORDER_STATUS) {
-        query = query.contains('statuses', [ORDER_STATUS]);
-      }
+        .select('idx, order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit');
     } else {
       query = query
         .select('order_code, item_name, item_category, url, supplier, modification, quantity_value, price_value, status');
@@ -1523,12 +1512,15 @@ export function initModal4() {
 
     const stocksMode = isStocksMode(mode);
     const qtyRaw = stocksMode ? order.total_quantity : order.quantity_value;
-    const priceRaw = stocksMode ? order.avg_price : order.price_value;
+    const priceRaw = stocksMode ? order.avg_cost : order.price_value;
     const qty = parseNumberNullable(qtyRaw);
     const price = parseNumberNullable(priceRaw);
-    const baseUnit = getBaseUnit(order.modification, units);
+    const baseUnitSource = order.base_unit ?? order.modification ?? '';
+    const baseUnit = stocksMode
+      ? (baseUnitSource ? String(baseUnitSource).trim() : '')
+      : getBaseUnit(order.modification, units);
     const totalCandidate = stocksMode
-      ? parseNumberNullable(order.total_amount)
+      ? parseNumberNullable(order.stock_value)
       : (qty ?? 0) * (price ?? 0);
     const total = totalCandidate ?? ((qty ?? 0) * (price ?? 0));
     const createdAt = order.created_at ?? order.last_created_at ?? order.last_updated_at ?? null;
@@ -1537,8 +1529,7 @@ export function initModal4() {
         ? statuses.map(status => String(status ?? '')).filter(Boolean).join(', ')
         : '';
       if (stocksMode) {
-        const statusesFromArray = combineStatuses(order.statuses);
-        return statusesFromArray || ORDER_STATUS;
+        return '';
       }
       const normalizedStatus = String(order.status ?? '').trim();
       if (normalizedStatus) {
@@ -1550,13 +1541,13 @@ export function initModal4() {
     })();
 
     return {
-      id: order.id,
+      id: order.id ?? order.idx ?? order.order_code ?? order.item_name ?? '',
       order_code: order.order_code ?? '',
       item_name: order.item_name ?? '',
       item_category: order.item_category ?? '',
       url: order.url ?? '',
       supplier: order.supplier ?? '',
-      modification: order.modification ?? '',
+      modification: stocksMode ? baseUnit : (order.modification ?? ''),
       created_at: createdAt,
       qtySel: qty,
       priceSel: price,
@@ -1601,11 +1592,8 @@ export function initModal4() {
 
     if (stocksMode) {
       query = query
-        .select('order_code, item_name, item_category, url, supplier, modification, total_quantity, avg_price, total_amount, statuses, last_created_at, last_updated_at, company_id, user_key');
-      if (ORDER_STATUS) {
-        query = query.contains('statuses', [ORDER_STATUS]);
-      }
-      query = query.order('last_created_at', { ascending: false, nullsFirst: false });
+        .select('idx, order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit, company_id, user_key');
+      query = query.order('order_code', { ascending: true });
     } else {
       query = query
         .select('*')
