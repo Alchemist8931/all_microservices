@@ -2056,18 +2056,20 @@ export function initModal5() {
 
   const normalizeStockRow = row => {
     if (!row) return null;
-    const id = row.id ?? row.order_code;
+    const id = row.id ?? row.idx ?? row.order_code;
     if (!id) return null;
-    const price = parseNumber(row.avg_price);
+    const price = parseNumber(row.avg_cost);
     const totalQuantity = parseNumber(row.total_quantity);
+    const stockValue = parseNumber(row.stock_value);
     return {
       id: String(id),
       order_code: row.order_code ?? '',
       item_name: row.item_name ?? '',
       item_category: row.item_category ?? '',
-      base_unit: row.modification ?? '',
+      base_unit: row.base_unit ?? '',
       price: price ?? null,
       total_quantity: totalQuantity ?? null,
+      stock_value: stockValue ?? null,
       url: row.url ?? '',
       supplier: row.supplier ?? '',
     };
@@ -3185,7 +3187,7 @@ export function initModal5() {
     try {
       const { data, error } = await supabaseClient
         .from('modal4_orders_uni')
-        .select('order_code, item_name, item_category, modification, avg_price, total_quantity, url, supplier');
+        .select('idx, order_code, item_name, item_category, total_quantity, avg_cost, stock_value, base_unit');
 
       if (error) {
         if (!silent) {
