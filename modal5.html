@@ -430,7 +430,7 @@
     }
 
     #modal5-container .recipe-card__manufacture-controls[hidden],
-    #modal5-container .recipe-card__notes[hidden] {
+    #modal5-container .recipe-card__common-notes[hidden] {
       display: none !important;
     }
 
@@ -501,27 +501,27 @@
       text-align: right;
     }
 
-    #modal5-container .recipe-card__notes {
+    #modal5-container .recipe-card__common-notes {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      flex: 0 0 440px;
-      max-width: 100%;
+      width: 100%;
+      margin-top: 12px;
       transition: opacity 0.3s ease;
     }
 
-    #modal5-container .recipe-card__notes[hidden] {
+    #modal5-container .recipe-card__common-notes[hidden] {
       display: none !important;
     }
 
-    #modal5-container .recipe-card__notes.is-hidden {
+    #modal5-container .recipe-card__common-notes.is-hidden {
       opacity: 0;
     }
 
-    #modal5-container .recipe-card__notes-input {
+    #modal5-container .recipe-card__common-notes-textarea {
       width: 100%;
-      height: 270px;
-      resize: none;
+      min-height: 180px;
+      resize: vertical;
     }
 
     #modal5-container .recipe-card__delete {
@@ -1194,6 +1194,9 @@ input:checked + .slider:before {
   <div class="modalRow">
     <div class="modalColumn">
             <div class="recipe-card__items"></div>
+            <div class="recipe-card__common-notes" aria-hidden="false">
+              <textarea class="input recipe-card__common-notes-textarea" placeholder="введите общие заметки по рецепту" aria-label="общие заметки по рецепту"></textarea>
+            </div>
     </div>
 
 
@@ -1234,9 +1237,6 @@ input:checked + .slider:before {
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
             <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
-            <div class="recipe-card__notes" aria-hidden="false">
-              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
-            </div>
             <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
               <div class="manufacture-chart__row">
                 <span class="manufacture-chart__label">на складе </span>
@@ -1718,27 +1718,27 @@ export function initModal5() {
     const toggle = card.querySelector('.recipe-card__manufacture-toggle');
     const controls = card.querySelector('.recipe-card__manufacture-controls');
     const multiplierInput = controls?.querySelector('.recipe-card__manufacture-multiplier');
+    const commonNotes = card.querySelector('.recipe-card__common-notes');
+    const commonNotesInput = commonNotes?.querySelector('.recipe-card__common-notes-textarea');
     const enabled = toggle instanceof HTMLInputElement ? toggle.checked : false;
     const multiplier = enabled && multiplierInput instanceof HTMLInputElement
       ? parseNumber(multiplierInput.value)
       : null;
+
+    if (commonNotes instanceof HTMLElement) {
+      commonNotes.hidden = enabled;
+      commonNotes.classList.toggle('is-hidden', enabled);
+      commonNotes.setAttribute('aria-hidden', enabled ? 'true' : 'false');
+      if (commonNotesInput instanceof HTMLTextAreaElement) {
+        commonNotesInput.disabled = enabled;
+      }
+    }
 
     const rows = card.querySelectorAll('.recipe-item-row');
     rows.forEach(row => {
       if (!(row instanceof HTMLElement)) return;
       const resultField = row.querySelector('.recipe-card__manufacture-result');
       if (!(resultField instanceof HTMLInputElement)) return;
-
-      const notesContainer = row.querySelector('.recipe-card__notes');
-      const noteInput = notesContainer?.querySelector('.recipe-card__notes-input');
-      if (notesContainer instanceof HTMLElement) {
-        notesContainer.hidden = enabled;
-        notesContainer.classList.toggle('is-hidden', enabled);
-        notesContainer.setAttribute('aria-hidden', enabled ? 'true' : 'false');
-        if (noteInput instanceof HTMLTextAreaElement) {
-          noteInput.disabled = enabled;
-        }
-      }
 
       if (!enabled) {
         resultField.value = '';
@@ -2783,7 +2783,7 @@ export function initModal5() {
       }
       updateManufactureOutputs(card);
       if (!enabled) {
-        const firstNoteInput = card.querySelector('.recipe-card__notes:not([hidden]) .recipe-card__notes-input');
+        const firstNoteInput = card.querySelector('.recipe-card__common-notes:not([hidden]) .recipe-card__common-notes-textarea');
         if (firstNoteInput instanceof HTMLTextAreaElement) {
           scheduleFrame(() => firstNoteInput.focus(focusOptions));
         }
