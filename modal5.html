@@ -1211,6 +1211,12 @@ input:checked + .slider:before {
                 <button class="button-form secondary recipe-card__picker-close" type="button">закрыть</button>
               </div>
             </div>
+
+<div class="recipe-card__notes" aria-hidden="false" style="margin-left: 0px; margin-top: 0px; position: relative;">
+    <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+</div>
+
+      
   <div class="modalRow">
     <div class="modalColumn">
             <div class="recipe-card__items"></div>
@@ -1244,9 +1250,6 @@ input:checked + .slider:before {
 
       <template id="recipe-item-template">
         <div class="recipe-item-row" style="width: 1570px; padding: 0px; border: none" data-item-id="">
-          <div class="recipe-card__notes" aria-hidden="false" style="margin-left: 0px; margin-top: 0px; position: relative;">
-              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
-          </div>
           <div class="modalRow">
             <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" />
             <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" />
