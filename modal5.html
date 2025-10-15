@@ -503,23 +503,23 @@
 
     #modal5-container .recipe-card__notes {
       display: flex;
-      position: relative;
-      top: -270px;
       flex-direction: column;
       gap: 8px;
-      width: 525px;
-      opacity: 1;
-      transition: max-height 0.5s ease, opacity 0.5s ease;
+      flex: 0 0 440px;
+      max-width: 100%;
+      transition: opacity 0.3s ease;
+    }
+
+    #modal5-container .recipe-card__notes[hidden] {
+      display: none !important;
     }
 
     #modal5-container .recipe-card__notes.is-hidden {
-      max-height: 0;
       opacity: 0;
-      overflow: hidden;
     }
 
     #modal5-container .recipe-card__notes-input {
-      width: 525px;
+      width: 100%;
       height: 270px;
       resize: none;
     }
@@ -703,29 +703,9 @@
       position: relative;
     }
 
-    #modal5-container .recipe-card__controls .recipe-card__notes {
-      position: absolute;
-      top: calc(100% + 12px);
-      right: 0;
-      width: 300px;
-    }
-
-    #modal5-container .recipe-card__controls .recipe-card__notes-input {
-      width: 100%;
-    }
-
     @media screen and (max-width: 1280px) {
       #modal5-container .recipe-card__controls {
         padding-bottom: 0;
-      }
-
-      #modal5-container .recipe-card__controls .recipe-card__notes {
-        position: static;
-        width: 100%;
-      }
-
-      #modal5-container .recipe-card__controls .recipe-card__notes-input {
-        width: 100%;
       }
     }
 
@@ -1254,6 +1234,9 @@ input:checked + .slider:before {
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
             <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
+            <div class="recipe-card__notes" aria-hidden="false">
+              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+            </div>
             <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
               <div class="manufacture-chart__row">
                 <span class="manufacture-chart__label">на складе </span>
@@ -1745,6 +1728,17 @@ export function initModal5() {
       if (!(row instanceof HTMLElement)) return;
       const resultField = row.querySelector('.recipe-card__manufacture-result');
       if (!(resultField instanceof HTMLInputElement)) return;
+
+      const notesContainer = row.querySelector('.recipe-card__notes');
+      const noteInput = notesContainer?.querySelector('.recipe-card__notes-input');
+      if (notesContainer instanceof HTMLElement) {
+        notesContainer.hidden = enabled;
+        notesContainer.classList.toggle('is-hidden', enabled);
+        notesContainer.setAttribute('aria-hidden', enabled ? 'true' : 'false');
+        if (noteInput instanceof HTMLTextAreaElement) {
+          noteInput.disabled = enabled;
+        }
+      }
 
       if (!enabled) {
         resultField.value = '';
@@ -2679,8 +2673,6 @@ export function initModal5() {
     const controls = card.querySelector('.recipe-card__manufacture-controls');
     const controlsPrimaryField = controls?.querySelector('input, button, select, textarea');
     const multiplierInput = controls?.querySelector('.recipe-card__manufacture-multiplier');
-    const notes = card.querySelector('.recipe-card__notes');
-    const notesInput = notes?.querySelector('.recipe-card__notes-input');
 
     const focusOptions = { preventScroll: true };
 
@@ -2789,16 +2781,13 @@ export function initModal5() {
           scheduleFrame(() => controlsPrimaryField.focus(focusOptions));
         }
       }
-      if (notes instanceof HTMLElement) {
-        animateVisibility(notes, !enabled, { hiddenClass: 'is-hidden' });
-        if (notesInput instanceof HTMLTextAreaElement) {
-          notesInput.disabled = enabled;
-          if (!enabled) {
-            scheduleFrame(() => notesInput.focus(focusOptions));
-          }
+      updateManufactureOutputs(card);
+      if (!enabled) {
+        const firstNoteInput = card.querySelector('.recipe-card__notes:not([hidden]) .recipe-card__notes-input');
+        if (firstNoteInput instanceof HTMLTextAreaElement) {
+          scheduleFrame(() => firstNoteInput.focus(focusOptions));
         }
       }
-      updateManufactureOutputs(card);
     };
 
     if (multiplierInput instanceof HTMLInputElement && multiplierInput.dataset.boundManufacture !== '1') {
