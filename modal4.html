@@ -1751,7 +1751,7 @@ export function initModal4() {
   function updateActionButtons() {
     const hasChecked = !!ordersContainer.querySelector('input[type="checkbox"]:checked');
     const showMove = hasChecked && activeMode === MODE_ORDERS;
-    const showDelete = hasChecked && activeMode !== MODE_WAREHOUSE && activeMode !== MODE_STOCKS;
+    const showDelete = hasChecked && activeMode !== MODE_STOCKS;
     const shouldShowActionRow = hasChecked && (showMove || showDelete);
     actionRow?.classList.toggle('visible', shouldShowActionRow);
     if (moveButton) {
