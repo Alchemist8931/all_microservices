@@ -506,7 +506,6 @@
       flex-direction: column;
       gap: 8px;
       width: 100%;
-      margin-top: 12px;
       transition: opacity 0.3s ease;
     }
 
@@ -755,6 +754,12 @@
     }
 
     #modal5-container .recipe-card__items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #modal5-container .recipe-card__workspace {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -1193,9 +1198,11 @@ input:checked + .slider:before {
             </div>      
   <div class="modalRow">
     <div class="modalColumn">
-            <div class="recipe-card__items"></div>
-            <div class="recipe-card__common-notes" aria-hidden="false">
-              <textarea class="input recipe-card__common-notes-textarea" placeholder="введите общие заметки по рецепту" aria-label="общие заметки по рецепту"></textarea>
+            <div class="recipe-card__workspace">
+              <div class="recipe-card__common-notes" aria-hidden="false">
+                <textarea class="input recipe-card__common-notes-textarea" placeholder="введите общие заметки по рецепту" aria-label="общие заметки по рецепту"></textarea>
+              </div>
+              <div class="recipe-card__items"></div>
             </div>
     </div>
 
