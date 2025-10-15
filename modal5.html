@@ -521,7 +521,8 @@
     #modal5-container .recipe-card__notes-input {
       width: 525px;
       height: 270px;
-      resize: vertical;
+      margin-top: -270px;
+      resize: none;
     }
 
     #modal5-container .recipe-card__delete {
@@ -1256,14 +1257,14 @@ input:checked + .slider:before {
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
             <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
               <div class="manufacture-chart__row">
-                <span class="manufacture-chart__label">на складе</span>
+                <span class="manufacture-chart__label">на складе </span>
                 <div class="manufacture-chart__bar manufacture-chart__bar--stock">
                   <div class="manufacture-chart__bar-fill"></div>
                 </div>
                 <span class="manufacture-chart__value"></span>
               </div>
               <div class="manufacture-chart__row">
-                <span class="manufacture-chart__label">требуется</span>
+                <span class="manufacture-chart__label">требуется </span>
                 <div class="manufacture-chart__bar manufacture-chart__bar--required">
                   <div class="manufacture-chart__bar-fill"></div>
                 </div>
