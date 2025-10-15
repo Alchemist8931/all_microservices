@@ -1254,6 +1254,11 @@ input:checked + .slider:before {
             <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
             <button class="button-remove" type="button"><i class="material-symbols-outlined">delete</i></button>
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
+            
+            <div class="recipe-card__notes" aria-hidden="false" style="margin-left: 0px; margin-top: 0px; position: relative;">
+              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
+            </div>
+            
             <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
               <div class="manufacture-chart__row">
                 <span class="manufacture-chart__label">на складе </span>
@@ -1272,9 +1277,6 @@ input:checked + .slider:before {
             </div>
           </div>
           <div class="recipe-item-suggestions" aria-hidden="true"></div>
-          <div class="recipe-card__notes" aria-hidden="false" style="margin-left: 0px; margin-top: 0px; position: relative;">
-              <textarea class="input recipe-card__notes-input" placeholder="введите заметки по рецепту" aria-label="заметки по рецепту"></textarea>
-          </div>
         </div>
       </template>
 
