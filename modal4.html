@@ -257,6 +257,11 @@
       gap: 18px;
     }
 
+     #modal4-container .form-row.is-hidden {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
     #modal4-container .form-fields {
       flex: 1;
       padding: 18px 20px;
@@ -1127,6 +1132,7 @@ export function initModal4() {
   const selectFrame = modal.querySelector('#modal4-global-select-frame');
   const autocompleteDropdown = modal.querySelector('#modal4-autocomplete-dropdown');
   const formRow = modal.querySelector('.form-fields .modalRow');
+  const formRowContainer = formRow?.closest('.modalRow.form-row');
   const createButton = modal.querySelector('#create-order');
   const deleteButton = modal.querySelector('#delete-selected');
   const moveButton = modal.querySelector('#move-warehouse');
@@ -1745,7 +1751,9 @@ export function initModal4() {
   function updateActionButtons() {
     const hasChecked = !!ordersContainer.querySelector('input[type="checkbox"]:checked');
     const showMove = hasChecked && activeMode === MODE_ORDERS;
-    actionRow?.classList.toggle('visible', hasChecked);
+    const showDelete = hasChecked && activeMode !== MODE_WAREHOUSE && activeMode !== MODE_STOCKS;
+    const shouldShowActionRow = hasChecked && (showMove || showDelete);
+    actionRow?.classList.toggle('visible', shouldShowActionRow);
     if (moveButton) {
       if (showMove) {
         moveButton.removeAttribute('hidden');
@@ -1755,7 +1763,7 @@ export function initModal4() {
     }
 
     if (deleteButton) {
-      if (hasChecked) {
+      if (showDelete) {
         deleteButton.removeAttribute('hidden');
       } else {
         deleteButton.setAttribute('hidden', '');
@@ -2320,6 +2328,11 @@ export function initModal4() {
     closeDropdowns();
     await fadeOut(ordersContainer);
     activeMode = next;
+    if (formRowContainer) {
+      const shouldShowForm = activeMode === MODE_ORDERS;
+      formRowContainer.classList.toggle('is-hidden', !shouldShowForm);
+      formRowContainer.setAttribute('aria-hidden', shouldShowForm ? 'false' : 'true');
+    }
     if (createButton) {
       const disableCreate = isStocksMode(next);
       createButton.disabled = disableCreate;
