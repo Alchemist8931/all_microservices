@@ -192,6 +192,7 @@
       flex: 0 0 auto;
       height: 33px;
       overflow: visible;
+      z-index: 1;
     }
 
     #modal4-container .notes-field {
@@ -219,9 +220,10 @@
     }
 
     #modal4-container .notes-field-wrapper.is-expanded {
-      z-index: 40;
+      z-index: 2000;
       background: #ffffff;
       border-radius: 8px;
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12), 0 12px 20px rgba(0, 0, 0, 0.08);
     }
 
     #modal4-container .notes-field-wrapper.is-expanded::before {
@@ -233,9 +235,9 @@
       height: 240px;
       border-radius: 8px;
       background: #ffffff;
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12), 0 12px 20px rgba(0, 0, 0, 0.08);
+      box-shadow: none;
       pointer-events: none;
-      z-index: 0;
+      z-index: -1;
     }
 
     #modal4-container .notes-field-wrapper.is-expanded .notes-field {
