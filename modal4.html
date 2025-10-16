@@ -187,6 +187,52 @@
       gap: 14px;
     }
 
+    #modal4-container .notes-field-wrapper {
+      position: relative;
+      flex: 0 0 auto;
+      min-height: 36px;
+    }
+
+    #modal4-container .notes-field {
+      width: 100%;
+      min-height: 36px;
+      max-height: 240px;
+      height: 36px;
+      resize: none;
+      overflow: hidden;
+      padding: 10px 12px;
+      line-height: 1.4;
+      border-radius: 8px;
+      transition: height 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(2px);
+    }
+
+    #modal4-container .notes-field::placeholder {
+      color: rgba(33, 33, 33, 0.4);
+    }
+
+    #modal4-container .notes-field-wrapper.is-expanded {
+      z-index: 40;
+    }
+
+    #modal4-container .notes-field-wrapper.is-expanded .notes-field {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 240px;
+      overflow: auto;
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12), 0 12px 20px rgba(0, 0, 0, 0.08);
+      transform: translateY(0);
+    }
+
+    #modal4-container .notes-field.is-busy {
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+
     #modal4-container .date-time-field {
       display: flex;
       align-items: center;
@@ -757,7 +803,9 @@
         <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" readonly />
         <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
         <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
-        <input class="input" style="width: 375px;" placeholder="для заметок" readonly />
+        <div class="notes-field-wrapper" style="width: 375px;">
+          <textarea class="input notes-field" data-field="notes" placeholder="для заметок"></textarea>
+        </div>
       </div>
     </div>
   </template>
@@ -1281,6 +1329,146 @@ export function initModal4() {
     return num.toLocaleString('ru-RU');
   };
 
+  const sanitizeNoteValue = value => {
+    if (value === null || value === undefined) return '';
+    return String(value).replace(/\r\n/g, '\n');
+  };
+
+  const isNoteEffectivelyEmpty = value => sanitizeNoteValue(value).trim() === '';
+
+  const NOTES_DEBOUNCE_MS = 500;
+  const noteUpdateTimers = new Map();
+
+  const getNoteTimerKey = (mode, id) => {
+    const table = getModeTable(mode);
+    return `${table ?? 'modal4_orders'}::${id ?? ''}`;
+  };
+
+  const setNoteBusyState = (field, busy) => {
+    if (!(field instanceof HTMLTextAreaElement)) return;
+    field.classList.toggle('is-busy', Boolean(busy));
+  };
+
+  const saveNoteValue = async (mode, id, value, field) => {
+    if (!id) return;
+    const normalized = sanitizeNoteValue(value);
+    const lastSaved = field?.dataset?.lastSaved ?? '';
+    if (normalized === lastSaved) return;
+
+    setNoteBusyState(field, true);
+    try {
+      const payloadValue = isNoteEffectivelyEmpty(normalized) ? null : normalized;
+      let updateQuery = supabase
+        .from(getModeTable(mode))
+        .update({
+          notes: payloadValue,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      const companyId = await resolveCompanyId();
+      if (companyId) {
+        updateQuery = updateQuery.eq('company_id', companyId);
+      } else if (canUseUserKeyFilter(mode) && DB_USER_KEY) {
+        updateQuery = updateQuery.eq('user_key', DB_USER_KEY);
+      }
+
+      const { error } = await updateQuery;
+      if (error) throw error;
+
+      if (field) {
+        field.dataset.lastSaved = normalized;
+        if (field.value !== normalized) {
+          field.value = normalized;
+        }
+      }
+    } catch (error) {
+      console.error('[modal4.html] ошибка сохранения заметок', error);
+      if (field) {
+        const fallback = field.dataset.lastSaved ?? '';
+        if (field.value !== fallback) {
+          field.value = fallback;
+        }
+      }
+    } finally {
+      setNoteBusyState(field, false);
+    }
+  };
+
+  const scheduleNoteUpdate = (mode, id, value, field) => {
+    if (!id) return;
+    const normalized = sanitizeNoteValue(value);
+    const lastSaved = field?.dataset?.lastSaved ?? '';
+    if (normalized === lastSaved) return;
+
+    const key = getNoteTimerKey(mode, id);
+    if (noteUpdateTimers.has(key)) {
+      clearTimeout(noteUpdateTimers.get(key));
+    }
+
+    noteUpdateTimers.set(key, window.setTimeout(() => {
+      noteUpdateTimers.delete(key);
+      saveNoteValue(mode, id, normalized, field);
+    }, NOTES_DEBOUNCE_MS));
+  };
+
+  const flushNoteUpdate = async (mode, id, value, field) => {
+    if (!id) return;
+    const key = getNoteTimerKey(mode, id);
+    if (noteUpdateTimers.has(key)) {
+      clearTimeout(noteUpdateTimers.get(key));
+      noteUpdateTimers.delete(key);
+    }
+    await saveNoteValue(mode, id, value, field);
+  };
+
+  const setupNotesField = (block, mode, record) => {
+    if (!(block instanceof HTMLElement)) return;
+    const wrapper = block.querySelector('.notes-field-wrapper');
+    const field = wrapper?.querySelector('.notes-field');
+    if (!(field instanceof HTMLTextAreaElement)) return;
+
+    const orderId = block.dataset.id ?? '';
+    const initial = sanitizeNoteValue(record?.notes ?? field.value ?? '');
+    field.value = initial;
+    field.dataset.lastSaved = initial;
+
+    const expand = () => {
+      if (wrapper) {
+        wrapper.classList.add('is-expanded');
+      }
+    };
+
+    const collapse = () => {
+      if (wrapper) {
+        wrapper.classList.remove('is-expanded');
+      }
+    };
+
+    field.addEventListener('focus', () => {
+      expand();
+    });
+
+    field.addEventListener('click', () => {
+      expand();
+    });
+
+    field.addEventListener('blur', () => {
+      collapse();
+      flushNoteUpdate(mode, orderId, field.value, field);
+    });
+
+    field.addEventListener('pointerleave', () => {
+      if (document.activeElement !== field) {
+        collapse();
+      }
+    });
+
+    field.addEventListener('input', () => {
+      scheduleNoteUpdate(mode, orderId, field.value, field);
+    });
+  };
+
   const MONTHS_RU = [
     'января',
     'февраля',
@@ -1561,6 +1749,7 @@ export function initModal4() {
       priceBase: price,
       total,
       status: statusText,
+      notes: order.notes ?? '',
     };
   };
 
@@ -1679,6 +1868,7 @@ export function initModal4() {
 
     baseElement.dataset.id = String(o.id ?? '');
     baseElement.dataset.price = String(totalPrice ?? 0);
+    baseElement.dataset.mode = String(mode ?? '');
 
     const assignValue = (field, value) => {
       const target = baseElement.querySelector(`[data-field="${field}"]`);
@@ -1697,7 +1887,7 @@ export function initModal4() {
       }
 
       const normalized = value ?? '';
-      if (target instanceof HTMLInputElement) {
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
         target.value = normalized;
       } else if (target instanceof HTMLElement && field === 'spec-url') {
         target.dataset.url = normalized;
@@ -1717,6 +1907,9 @@ export function initModal4() {
     assignValue('base_qty', fmtNum(o.baseQty));
     assignValue('base_price', fmtNum(o.priceBase));
     assignValue('total', fmtNum(o.total));
+    assignValue('notes', o.notes ?? '');
+
+    setupNotesField(baseElement, mode, o);
 
     return baseElement;
   }
@@ -2096,6 +2289,7 @@ export function initModal4() {
       quantity_value: quantityRaw,
       price_value: priceRaw,
       status: ORDER_STATUS,
+      notes: '',
     };
 
     if (!orderData.order_code || !orderData.item_name) {
@@ -2135,6 +2329,7 @@ export function initModal4() {
     })();
 
     try {
+      const noteSanitized = sanitizeNoteValue(orderData.notes ?? '');
       const dbPayload = {
         order_code: orderData.order_code,
         item_name: orderData.item_name,
@@ -2145,6 +2340,7 @@ export function initModal4() {
         quantity_value: qtyStoredStr,
         price_value: priceStoredStr,
         status: orderData.status,
+        notes: isNoteEffectivelyEmpty(noteSanitized) ? null : noteSanitized,
       };
 
       if (orderData.user_key) {
@@ -2172,6 +2368,7 @@ export function initModal4() {
         baseQty: qtyStored,
         priceBase: priceStored,
         total,
+        notes: noteSanitized,
       });
 
       ordersContainer.prepend(rendered);
