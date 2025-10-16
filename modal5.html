@@ -454,15 +454,15 @@
 
     #modal5-container .manufacture-chart__grid {
       display: grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 4px;
+      grid-template-columns: repeat(20, minmax(0, 1fr));
+      gap: 3px;
       align-items: center;
     }
 
     #modal5-container .manufacture-chart__cell {
       position: relative;
-      width: 13px;
-      height: 13px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
       border-radius: 4px;
       /* цвет покоя квадратов */
       background: #C5C6CB;
@@ -1448,7 +1448,7 @@ export function initModal5() {
     return parsed !== null ? parsed : null;
   };
 
-  const MANUFACTURE_CHART_CELL_COUNT = 20;
+  const MANUFACTURE_CHART_CELL_COUNT = 40;
 
   const clamp01 = value => {
     const number = typeof value === 'number' ? value : 0;
@@ -1561,12 +1561,21 @@ export function initModal5() {
     const baseCells = baseRatio * MANUFACTURE_CHART_CELL_COUNT;
     const overflowCells = overflowRatio * MANUFACTURE_CHART_CELL_COUNT;
 
+    const baseFilledCount = Math.min(
+      Math.floor(baseCells),
+      MANUFACTURE_CHART_CELL_COUNT
+    );
+    const overflowFilledCount = Math.min(
+      Math.floor(overflowCells),
+      MANUFACTURE_CHART_CELL_COUNT
+    );
+
     cells.forEach((cell, index) => {
       if (!(cell instanceof HTMLElement)) return;
-      const basePortion = clamp01(baseCells - index);
-      const overflowPortion = clamp01(overflowCells - (MANUFACTURE_CHART_CELL_COUNT - 1 - index));
-      cell.style.setProperty('--fill', String(basePortion));
-      cell.style.setProperty('--overflow', String(overflowPortion));
+      const isBaseFilled = index < baseFilledCount;
+      const isOverflowFilled = index >= MANUFACTURE_CHART_CELL_COUNT - overflowFilledCount;
+      cell.style.setProperty('--fill', isBaseFilled ? '1' : '0');
+      cell.style.setProperty('--overflow', isOverflowFilled ? '1' : '0');
     });
 
     if (balanceField instanceof HTMLInputElement) {
