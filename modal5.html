@@ -441,9 +441,11 @@
     #modal5-container .recipe-card__manufacture-chart {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      justify-content: center;
+      gap: 4px;
       min-width: 220px;
-      padding: 2px 0;
+      padding: 0;
+      height: 30px;
     }
 
     #modal5-container .recipe-card__manufacture-chart[hidden] {
@@ -453,15 +455,17 @@
     #modal5-container .manufacture-chart__grid {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
-      gap: 6px;
+      gap: 4px;
+      align-items: center;
     }
 
     #modal5-container .manufacture-chart__cell {
       position: relative;
-      width: 20px;
-      height: 20px;
-      border-radius: 6px;
-      background: #4A4A4A;
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      /* цвет покоя квадратов */
+      background: #C5C6CB;
       overflow: hidden;
     }
 
@@ -475,12 +479,14 @@
     }
 
     #modal5-container .manufacture-chart__cell-fill {
+      /* цвет расхода квадратов */
       background: #212121;
       transform-origin: left center;
     }
 
     #modal5-container .manufacture-chart__cell-overflow {
-      background: rgba(117, 0, 0, 0.85);
+      /* цвет ПЕРЕрасхода квадратов */
+      background: #F56E0F;
       transform-origin: right center;
     }
 
@@ -501,27 +507,6 @@
     #modal5-container .manufacture-chart__cell-overflow {
       transform: scaleX(var(--overflow, 0));
       opacity: var(--overflow, 0);
-    }
-
-    #modal5-container .manufacture-chart__summary {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 11px;
-      line-height: 1.4;
-      color: var(--content-color, #212121);
-    }
-
-    #modal5-container .manufacture-chart__summary-item {
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    #modal5-container .manufacture-chart__summary-item span {
-      font-weight: 400;
-      text-transform: none;
-      letter-spacing: normal;
     }
 
     #modal5-container .recipe-card__manufacture-balance {
@@ -1314,10 +1299,6 @@ input:checked + .slider:before {
             <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
             <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
               <div class="manufacture-chart__grid" aria-hidden="true"></div>
-              <div class="manufacture-chart__summary">
-                <div class="manufacture-chart__summary-item manufacture-chart__summary-item--stock">на складе: <span></span></div>
-                <div class="manufacture-chart__summary-item manufacture-chart__summary-item--required">требуется: <span></span></div>
-              </div>
             </div>
             <input class="inputSUM recipe-card__manufacture-balance" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
           </div>
@@ -1513,14 +1494,6 @@ export function initModal5() {
         cell.setAttribute('aria-hidden', 'true');
       }
     });
-    const stockSummary = chart.querySelector('.manufacture-chart__summary-item--stock span');
-    if (stockSummary instanceof HTMLElement) {
-      stockSummary.textContent = '';
-    }
-    const requiredSummary = chart.querySelector('.manufacture-chart__summary-item--required span');
-    if (requiredSummary instanceof HTMLElement) {
-      requiredSummary.textContent = '';
-    }
   };
 
   const updateRowManufactureChart = (row, { visible = false, totalQuantity = null, requiredQty = null } = {}) => {
@@ -1595,25 +1568,6 @@ export function initModal5() {
       cell.style.setProperty('--fill', String(basePortion));
       cell.style.setProperty('--overflow', String(overflowPortion));
     });
-
-    const stockSummary = chart.querySelector('.manufacture-chart__summary-item--stock span');
-    if (stockSummary instanceof HTMLElement) {
-      stockSummary.textContent = hasTotal
-        ? fmtNum(totalQuantity, { maximumFractionDigits: 3 })
-        : 'нет данных';
-    }
-
-    const requiredSummary = chart.querySelector('.manufacture-chart__summary-item--required span');
-    if (requiredSummary instanceof HTMLElement) {
-      if (hasRequired && hasTotal && safeTotal > 0) {
-        const ratio = (safeRequired / safeTotal) * 100;
-        requiredSummary.textContent = `${fmtNum(requiredQty, { maximumFractionDigits: 3 })} (${fmtNum(ratio, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}%)`;
-      } else if (hasRequired) {
-        requiredSummary.textContent = fmtNum(requiredQty, { maximumFractionDigits: 3 });
-      } else {
-        requiredSummary.textContent = '—';
-      }
-    }
 
     if (balanceField instanceof HTMLInputElement) {
       let balanceValue = '';
