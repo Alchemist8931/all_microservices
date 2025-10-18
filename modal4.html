@@ -402,6 +402,84 @@
       width: 116px;
     }
 
+    #modal4-container .recipe-card__manufacture-result {
+      width: 70px;
+      height: 30px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    #modal4-container .recipe-card__manufacture-result.is-busy {
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+    #modal4-container .recipe-card__manufacture-result.is-overflow {
+      color: #F56E0F;
+      font-weight: 900;
+      background: #FDE4D3;
+    }
+
+    #modal4-container .recipe-card__manufacture-chart {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-width: 350px;
+      padding: 0;
+      height: 30px;
+    }
+
+    #modal4-container .recipe-card__manufacture-chart[hidden] {
+      display: none !important;
+    }
+
+    #modal4-container .manufacture-chart__grid {
+      display: grid;
+      grid-template-columns: repeat(20, minmax(0, 1fr));
+      gap: 3px;
+      align-items: center;
+    }
+
+    #modal4-container .manufacture-chart__cell {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 4px;
+      background: #C5C6CB;
+      overflow: hidden;
+      --fill: 0;
+      --overflow: 0;
+    }
+
+    #modal4-container .manufacture-chart__cell-fill,
+    #modal4-container .manufacture-chart__cell-overflow {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      transform: scaleX(0);
+      transition: transform 0.35s ease;
+    }
+
+    #modal4-container .manufacture-chart__cell-fill {
+      background: #212121;
+      transform-origin: left center;
+      transform: scaleX(var(--fill, 0));
+    }
+
+    #modal4-container .manufacture-chart__cell-overflow {
+      background: #F56E0F;
+      transform-origin: right center;
+      transform: scaleX(var(--overflow, 0));
+      opacity: var(--overflow, 0);
+    }
+
+    #modal4-container .manufacture-chart__cell[aria-hidden="true"] .manufacture-chart__cell-fill,
+    #modal4-container .manufacture-chart__cell[aria-hidden="true"] .manufacture-chart__cell-overflow {
+      transition: none;
+    }
+
+
     #modal4-container .code-field { width: 130px; text-transform: uppercase; }
     #modal4-container .name-field { width: 340px; }
     #modal4-container .url-field { width: 200px; }
@@ -851,6 +929,10 @@
         <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" readonly />
         <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
         <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
+        <input class="inputSUM recipe-card__manufacture-result" style="width: 70px; height: 30px;" placeholder="000 000" hidden aria-hidden="true" readonly />
+        <div class="recipe-card__manufacture-chart" hidden aria-hidden="true">
+          <div class="manufacture-chart__grid" aria-hidden="true"></div>
+        </div>
       </div>
     </div>
   </template>
@@ -1218,6 +1300,8 @@ export function initModal4() {
   const MODE_WAREHOUSE = 'warehouse';
   const MODE_STOCKS = 'stocks';
   const MODE_MANUFACTURED = 'manufactured products';
+  const STOCK_MIN_TABLE = 'modal4_orders_uni_min';
+
 
   const modeConfigs = {
     [MODE_ORDERS]: {
@@ -1250,6 +1334,30 @@ export function initModal4() {
     [MODE_WAREHOUSE]: null,
     [MODE_STOCKS]: null,
     [MODE_MANUFACTURED]: null,
+  };
+
+  const normalizeStockOrderCodeKey = code => String(code ?? '').trim().toUpperCase();
+
+  let stockMinimumsCache = new Map();
+  let stockMinimumsLoaded = false;
+  let stockMinimumsPromise = null;
+
+  const ensureStockMinimumCache = () => {
+    if (!(stockMinimumsCache instanceof Map)) {
+      stockMinimumsCache = new Map();
+    }
+    return stockMinimumsCache;
+  };
+
+  const updateStockMinimumCache = (code, value) => {
+    const cache = ensureStockMinimumCache();
+    const key = normalizeStockOrderCodeKey(code);
+    if (!key) return;
+    if (value === null || value === undefined) {
+      cache.delete(key);
+    } else {
+      cache.set(key, value);
+    }
   };
 
   const getModeConfig = (mode = activeMode) => modeConfigs[mode] ?? modeConfigs[MODE_WAREHOUSE];
@@ -1556,39 +1664,419 @@ export function initModal4() {
   const parseFloatSafe = str =>
     parseFloat(String(str ?? '').replace(/[\s\u202f]/g, '').replace(',', '.')) || 0;
 
-  const sumInputs = formRow?.querySelectorAll('.inputSUM') ?? [];
-  sumInputs.forEach(el => {
-    if (el.dataset.bindSum === '1') return;
-    el.addEventListener('focus', () => {
-      const hasStoredRaw = Object.prototype.hasOwnProperty.call(el.dataset, 'raw');
-      const trimmed = el.value.trim();
+  const bindSumInputBehavior = input => {
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.dataset.bindSum === '1') return;
+
+    input.addEventListener('focus', () => {
+      const hasStoredRaw = Object.prototype.hasOwnProperty.call(input.dataset, 'raw');
+      const trimmed = input.value.trim();
       if (!hasStoredRaw && !trimmed) {
-        el.value = '';
+        input.value = '';
         return;
       }
-      const rawCandidate = hasStoredRaw ? Number(el.dataset.raw) : parseFloatSafe(el.value);
+      const rawCandidate = hasStoredRaw ? Number(input.dataset.raw) : parseFloatSafe(input.value);
       if (!Number.isNaN(rawCandidate)) {
-        el.value = Number(rawCandidate).toFixed(2);
+        input.value = Number(rawCandidate).toFixed(2);
       }
     });
-    el.addEventListener('blur', () => {
-      const trimmed = el.value.trim();
+    input.addEventListener('blur', () => {
+      const trimmed = input.value.trim();
       if (!trimmed) {
-        el.value = '';
-        delete el.dataset.raw;
+        input.value = '';
+        delete input.dataset.raw;
         return;
       }
-      const raw = parseFloatSafe(el.value);
-      if (isNaN(raw)) {
-        el.value = '';
-        delete el.dataset.raw;
-        return;
-      }
-      el.dataset.raw = raw;
-      el.value = fmtNum(raw);
+      const raw = parseFloatSafe(input.value);
+      input.dataset.raw = raw;
+      input.value = fmtNum(raw);
     });
-    el.dataset.bindSum = '1';
-  });
+
+    input.dataset.bindSum = '1';
+  };
+
+  const setInputBusyState = (field, busy) => {
+    if (!(field instanceof HTMLInputElement)) return;
+    field.classList.toggle('is-busy', Boolean(busy));
+  };
+
+  const STOCK_CHART_CELL_COUNT = 40;
+
+  const ensureStockChartGrid = chart => {
+    if (!(chart instanceof HTMLElement)) return [];
+    const grid = chart.querySelector('.manufacture-chart__grid');
+    if (!(grid instanceof HTMLElement)) return [];
+
+    if (grid.children.length !== STOCK_CHART_CELL_COUNT) {
+      grid.innerHTML = '';
+      for (let index = 0; index < STOCK_CHART_CELL_COUNT; index += 1) {
+        const cell = document.createElement('div');
+        cell.className = 'manufacture-chart__cell';
+        cell.setAttribute('aria-hidden', 'true');
+
+        const fill = document.createElement('div');
+        fill.className = 'manufacture-chart__cell-fill';
+
+        const overflow = document.createElement('div');
+        overflow.className = 'manufacture-chart__cell-overflow';
+
+        cell.append(fill, overflow);
+        grid.appendChild(cell);
+      }
+    }
+
+    return Array.from(grid.children).filter(child => child instanceof HTMLElement);
+  };
+
+  const resetStockChart = row => {
+    if (!(row instanceof HTMLElement)) return;
+    const chart = row.querySelector('.recipe-card__manufacture-chart');
+    if (!(chart instanceof HTMLElement)) return;
+    const cells = ensureStockChartGrid(chart);
+    cells.forEach(cell => {
+      if (cell instanceof HTMLElement) {
+        cell.style.setProperty('--fill', '0');
+        cell.style.setProperty('--overflow', '0');
+        cell.setAttribute('aria-hidden', 'true');
+      }
+    });
+    };
+
+  const updateStockRowChart = (row, { quantity = null, minRequired = null } = {}) => {
+    if (!(row instanceof HTMLElement)) return;
+    const chart = row.querySelector('.recipe-card__manufacture-chart');
+    const minField = row.querySelector('.recipe-card__manufacture-result');
+    if (!(chart instanceof HTMLElement)) {
+      if (minField instanceof HTMLInputElement) {
+        minField.classList.remove('is-overflow');
+      }
+      return;
+    }
+
+    const cells = ensureStockChartGrid(chart);
+
+    const quantityCandidate =
+      typeof quantity === 'number' && Number.isFinite(quantity)
+        ? quantity
+        : parseNumberNullable(quantity);
+    const storedQuantity =
+      quantityCandidate !== null && quantityCandidate !== undefined
+        ? quantityCandidate
+        : parseNumberNullable(row.dataset.stockQty);
+
+    const minCandidate =
+      typeof minRequired === 'number' && Number.isFinite(minRequired)
+        ? minRequired
+        : parseNumberNullable(minRequired);
+    const storedMin =
+      minCandidate !== null && minCandidate !== undefined
+        ? minCandidate
+        : parseNumberNullable(row.dataset.stockMin);
+
+    row.dataset.stockQty = numberToStorageString(storedQuantity) ?? '';
+    row.dataset.stockMin = numberToStorageString(storedMin) ?? '';
+
+    const hasMin = typeof storedMin === 'number' && Number.isFinite(storedMin);
+    const hasQuantity = typeof storedQuantity === 'number' && Number.isFinite(storedQuantity);
+
+    if (!hasMin) {
+      chart.hidden = true;
+      chart.setAttribute('aria-hidden', 'true');
+      cells.forEach(cell => {
+        if (cell instanceof HTMLElement) {
+          cell.style.setProperty('--fill', '0');
+          cell.style.setProperty('--overflow', '0');
+          cell.setAttribute('aria-hidden', 'true');
+        }
+      });
+      if (minField instanceof HTMLInputElement) {
+        minField.classList.remove('is-overflow');
+      }
+      return;
+    }
+
+    chart.hidden = false;
+    chart.setAttribute('aria-hidden', 'false');
+    cells.forEach(cell => cell.setAttribute('aria-hidden', 'false'));
+
+    const safeQuantity = hasQuantity ? Math.max(storedQuantity, 0) : 0;
+    const safeMin = Math.max(storedMin, 0);
+
+    let baseRatio = 0;
+    let overflowRatio = 0;
+
+    if (safeMin > 0) {
+      if (hasQuantity && safeQuantity > 0) {
+        const ratio = safeMin / safeQuantity;
+        baseRatio = Math.min(ratio, 1);
+        overflowRatio = Math.max(ratio - 1, 0);
+      } else {
+        baseRatio = 0;
+        overflowRatio = 1;
+      }
+    }
+
+    const baseCells = baseRatio * STOCK_CHART_CELL_COUNT;
+    const overflowCells = overflowRatio * STOCK_CHART_CELL_COUNT;
+
+    const baseFilledCount = Math.min(Math.floor(baseCells), STOCK_CHART_CELL_COUNT);
+    const overflowFilledCount = Math.min(Math.floor(overflowCells), STOCK_CHART_CELL_COUNT);
+
+    cells.forEach((cell, index) => {
+      if (!(cell instanceof HTMLElement)) return;
+      const isBaseFilled = index < baseFilledCount;
+      const isOverflowFilled = index >= STOCK_CHART_CELL_COUNT - overflowFilledCount;
+      cell.style.setProperty('--fill', isBaseFilled ? '1' : '0');
+      cell.style.setProperty('--overflow', isOverflowFilled ? '1' : '0');
+    });
+
+    const isShortage = safeMin > 0 && (!hasQuantity || safeQuantity < safeMin);
+    if (minField instanceof HTMLInputElement) {
+      minField.classList.toggle('is-overflow', isShortage);
+    }
+  };
+
+  const getRowQuantity = row => {
+    if (!(row instanceof HTMLElement)) return null;
+    const stored = parseNumberNullable(row.dataset.stockQty);
+    if (stored !== null) return stored;
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    if (qtyInput instanceof HTMLInputElement) {
+      const rawSource = Object.prototype.hasOwnProperty.call(qtyInput.dataset, 'raw')
+        ? qtyInput.dataset.raw
+        : qtyInput.value;
+      const parsed = parseNumberNullable(rawSource);
+      if (parsed !== null) return parsed;
+    }
+    return null;
+  };
+
+  const loadStockMinimums = async ({ force = false, companyId: providedCompanyId = null } = {}) => {
+    if (!supabase) {
+      return ensureStockMinimumCache();
+    }
+
+    if (force) {
+      stockMinimumsLoaded = false;
+    }
+
+    if (stockMinimumsPromise) {
+      return stockMinimumsPromise;
+    }
+
+    if (stockMinimumsLoaded) {
+      return ensureStockMinimumCache();
+    }
+
+    stockMinimumsPromise = (async () => {
+      try {
+        const companyId = providedCompanyId ?? await resolveCompanyId();
+        let query = supabase
+          .from(STOCK_MIN_TABLE)
+          .select('order_code, min_quantity');
+
+        if (companyId) {
+          query = query.eq('company_id', companyId);
+        } else if (DB_USER_KEY) {
+          query = query.eq('user_key', DB_USER_KEY);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.warn('[modal4.html] не удалось загрузить минимальные остатки склада:', error);
+          return ensureStockMinimumCache();
+        }
+
+        const nextCache = new Map();
+        if (Array.isArray(data)) {
+          data.forEach(row => {
+            const key = normalizeStockOrderCodeKey(row?.order_code ?? '');
+            if (!key) return;
+            const value = parseNumberNullable(row?.min_quantity);
+            if (value !== null && value !== undefined) {
+              nextCache.set(key, value);
+            }
+          });
+        }
+
+        stockMinimumsCache = nextCache;
+        stockMinimumsLoaded = true;
+        return stockMinimumsCache;
+      } catch (error) {
+        console.warn('[modal4.html] исключение при загрузке минимальных остатков склада:', error);
+        return ensureStockMinimumCache();
+      } finally {
+        stockMinimumsPromise = null;
+      }
+    })();
+
+    return stockMinimumsPromise;
+  };
+
+  const saveStockMinimumValue = async (orderCode, value, { companyId: providedCompanyId = null } = {}) => {
+    if (!supabase) return false;
+    const normalizedCode = String(orderCode ?? '').trim();
+    if (!normalizedCode) return false;
+
+    const numericValue = value === null || value === undefined ? null : Number(value);
+    if (numericValue !== null && !Number.isFinite(numericValue)) return false;
+
+    const companyId = providedCompanyId ?? await resolveCompanyId();
+
+    try {
+      if (numericValue === null) {
+        let deleteQuery = supabase
+          .from(STOCK_MIN_TABLE)
+          .delete()
+          .eq('order_code', normalizedCode);
+
+        if (companyId) {
+          deleteQuery = deleteQuery.eq('company_id', companyId);
+        } else if (DB_USER_KEY) {
+          deleteQuery = deleteQuery.eq('user_key', DB_USER_KEY);
+        }
+
+        const { error } = await deleteQuery;
+        if (error) {
+          throw error;
+        }
+
+        updateStockMinimumCache(normalizedCode, null);
+        return true;
+      }
+
+      const payload = {
+        order_code: normalizedCode,
+        min_quantity: numericValue,
+      };
+
+      let conflictColumns = 'order_code';
+      if (companyId) {
+        payload.company_id = companyId;
+        conflictColumns = 'order_code,company_id';
+      } else if (DB_USER_KEY) {
+        payload.user_key = DB_USER_KEY;
+        conflictColumns = 'order_code,user_key';
+      }
+
+      const { error } = await supabase
+        .from(STOCK_MIN_TABLE)
+        .upsert(payload, { onConflict: conflictColumns });
+
+      if (error) {
+        throw error;
+      }
+
+      updateStockMinimumCache(normalizedCode, numericValue);
+      stockMinimumsLoaded = true;
+      return true;
+    } catch (error) {
+      console.error('[modal4.html] ошибка сохранения минимального остатка:', error);
+      return false;
+    }
+  };
+
+  const handleStockMinimumBlur = async (row, field) => {
+    if (!(row instanceof HTMLElement) || !(field instanceof HTMLInputElement)) return;
+
+    const parsed = parseNumberNullable(field.value);
+    const normalized = parsed !== null && parsed !== undefined ? Math.max(parsed, 0) : null;
+    const storageValue = numberToStorageString(normalized) ?? '';
+    const lastSaved = field.dataset.lastSaved ?? '';
+
+    if (storageValue === lastSaved) {
+      updateStockRowChart(row, {
+        quantity: getRowQuantity(row),
+        minRequired: normalized,
+      });
+      return;
+    }
+
+    const orderCode = row.dataset.orderCode ?? '';
+    if (!orderCode) return;
+
+    setInputBusyState(field, true);
+    const success = await saveStockMinimumValue(orderCode, normalized);
+    setInputBusyState(field, false);
+
+    if (success) {
+      field.dataset.lastSaved = storageValue;
+      if (normalized !== null) {
+        field.dataset.raw = normalized;
+        field.value = fmtNum(normalized);
+      } else {
+        field.value = '';
+        delete field.dataset.raw;
+      }
+      row.dataset.stockMin = storageValue;
+    }
+
+    updateStockRowChart(row, {
+      quantity: getRowQuantity(row),
+      minRequired: normalized,
+    });
+  };
+
+  const applyStockRowEnhancements = (row, record) => {
+    if (!(row instanceof HTMLElement)) return;
+    if (row.dataset.stockEnhanced === '1') {
+      updateStockRowChart(row, {
+        quantity: record?.stockQty ?? record?.baseQty ?? null,
+        minRequired: record?.stockMin ?? null,
+      });
+      return;
+    }
+
+    const minField = row.querySelector('.recipe-card__manufacture-result');
+    if (minField instanceof HTMLInputElement) {
+      minField.hidden = false;
+      minField.setAttribute('aria-hidden', 'false');
+      minField.removeAttribute('readonly');
+      minField.readOnly = false;
+
+      const minValue = typeof record?.stockMin === 'number' && Number.isFinite(record.stockMin)
+        ? record.stockMin
+        : null;
+
+      if (minValue !== null) {
+        minField.value = fmtNum(minValue);
+        minField.dataset.raw = minValue;
+        minField.dataset.lastSaved = numberToStorageString(minValue) ?? '';
+      } else {
+        minField.value = '';
+        delete minField.dataset.raw;
+        minField.dataset.lastSaved = '';
+      }
+
+      bindSumInputBehavior(minField);
+
+      minField.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          minField.blur();
+        }
+      });
+
+      minField.addEventListener('blur', () => {
+        handleStockMinimumBlur(row, minField);
+      });
+    }
+
+    row.dataset.stockQty = numberToStorageString(record?.stockQty ?? record?.baseQty ?? null) ?? '';
+    row.dataset.stockMin = numberToStorageString(record?.stockMin ?? null) ?? '';
+    row.dataset.orderCode = record?.order_code ?? row.dataset.orderCode ?? '';
+    row.dataset.orderCodeKey = record?.order_code_key ?? row.dataset.orderCodeKey ?? '';
+    row.dataset.stockEnhanced = '1';
+
+    updateStockRowChart(row, {
+      quantity: record?.stockQty ?? record?.baseQty ?? null,
+      minRequired: record?.stockMin ?? null,
+    });
+  };
+
+  const sumInputs = formRow?.querySelectorAll('.inputSUM') ?? [];
+  sumInputs.forEach(bindSumInputBehavior);
 
   function animateStat(el, newVal) {
     if (!el) return;
@@ -1726,7 +2214,7 @@ export function initModal4() {
     return current.base_unit_short ?? unitShort;
   }
 
-  const normalizeOrderRecord = (mode, order, units) => {
+  const normalizeOrderRecord = (mode, order, units, stockMinimums = null) => {
     if (!order) return null;
 
     const stocksMode = isStocksMode(mode);
@@ -1743,6 +2231,17 @@ export function initModal4() {
       : (qty ?? 0) * (price ?? 0);
     const total = totalCandidate ?? ((qty ?? 0) * (price ?? 0));
     const createdAt = order.created_at ?? order.last_created_at ?? order.last_updated_at ?? null;
+    const orderCodeKey = stocksMode ? normalizeStockOrderCodeKey(order?.order_code ?? '') : '';
+    const minFromMap = stocksMode && stockMinimums instanceof Map && orderCodeKey
+      ? stockMinimums.get(orderCodeKey)
+      : null;
+    const cachedMinimum = stocksMode && orderCodeKey
+      ? ensureStockMinimumCache().get(orderCodeKey)
+      : null;
+    const minQuantityRaw = stocksMode
+      ? (order.min_quantity ?? minFromMap ?? cachedMinimum ?? null)
+      : null;
+    const minQuantity = stocksMode ? parseNumberNullable(minQuantityRaw) : null;
     const statusText = (() => {
       const combineStatuses = statuses => Array.isArray(statuses) && statuses.length
         ? statuses.map(status => String(status ?? '')).filter(Boolean).join(', ')
@@ -1776,6 +2275,9 @@ export function initModal4() {
       total,
       status: statusText,
       notes: order.notes ?? '',
+      stockQty: stocksMode ? qty : null,
+      stockMin: stocksMode ? minQuantity : null,
+      order_code_key: orderCodeKey,
     };
   };
 
@@ -1853,6 +2355,10 @@ export function initModal4() {
       })
       : [];
 
+    const stockMinimums = stocksMode
+      ? await loadStockMinimums({ force: replace, companyId })
+      : null;
+
     if (!filteredOrders.length) {
       updateActionButtons();
       recalcStats();
@@ -1860,7 +2366,7 @@ export function initModal4() {
     }
 
     filteredOrders.forEach(order => {
-      const normalized = normalizeOrderRecord(mode, order, units);
+      const normalized = normalizeOrderRecord(mode, order, units, stockMinimums);
       if (!normalized) return;
 
       const rendered = createOrderElement(mode, normalized);
@@ -1895,6 +2401,14 @@ export function initModal4() {
     baseElement.dataset.id = String(o.id ?? '');
     baseElement.dataset.price = String(totalPrice ?? 0);
     baseElement.dataset.mode = String(mode ?? '');
+    baseElement.dataset.orderCode = String(o.order_code ?? '');
+    if (o?.order_code_key) {
+      baseElement.dataset.orderCodeKey = String(o.order_code_key);
+    }
+    if (isStocksMode(mode)) {
+      baseElement.dataset.stockQty = numberToStorageString(o?.stockQty ?? o?.baseQty ?? null) ?? '';
+      baseElement.dataset.stockMin = numberToStorageString(o?.stockMin ?? null) ?? '';
+    }
 
     const assignValue = (field, value) => {
       const target = baseElement.querySelector(`[data-field="${field}"]`);
@@ -1936,6 +2450,10 @@ export function initModal4() {
     assignValue('notes', o.notes ?? '');
 
     setupNotesField(baseElement, mode, o);
+
+    if (isStocksMode(mode)) {
+      applyStockRowEnhancements(baseElement, o);
+    }
 
     return baseElement;
   }
