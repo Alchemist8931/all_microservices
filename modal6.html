@@ -2,11 +2,6 @@
 <div id="modal6-container" class="modal6-shell">
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
   <style>
-    :root {
-      --modal6-accent: #9EA793;
-      --modal6-border: rgba(255, 255, 255, 0.18);
-      --modal6-bg: rgba(255, 255, 255, 0.04);
-    }
     #modal6-container {
       position: relative;
       display: flex;
@@ -20,8 +15,6 @@
       box-sizing: border-box;
       color: var(--content-color, #212121);
       font-family: 'Comfortaa', sans-serif;
-      background: linear-gradient(145deg, rgba(244, 244, 247, 0.85), rgba(214, 218, 224, 0.4));
-      backdrop-filter: blur(6px);
     }
 
     #modal6-container .glass-panel {
@@ -38,29 +31,11 @@
       backdrop-filter: blur(3px);
       -webkit-backdrop-filter: blur(3px);
     }
-
-    #modal6-container .modal-top {
-      width: 1930px;
-      max-width: 90vw;
-      min-height: 255px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      gap: 18px;
-      margin-top: -20px;
-      padding: 20px;
-      padding-top: 80px;
-      box-sizing: border-box;
-      color: var(--black-color, var(--content-color, #212121));
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-    }
-
+    
     #modal6-container .modal6-signature {
       position: absolute;
-      top: 12px;
-      left: 12px;
+      top: 10px;
+      left: 10px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -107,6 +82,7 @@
     #modal6-container .modal6-signature h2 span:nth-child(14) { transition-delay: 1.3s; }
     #modal6-container .modal6-signature h2 span:nth-child(15) { transition-delay: 1.4s; }
     #modal6-container .modal6-signature h2 span:nth-child(16) { transition-delay: 1.5s; }
+    
     #modal6-container .modal6-signature h2 span:nth-child(17) { transition-delay: 1.6s; }
     #modal6-container .modal6-signature h2 span:nth-child(18) { transition-delay: 1.7s; }
     #modal6-container .modal6-signature h2 span:nth-child(19) { transition-delay: 1.8s; }
@@ -119,73 +95,18 @@
     #modal6-container .modal6-signature h2 span:nth-child(26) { transition-delay: 2.5s; }
     #modal6-container .modal6-signature h2 span:nth-child(27) { transition-delay: 2.6s; }
     #modal6-container .modal6-signature h2 span:nth-child(28) { transition-delay: 2.7s; }
-    #modal6-container .modal6-signature h2 span:nth-child(29) { transition-delay: 2.8s; }
-    #modal6-container .modal6-signature h2 span:nth-child(30) { transition-delay: 2.9s; }
 
-    #modal6-container .modal6-signature h2 span.accent-letter {
-      color: var(--modal6-accent);
-      letter-spacing: 0.04em;
-    }
-
-    #modal6-container .form-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 18px;
-      align-items: flex-end;
-    }
-
-    #modal6-container .form-row .modalBLOCK {
-      flex: 1;
-      padding: 18px 20px;
-      border-radius: 10px;
-      background: var(--modal6-bg);
-      border: 1px solid var(--modal6-border);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    #modal6-container .modal6-signature h2 span.warehouse-letter {
+      font-size: 0.85em;
+      margin-top: 2px;
+      color: #9EA793;
     }
 
     #modal6-container .modalRow {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    #modal6-container .input,
-    #modal6-container .inputT,
-    #modal6-container .inputSUM {
-      height: 36px;
-      border-radius: 8px;
-      border: 1px solid var(--content-color, #212121);
-      background: rgba(255, 255, 255, 0.12);
-      color: var(--content-color, #212121);
-      padding: 0 12px;
-      font-size: 13px;
-      letter-spacing: 0.04em;
-      box-sizing: border-box;
-      outline: none;
-    }
-
-    #modal6-container .button-form {
-      min-width: 220px;
-      height: 36px;
-      background: var(--content-color, #212121);
-      border: 1px solid var(--content-color, #212121);
-      color: var(--fon, #f5f5f5);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    #modal6-container .button-form:hover {
-      color: var(--content-color, #212121);
-      background: rgba(255, 255, 255, 0.12);
+      flex-direction: row;
+      gap: 14px;
     }
 
     #modal6-container .modal6-scroll-wrapper {
@@ -194,210 +115,62 @@
       flex: 1;
       padding-bottom: 20px;
       overflow: visible;
-      display: flex;
-    }
-
-    #modal6-container .modal6-bottom-row {
-      display: flex;
-      gap: 18px;
-      width: 100%;
-      height: 100%;
     }
 
     #modal6-container .modal6-window {
       color: var(--black-color, var(--content-color, #212121));
-      padding: 20px;
+      width: 1930px;
+      max-width: 90vw;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      padding-left: 20px;
+      padding-right: 10px;
       box-sizing: border-box;
+      margin: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-    }
-
-    #modal6-container .modal6-window--compact {
-      flex: 0 0 32%;
-      min-width: 320px;
-    }
-
-    #modal6-container .modal6-window--main {
-      flex: 1;
-      position: relative;
-      padding-right: 36px;
-    }
-
-    #modal6-container .modal6-window--main::after {
-      content: "";
-      position: absolute;
-      top: 16px;
-      right: 10px;
-      bottom: 16px;
-      width: 8px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(33, 33, 33, 0.12) 0%, rgba(33, 33, 33, 0.35) 100%);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-      opacity: 0.85;
-    }
-
-    #modal6-container .modal6-window--main::before {
-      content: "";
-      position: absolute;
-      top: 26px;
-      right: 9px;
-      width: 10px;
-      height: 60px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(158, 167, 147, 0.85) 100%);
-      box-shadow: 0 6px 12px rgba(33, 33, 33, 0.2);
-      animation: modal6-scroll-thumb 3.5s ease-in-out infinite alternate;
-    }
-
-    @keyframes modal6-scroll-thumb {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(80px); }
-      100% { transform: translateY(160px); }
+      position: fixed;
+      top: 275px;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      max-height: calc(100vh - 220px);
+      overflow-x: visible;
     }
 
     #modal6-container .modal6-content {
-      width: 100%;
+      width: 1930px;
       height: 100%;
       box-sizing: border-box;
       overflow-y: auto;
-      padding-right: 12px;
-      margin-right: -12px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      padding-right: 10px;
+      margin-right: -10px;
+      transition: opacity 0.3s ease;
+      opacity: 1;
     }
 
     #modal6-container .modal6-content::-webkit-scrollbar { width: 6px; }
     #modal6-container .modal6-content::-webkit-scrollbar-track { background: transparent; }
-    #modal6-container .modal6-content::-webkit-scrollbar-thumb {
-      background-color: var(--content-color, #212121);
-      border-radius: 10px;
-    }
+    #modal6-container .modal6-content::-webkit-scrollbar-thumb { background-color: var(--content-color, #212121); border-radius: 10px; }
 
-    #modal6-container .summary-card,
-    #modal6-container .price-card {
-      border-radius: 10px;
-      background: var(--modal6-bg);
-      border: 1px solid var(--modal6-border);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-      padding: 16px 18px;
+    #modal6-container .modalVNUT-content .modalBLOCK {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-    }
-
-    #modal6-container .summary-card__title,
-    #modal6-container .price-card__title {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    #modal6-container .summary-card__value {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-
-    #modal6-container .summary-card__meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      opacity: 0.75;
-    }
-
-    #modal6-container .price-card__grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    #modal6-container .price-card__badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(33, 33, 33, 0.12);
-      text-transform: uppercase;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-    }
-
-    #modal6-container .price-item {
-      display: grid;
-      grid-template-columns: 140px 1fr 120px 110px;
-      gap: 10px;
-      align-items: center;
-      padding: 12px 14px;
+      gap: 12px;
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      transition: transform 0.2s ease, border 0.2s ease;
+      background: rgba(255, 255, 255, 0.04);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      margin-bottom: 12px;
+      padding: 18px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    #modal6-container .price-item:hover {
+    #modal6-container .modalVNUT-content .modalBLOCK:hover {
       transform: translateY(-2px);
-      border-color: rgba(33, 33, 33, 0.4);
     }
 
-    #modal6-container .price-item__code {
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    #modal6-container .price-item__name {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    #modal6-container .price-item__name span:first-child {
-      font-weight: 600;
-    }
-
-    #modal6-container .price-item__trend {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-content: flex-end;
-      font-weight: 600;
-    }
-
-    #modal6-container .price-item__controls {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    #modal6-container .price-item__controls button {
-      min-width: 140px;
-    }
-
-    @media (max-width: 1280px) {
-      #modal6-container .modal6-bottom-row {
-        flex-direction: column;
-      }
-
-      #modal6-container .modal6-window--compact,
-      #modal6-container .modal6-window--main {
-        flex: 1 1 auto;
-        min-width: 100%;
-        padding-right: 20px;
-      }
-
-      #modal6-container .modal6-window--main::after,
-      #modal6-container .modal6-window--main::before {
-        display: none;
-      }
-    }
   </style>
-  <div class="modal-top glass-panel">
+ <div class="modal-top glass-panel">
     <section class="modal6-signature">
       <h2>
         <span>R</span>
@@ -417,168 +190,41 @@
         <span>N</span>
         <span>T</span>
         <span>&nbsp;&nbsp;</span>
-        <span class="accent-letter">P</span>
-        <span class="accent-letter">R</span>
-        <span class="accent-letter">I</span>
-        <span class="accent-letter">C</span>
-        <span class="accent-letter">E</span>
-        <span>&nbsp;</span>
-        <span class="accent-letter">M</span>
-        <span class="accent-letter">A</span>
-        <span class="accent-letter">N</span>
-        <span class="accent-letter">A</span>
-        <span class="accent-letter">G</span>
-        <span class="accent-letter">E</span>
-        <span class="accent-letter">M</span>
-        <span class="accent-letter">E</span>
-        <span class="accent-letter">N</span>
-        <span class="accent-letter">T</span>
+        <span class="warehouse-letter">R</span>
+        <span class="warehouse-letter">E</span>
+        <span class="warehouse-letter">C</span>
+        <span class="warehouse-letter">I</span>
+        <span class="warehouse-letter">P</span>
+        <span class="warehouse-letter">E</span>
+        <span class="warehouse-letter">S</span>
+        <span>&nbsp;&nbsp;</span>
+        <span class="warehouse-letter">H</span>
+        <span class="warehouse-letter">U</span>
+        <span class="warehouse-letter">B</span>
       </h2>
     </section>
 
     <div class="modalRow form-row">
-      <div class="modalBLOCK">
-        <div class="modalRow">
-          <input class="inputT" style="width: 140px;" placeholder="RIV-9900" />
-          <input class="input" style="flex: 1;" placeholder="наименование позиции" />
-          <input class="inputSUM" style="width: 140px; text-align: right;" placeholder="закуп. цена" />
-          <input class="inputSUM" style="width: 140px; text-align: right;" placeholder="розн. цена" />
-        </div>
-        <div class="modalRow">
-          <input class="input" style="width: 220px;" placeholder="категория" />
-          <input class="input" style="width: 220px;" placeholder="поставщик" />
-          <input class="inputSUM" style="width: 160px; text-align: right;" placeholder="маржа, %" />
-          <input class="inputSUM" style="width: 160px; text-align: right;" placeholder="остаток" />
-        </div>
+      <div class="modalBLOCK form-fields">
+        <div class="modalRow" style="margin-left: -20px;">
+            <input id="recipe-code" class="inputT code-field" type="text" placeholder="RCP-0001" autocomplete="off"/>
+            <input id="recipe-name" class="input name-field" type="text" placeholder="наименование рецепта" autocomplete="off" />
+            <input id="recipe-category" class="input name-field" type="text" placeholder="категория рецепта" autocomplete="off" />
+          </div>
       </div>
-      <button class="button-form" type="button">создать позицию</button>
+      <button class="button-form primary" id="create-recipe" type="button">создать рецепт</button>
     </div>
   </div>
 
   <div class="modal6-scroll-wrapper">
-    <div class="modal6-bottom-row">
-      <div class="modal-bottom glass-panel modal6-window modal6-window--compact">
-        <div class="modal6-content">
-          <article class="summary-card">
-            <header class="summary-card__title">
-              <span>выручка за период</span>
-              <span class="material-symbols-outlined" style="font-size: 18px;">stacked_line_chart</span>
-            </header>
-            <div class="summary-card__value">1 284 500 ₽</div>
-            <div class="summary-card__meta">
-              <span>+12% к прошлому месяцу</span>
-              <span>обновлено 12:45</span>
-            </div>
-          </article>
+    <div class="modal-bottom glass-panel modal6-window">
+      <div class="modalVNUT-content modal6-content" id="recipe-list"></div>
 
-          <article class="summary-card">
-            <header class="summary-card__title">
-              <span>средняя маржа</span>
-              <span class="material-symbols-outlined" style="font-size: 18px;">percent</span>
-            </header>
-            <div class="summary-card__value">34%</div>
-            <div class="summary-card__meta">
-              <span>доля акционных продаж 18%</span>
-              <span>контроль себестоимости</span>
-            </div>
-          </article>
 
-          <article class="price-card">
-            <header class="price-card__title">
-              <span>приоритеты</span>
-              <span class="price-card__badge">price focus</span>
-            </header>
-            <div class="price-card__grid">
-              <span>корректировка закупок</span>
-              <span>повышение розничной цены</span>
-              <span>инвентаризация складов</span>
-              <span>мониторинг конкурентов</span>
-            </div>
-          </article>
-        </div>
-      </div>
-
-      <div class="modal-bottom glass-panel modal6-window modal6-window--main">
-        <div class="modal6-content">
-          <div class="price-item">
-            <div class="price-item__code">RIV-2011</div>
-            <div class="price-item__name">
-              <span>кофе бленд signature</span>
-              <span>обжарка средней интенсивности, 1 кг</span>
-            </div>
-            <div class="price-item__trend" style="color: #2E7D32;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">trending_up</span>
-              <span>+6.3%</span>
-            </div>
-            <div class="price-item__controls">
-              <button class="button-form" type="button">обновить цену</button>
-            </div>
-          </div>
-
-          <div class="price-item">
-            <div class="price-item__code">RIV-3056</div>
-            <div class="price-item__name">
-              <span>сироп ванильный premium</span>
-              <span>стекло, 0.7 л</span>
-            </div>
-            <div class="price-item__trend" style="color: #C62828;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">trending_down</span>
-              <span>-3.1%</span>
-            </div>
-            <div class="price-item__controls">
-              <button class="button-form" type="button">зафиксировать</button>
-            </div>
-          </div>
-
-          <div class="price-item">
-            <div class="price-item__code">RIV-1188</div>
-            <div class="price-item__name">
-              <span>чашка латте porcelain</span>
-              <span>объем 350 мл, серия limited</span>
-            </div>
-            <div class="price-item__trend" style="color: #2E7D32;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">trending_up</span>
-              <span>+2.8%</span>
-            </div>
-            <div class="price-item__controls">
-              <button class="button-form" type="button">задать акцию</button>
-            </div>
-          </div>
-
-          <div class="price-item">
-            <div class="price-item__code">RIV-4410</div>
-            <div class="price-item__name">
-              <span>зерно эталон robusta</span>
-              <span>мешок 10 кг, урожай 2023</span>
-            </div>
-            <div class="price-item__trend" style="color: #C62828;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">trending_down</span>
-              <span>-1.4%</span>
-            </div>
-            <div class="price-item__controls">
-              <button class="button-form" type="button">пересчитать</button>
-            </div>
-          </div>
-
-          <div class="price-item">
-            <div class="price-item__code">RIV-5527</div>
-            <div class="price-item__name">
-              <span>сахар тростниковый golden</span>
-              <span>упаковка 5 кг</span>
-            </div>
-            <div class="price-item__trend" style="color: #2E7D32;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">equalizer</span>
-              <span>+0.5%</span>
-            </div>
-            <div class="price-item__controls">
-              <button class="button-form" type="button">подтвердить</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
-  </div>
+</div>
+
 <script type="module">
 export function initModal6() {
   console.log('[modal6.html] PAGE 6 активирован');
