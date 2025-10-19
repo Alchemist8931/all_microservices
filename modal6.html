@@ -278,10 +278,6 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    #modal6-container .modalVNUT-content .modalBLOCK:hover {
-      transform: translateY(-2px);
-    }
-
     #modal6-container .inputT,
     #modal6-container .input,
     #modal6-container .inputSUM {
@@ -439,9 +435,9 @@
   <div class="modal6-scroll-wrapper">
     <div class="modal-bottom glass-panel modal6-window">
       <div class="modalVNUT-content modal6-content" id="recipe-list">
-
-
-  <div class="modalBLOCK" data-id="" data-price="">
+        
+<template id="modal4-order-template">
+    <div class="modalBLOCK" data-id="" data-price="">
       <div class="modalRow">
         <label class="checkbox">
           <input type="checkbox" />
@@ -463,40 +459,8 @@
         </div>
       </div>
     </div>
-        
+</template>
 
-<template id="modal4-order-template">
-    <div class="modalBLOCK" data-id="" data-price="">
-      <div class="modalRow">
-        <label class="checkbox">
-          <input type="checkbox" />
-        </label>
-        <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" readonly />
-        <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" readonly />
-        <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" readonly />
-        <input class="input" data-field="status" style="width: 100px; text-align: center;" placeholder="статус" readonly />
-        <div class="input date-time-field" style="width: 190px;" data-field="date-time" aria-label="дата и время">
-          <span class="date-time-field__time"></span>
-          <span class="date-time-field__date"></span>
-        </div>
-        <input class="inputT supplier-field" style="width: 120px;" data-field="supplier" placeholder="поставщик" readonly />
-        <span class="spec-icon" data-field="spec-url" data-url="">
-          <i class="material-symbols-outlined">captive_portal</i>
-        </span>
-        <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
-        <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" readonly />
-        <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
-        <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
-        <div class="notes-field-wrapper" style="width: 375px;">
-          <textarea class="input notes-field" data-field="notes" placeholder="для заметок"></textarea>
-        </div>
-      </div>
-    </div>
-  </template>
-
-
-
-        
       </div>
     </div>
   </div>
