@@ -132,6 +132,96 @@
       gap: 14px;
     }
 
+    #modal6-container .notes-field-wrapper {
+      position: relative;
+      flex: 0 0 auto;
+      height: 33px;
+      overflow: visible;
+      z-index: 1;
+    }
+
+    #modal6-container .notes-field {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      min-height: 33px;
+      max-height: 240px;
+      height: 33px;
+      font-size: 12px;
+      resize: none;
+      overflow: hidden;
+      padding: 8px 10px;
+      line-height: 1.4;
+      border-radius: 8px;
+      transition: height 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+      background: #ffffff;
+      z-index: 100;
+    }
+
+    #modal6-container .notes-field::placeholder {
+      color: rgba(33, 33, 33, 0.4);
+    }
+
+    #modal6-container .notes-field-wrapper.is-expanded {
+      z-index: 2000;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12), 0 12px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    #modal6-container .notes-field-wrapper.is-expanded::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 240px;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: none;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    #modal6-container .notes-field-wrapper.is-expanded .notes-field {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 240px;
+      overflow: auto;
+      background: #ffffff;
+      box-shadow: none;
+      transform: translateY(0);
+      z-index: 1;
+    }
+
+    #modal6-container .notes-field.is-busy {
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+    #modal6-container .date-time-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 180px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal6-container .date-time-field__time {
+      flex: 0 0 auto;
+      text-align: left;
+    }
+
+    #modal6-container .date-time-field__date {
+      flex: 1 1 auto;
+      text-align: right;
+    }
+
     #modal6-container .modal6-scroll-wrapper {
       width: 1950px;
       max-width: 90vw;
@@ -192,6 +282,115 @@
       transform: translateY(-2px);
     }
 
+    #modal6-container .inputT,
+    #modal6-container .input,
+    #modal6-container .inputSUM {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #212121;
+      outline: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--content-color, #212121);
+      transition: border-color 0.3s ease, transform 0.2s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #modal6-container .inputT:focus,
+    #modal6-container .input:focus,
+    #modal6-container .inputSUM:focus {
+      border-color: var(--content-color, #30333C);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal6-container .inputSUM {
+      text-align: right;
+      width: 116px;
+    }
+
+    #modal6-container .spec-icon {
+      color: var(--content-color, #212121);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    #modal6-container .spec-icon:hover {
+      color: rgba(98, 90, 86, 0.85);
+      transform: scale(1.05);
+    }
+
+    #modal6-container label.checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #modal6-container .checkbox input[type="checkbox"] {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--content-color, #212121);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    #modal6-container .checkbox input[type="checkbox"]:checked {
+      background: var(--content-color, #212121);
+    }
+
+    #modal6-container .checkbox input[type="checkbox"]::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      transform: translate(-50%, -50%) scale(0);
+      background: var(--fon, #f5f5f5);
+      border-radius: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    #modal6-container .checkbox input[type="checkbox"]:checked::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    #modal6-container .button-form {
+      position: relative;
+      min-width: 220px;
+      height: 30px;
+      background: var(--content-color, #212121);
+      border: 1px solid var(--content-color, #212121);
+      color: #f5f5f5;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 15px;
+    }
+
+    #modal6-container .button-form:hover {
+      color: var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #modal6-container .button-form.primary {
+      min-width: 200px;
+    }
+
+
   </style>
  <div class="modal-top glass-panel">
     <section class="modal6-signature">
@@ -242,7 +441,33 @@
       <div class="modalVNUT-content modal6-content" id="recipe-list">
 
 
-
+<div class="modalBLOCK" data-id="" data-price="">
+      <div class="modalRow">
+        <label class="checkbox">
+          <input type="checkbox" />
+        </label>
+        <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" readonly />
+        <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" readonly />
+        <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" readonly />
+        <input class="input" data-field="status" style="width: 100px; text-align: center;" placeholder="статус" readonly />
+        <div class="input date-time-field" style="width: 190px;" data-field="date-time" aria-label="дата и время">
+          <span class="date-time-field__time"></span>
+          <span class="date-time-field__date"></span>
+        </div>
+        <input class="inputT supplier-field" style="width: 120px;" data-field="supplier" placeholder="поставщик" readonly />
+        <span class="spec-icon" data-field="spec-url" data-url="">
+          <i class="material-symbols-outlined">captive_portal</i>
+        </span>
+        <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
+        <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" readonly />
+        <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" readonly />
+        <input class="inputSUM" style="width: 100px;" data-field="total" placeholder="000 000 000" readonly />
+        <div class="notes-field-wrapper" style="width: 375px;">
+          <textarea class="input notes-field" data-field="notes" placeholder="для заметок"></textarea>
+        </div>
+      </div>
+    </div>
+        
 
 <template id="modal4-order-template">
     <div class="modalBLOCK" data-id="" data-price="">
