@@ -588,7 +588,11 @@
               <label class="input-label">spec #</label>
             </div>
             <div class="input-container">
-              <input type="text" class="styled_input_bar" data-field="subject" readonly style="width: 530px;" placeholder="Тема обращения">
+              <input type="text" class="styled_input_bar" data-field="user_login" readonly style="width: 220px;" placeholder="user@example.com">
+              <label class="input-label">логин</label>
+            </div>
+            <div class="input-container">
+              <input type="text" class="styled_input_bar" data-field="subject" readonly style="width: 420px;" placeholder="Тема обращения">
               <label class="input-label">тема</label>
             </div>
             <div class="input-container">
@@ -660,6 +664,7 @@ export function initModal10() {
     fragment.querySelector('[data-field="id"]').value = ticket.id;
     fragment.querySelector('[data-field="spec_id"]').value = ticket.spec_id;
     fragment.querySelector('[data-field="subject"]').value = ticket.subject;
+    fragment.querySelector('[data-field="user_login"]').value = ticket.user_login || '';
     fragment.querySelector('[data-field="status"]').textContent = ticket.status || '';
     fragment.querySelector('[data-field="created_at"]').value = new Date(ticket.created_at).toLocaleString('ru-RU');
     const details = fragment.querySelector('.ticket-details');
