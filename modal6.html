@@ -419,8 +419,7 @@
     #modal6-container .modal6-sale-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 18px;
+      justify-content: center;
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(33, 33, 33, 0.14);
     }
@@ -430,25 +429,6 @@
       font-size: 1.45em;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-    }
-
-    #modal6-container .modal6-sale-close {
-      border: 1px solid var(--content-color, #212121);
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--content-color, #212121);
-      border-radius: 50%;
-      width: 38px;
-      height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    #modal6-container .modal6-sale-close:hover {
-      background: rgba(255, 255, 255, 0.16);
-      transform: scale(1.04);
     }
 
     #modal6-container .modal6-sale-content {
@@ -855,7 +835,6 @@ export function initModal6() {
 
   const createSaleButton = modal.querySelector('#create-recipe');
   const overlay = modal.querySelector('#modal6-sale-overlay');
-  const closeButton = overlay?.querySelector('.modal6-sale-close');
   const saleTemplate = modal.querySelector('#modal6-sale-row-template');
   const productList = overlay?.querySelector('[data-list="products"]');
   const materialList = overlay?.querySelector('[data-list="materials"]');
@@ -865,7 +844,6 @@ export function initModal6() {
 
   if (!(createSaleButton instanceof HTMLButtonElement)
     || !(overlay instanceof HTMLElement)
-    || !(closeButton instanceof HTMLButtonElement)
     || !(saleTemplate instanceof HTMLTemplateElement)
     || !(productList instanceof HTMLElement)
     || !(materialList instanceof HTMLElement)
@@ -1420,15 +1398,15 @@ export function initModal6() {
   };
 
   createSaleButton.addEventListener('click', openOverlay);
-  closeButton.addEventListener('click', closeOverlay);
-  addProductButton.addEventListener('click', () => addRow('products'));
-  addMaterialButton.addEventListener('click', () => addRow('materials'));
 
   overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) {
+    if (!(event.target instanceof HTMLElement)) return;
+    if (!event.target.closest('.modal6-sale-dialog')) {
       closeOverlay();
     }
   });
+  addProductButton.addEventListener('click', () => addRow('products'));
+  addMaterialButton.addEventListener('click', () => addRow('materials'));
 
   overlay.addEventListener('pointerdown', (event) => {
     if (!(event.target instanceof HTMLElement)) return;
