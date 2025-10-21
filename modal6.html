@@ -386,6 +386,272 @@
       min-width: 200px;
     }
 
+    #modal6-container .modal6-sale-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 30px;
+      background: rgba(14, 15, 17, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 4000;
+    }
+
+    #modal6-container .modal6-sale-overlay.is-visible {
+      display: flex;
+    }
+
+    #modal6-container .modal6-sale-dialog {
+      position: relative;
+      width: 1680px;
+      max-width: 90vw;
+      max-height: calc(100vh - 120px);
+      padding: 28px 28px 34px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    #modal6-container .modal6-sale-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(33, 33, 33, 0.14);
+    }
+
+    #modal6-container .modal6-sale-title {
+      margin: 0;
+      font-size: 1.45em;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    #modal6-container .modal6-sale-close {
+      border: 1px solid var(--content-color, #212121);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--content-color, #212121);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    #modal6-container .modal6-sale-close:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: scale(1.04);
+    }
+
+    #modal6-container .modal6-sale-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    #modal6-container .modal6-sale-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    #modal6-container .modal6-sale-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #modal6-container .modal6-sale-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    #modal6-container .modal6-sale-section-title {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #modal6-container .modal6-sale-add {
+      min-width: 200px;
+      height: 30px;
+    }
+
+    #modal6-container .modal6-sale-lists {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(760px, 1fr));
+      gap: 22px;
+      overflow: auto;
+      padding-right: 4px;
+      max-height: calc(100vh - 320px);
+    }
+
+    #modal6-container .modal6-sale-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 6px;
+      overflow-y: auto;
+      max-height: 420px;
+    }
+
+    #modal6-container .modal6-sale-list::-webkit-scrollbar,
+    #modal6-container .modal6-sale-lists::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #modal6-container .modal6-sale-list::-webkit-scrollbar-track,
+    #modal6-container .modal6-sale-lists::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #modal6-container .modal6-sale-list::-webkit-scrollbar-thumb,
+    #modal6-container .modal6-sale-lists::-webkit-scrollbar-thumb {
+      background-color: var(--content-color, #212121);
+      border-radius: 10px;
+    }
+
+    #modal6-container .modal6-sale-row {
+      position: relative;
+    }
+
+    #modal6-container .modal6-sale-row .modalRow {
+      align-items: center;
+    }
+
+    #modal6-container .modal6-sale-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      border: 1px solid rgba(33, 33, 33, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    #modal6-container .modal6-sale-remove:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: scale(1.05);
+    }
+
+    #modal6-container .modal6-sale-remove:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #modal6-container .modal6-sale-suggestions {
+      position: absolute;
+      left: 35px;
+      right: 16px;
+      top: calc(100% - 6px);
+      z-index: 10;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(33, 33, 33, 0.6);
+      box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.12);
+      max-height: 240px;
+      overflow-y: auto;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    #modal6-container .modal6-sale-suggestions.is-visible {
+      display: flex;
+    }
+
+    #modal6-container .modal6-sale-suggestions::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #modal6-container .modal6-sale-suggestions::-webkit-scrollbar-thumb {
+      background: rgba(33, 33, 33, 0.6);
+      border-radius: 10px;
+    }
+
+    #modal6-container .modal6-sale-suggestion {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border: 1px solid rgba(33, 33, 33, 0.65);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(248, 248, 248, 0.92);
+      color: #212121;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    #modal6-container .modal6-sale-suggestion:hover,
+    #modal6-container .modal6-sale-suggestion:focus {
+      background: rgba(230, 230, 230, 0.95);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    #modal6-container .modal6-sale-suggestion__headline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: none;
+    }
+
+    #modal6-container .modal6-sale-suggestion__code {
+      min-width: 90px;
+      font-weight: 700;
+    }
+
+    #modal6-container .modal6-sale-empty {
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px dashed rgba(33, 33, 33, 0.35);
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1500px) {
+      #modal6-container .modal6-sale-dialog {
+        padding: 24px;
+        width: 94vw;
+      }
+
+      #modal6-container .modal6-sale-lists {
+        grid-template-columns: 1fr;
+        max-height: calc(100vh - 280px);
+      }
+
+      #modal6-container .modal6-sale-list {
+        max-height: 360px;
+      }
+    }
+
 
   </style>
  <div class="modal-top glass-panel">
@@ -429,6 +695,41 @@
 
     <div class="modalRow form-row">
       <button class="button-form primary" id="create-recipe" type="button">создать продажу</button>
+    </div>
+  </div>
+
+  <div id="modal6-sale-overlay" class="modal6-sale-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal6-sale-dialog glass-panel">
+      <header class="modal6-sale-header">
+        <h3 class="modal6-sale-title">создание продажи</h3>
+        <button class="modal6-sale-close" type="button" aria-label="закрыть модальное окно">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
+      <div class="modal6-sale-content">
+        <div class="modal6-sale-fields">
+          <input class="input" data-sale-field="seller" style="width: 220px;" placeholder="продавец" autocomplete="off" />
+          <input class="input" data-sale-field="buyer" style="width: 220px;" placeholder="покупатель" autocomplete="off" />
+          <input class="input" data-sale-field="channel" style="width: 220px;" placeholder="канал привлечения" autocomplete="off" />
+          <input class="input" data-sale-field="format" style="width: 220px;" placeholder="формат продажи" autocomplete="off" />
+        </div>
+        <div class="modal6-sale-lists">
+          <section class="modal6-sale-section" data-section="products">
+            <div class="modal6-sale-section-header">
+              <h4 class="modal6-sale-section-title">готовая продукция</h4>
+              <button class="button-form modal6-sale-add" type="button" data-action="add-product">добавить позицию</button>
+            </div>
+            <div class="modal6-sale-list" data-list="products"></div>
+          </section>
+          <section class="modal6-sale-section" data-section="materials">
+            <div class="modal6-sale-section-header">
+              <h4 class="modal6-sale-section-title">добавить материалы</h4>
+              <button class="button-form modal6-sale-add" type="button" data-action="add-material">добавить позицию</button>
+            </div>
+            <div class="modal6-sale-list" data-list="materials"></div>
+          </section>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -522,13 +823,623 @@
     </div>
 </template>
 
+        <template id="modal6-sale-row-template">
+  <div class="modalBLOCK modal6-sale-row" data-id="" data-price="" style="margin-left: 35px;">
+    <div class="modalRow">
+      <input class="inputT code-field" data-field="order_code" style="width: 110px;" placeholder="RIV-0881" />
+      <input class="input name-field" data-field="item_name" style="width: 280px;" placeholder="наименование" />
+      <input class="input category-field" data-field="item_category" style="width: 200px;" placeholder="категория" />
+      <input class="input" style="width: 60px; text-align: center;" data-field="base_unit" placeholder="изм." readonly />
+      <input class="inputSUM" style="width: 70px;" data-field="base_qty" placeholder="000 000" />
+      <input class="inputSUM" style="width: 70px;" data-field="base_price" placeholder="000 000 000" />
+      <input class="inputSUM" style="width: 92px;" data-field="total" placeholder="000 000 000" readonly />
+    </div>
+  </div>
+</template>
+
       </div>
     </div>
   </div>
 
 <script type="module">
 export function initModal6() {
+  const modal = document.getElementById('modal6-container');
+  if (!modal) return;
   console.log('[modal6.html] PAGE 6 активирован');
+
+  const supabaseClient = window.supabase ?? null;
+  const rawUserKey = window.USER_KEY ?? null;
+  const authUserId = window.AUTH_ID ?? null;
+  const DB_USER_KEY = authUserId || rawUserKey;
+  let DB_COMPANY_ID = window.companyId || window.companyID || null;
+  let resolvingCompanyIdPromise = null;
+  let previousBodyOverflow = '';
+
+  const createSaleButton = modal.querySelector('#create-recipe');
+  const overlay = modal.querySelector('#modal6-sale-overlay');
+  const closeButton = overlay?.querySelector('.modal6-sale-close');
+  const saleTemplate = modal.querySelector('#modal6-sale-row-template');
+  const productList = overlay?.querySelector('[data-list="products"]');
+  const materialList = overlay?.querySelector('[data-list="materials"]');
+  const addProductButton = overlay?.querySelector('[data-action="add-product"]');
+  const addMaterialButton = overlay?.querySelector('[data-action="add-material"]');
+  const saleFieldInputs = overlay?.querySelectorAll('[data-sale-field]') ?? [];
+
+  if (!(createSaleButton instanceof HTMLButtonElement)
+    || !(overlay instanceof HTMLElement)
+    || !(closeButton instanceof HTMLButtonElement)
+    || !(saleTemplate instanceof HTMLTemplateElement)
+    || !(productList instanceof HTMLElement)
+    || !(materialList instanceof HTMLElement)
+    || !(addProductButton instanceof HTMLButtonElement)
+    || !(addMaterialButton instanceof HTMLButtonElement)) {
+    console.warn('[modal6.html] не найдены элементы для модального окна продаж');
+    return;
+  }
+
+  const saleFieldInputsArray = Array.from(saleFieldInputs).filter((input) => input instanceof HTMLInputElement);
+
+  const lists = {
+    products: productList,
+    materials: materialList,
+  };
+
+  const sectionConfigs = {
+    products: { statuses: ['изготовлено'] },
+    materials: { statuses: ['на складе'] },
+  };
+
+  const dataCache = new Map();
+  const loadingPromises = new Map();
+
+  const fmtNum = (value, { minimumFractionDigits = 0, maximumFractionDigits = minimumFractionDigits } = {}) => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '';
+    const maxDigits = Math.max(minimumFractionDigits, maximumFractionDigits);
+    return num.toLocaleString('ru-RU', {
+      minimumFractionDigits,
+      maximumFractionDigits: maxDigits,
+    });
+  };
+
+  const parseNumber = (value) => {
+    if (value === null || value === undefined) return null;
+    const normalized = String(value)
+      .replace(/[\s\u202f]/g, '')
+      .replace(',', '.')
+      .trim();
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const numberToStorageString = (value) => {
+    if (value === null || value === undefined) return '';
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? String(numeric) : '';
+  };
+
+  const resolveCompanyId = async () => {
+    if (DB_COMPANY_ID) return DB_COMPANY_ID;
+    if (resolvingCompanyIdPromise) return resolvingCompanyIdPromise;
+    if (!supabaseClient) return null;
+
+    const localId = window.LOCAL_USER_ID;
+    const isAdmin = Boolean(window.IS_ADMIN);
+    const tablesToCheck = isAdmin
+      ? ['administrators', 'employees']
+      : ['employees', 'administrators'];
+
+    resolvingCompanyIdPromise = (async () => {
+      for (const table of tablesToCheck) {
+        try {
+          let query = supabaseClient
+            .from(table)
+            .select('company_id')
+            .limit(1);
+
+          if (localId) {
+            query = query.eq('id', localId);
+          } else if (DB_USER_KEY) {
+            query = query.eq('user_key', DB_USER_KEY);
+          } else if (rawUserKey) {
+            query = query.eq('user_key', rawUserKey);
+          } else {
+            continue;
+          }
+
+          const { data, error } = await query;
+          if (error) {
+            console.warn(`[modal6.html] не удалось получить company_id из ${table}:`, error);
+            continue;
+          }
+
+          if (Array.isArray(data) && data.length) {
+            const companyId = data[0]?.company_id ?? null;
+            if (companyId) {
+              DB_COMPANY_ID = companyId;
+              if (!window.companyId) window.companyId = companyId;
+              return companyId;
+            }
+          }
+        } catch (error) {
+          console.warn(`[modal6.html] исключение при получении company_id из ${table}:`, error);
+        }
+      }
+
+      return DB_COMPANY_ID;
+    })();
+
+    try {
+      return await resolvingCompanyIdPromise;
+    } finally {
+      resolvingCompanyIdPromise = null;
+    }
+  };
+
+  const ensureSectionData = async (section) => {
+    const cacheKey = String(section ?? '');
+    if (dataCache.has(cacheKey)) return dataCache.get(cacheKey);
+    if (loadingPromises.has(cacheKey)) return loadingPromises.get(cacheKey);
+
+    if (!supabaseClient) {
+      console.warn(`[modal6.html] Supabase client недоступен для секции ${section}`);
+      dataCache.set(cacheKey, []);
+      return [];
+    }
+
+    const statuses = Array.isArray(sectionConfigs[section]?.statuses)
+      ? Array.from(new Set(sectionConfigs[section].statuses
+        .map((status) => String(status ?? '').trim())
+        .filter(Boolean)))
+      : [];
+
+    const loader = (async () => {
+      try {
+        let query = supabaseClient
+          .from('modal4_orders')
+          .select('id, order_code, item_name, item_category, modification, quantity_value, price_value, status, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(500);
+
+        if (statuses.length) {
+          query = query.in('status', statuses);
+        }
+
+        const companyId = await resolveCompanyId();
+        if (companyId) {
+          query = query.eq('company_id', companyId);
+        } else if (DB_USER_KEY) {
+          query = query.eq('user_key', DB_USER_KEY);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error(`[modal6.html] ошибка загрузки modal4_orders для секции ${section}:`, error);
+          return [];
+        }
+
+        if (Array.isArray(data)) {
+          return data;
+        }
+
+        return [];
+      } catch (error) {
+        console.error(`[modal6.html] исключение при загрузке modal4_orders для секции ${section}:`, error);
+        return [];
+      }
+    })();
+
+    loadingPromises.set(cacheKey, loader);
+
+    try {
+      const result = await loader;
+      dataCache.set(cacheKey, result);
+      return result;
+    } finally {
+      loadingPromises.delete(cacheKey);
+    }
+  };
+
+  const filterItems = (items, query) => {
+    if (!Array.isArray(items)) return [];
+    const normalized = String(query ?? '').trim().toLowerCase();
+    if (!normalized) return items.slice(0, 20);
+    return items
+      .filter((item) => {
+        const code = String(item?.order_code ?? '').toLowerCase();
+        const name = String(item?.item_name ?? '').toLowerCase();
+        const category = String(item?.item_category ?? '').toLowerCase();
+        return code.includes(normalized)
+          || name.includes(normalized)
+          || category.includes(normalized);
+      })
+      .slice(0, 20);
+  };
+
+  const hideSuggestions = (suggestions) => {
+    if (!(suggestions instanceof HTMLElement)) return;
+    suggestions.classList.remove('is-visible');
+    suggestions.setAttribute('aria-hidden', 'true');
+    suggestions.innerHTML = '';
+  };
+
+  const hideAllSuggestions = () => {
+    overlay.querySelectorAll('.modal6-sale-suggestions.is-visible').forEach((element) => {
+      hideSuggestions(element);
+    });
+  };
+
+  const updateRowTotal = (row) => {
+    if (!(row instanceof HTMLElement)) return;
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    const priceInput = row.querySelector('[data-field="base_price"]');
+    const totalInput = row.querySelector('[data-field="total"]');
+    if (!(totalInput instanceof HTMLInputElement)) return;
+
+    const qty = qtyInput instanceof HTMLInputElement
+      ? (qtyInput.dataset.raw ? parseNumber(qtyInput.dataset.raw) : parseNumber(qtyInput.value))
+      : null;
+    const price = priceInput instanceof HTMLInputElement
+      ? (priceInput.dataset.raw ? parseNumber(priceInput.dataset.raw) : parseNumber(priceInput.value))
+      : null;
+
+    const total = qty !== null && price !== null ? qty * price : null;
+    totalInput.value = total !== null
+      ? fmtNum(total, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '';
+  };
+
+  const formatNumericInput = (input, { minimumFractionDigits = 0, maximumFractionDigits = minimumFractionDigits } = {}) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    const row = input.closest('.modal6-sale-row');
+    const value = parseNumber(input.value);
+    if (value === null) {
+      input.value = '';
+      delete input.dataset.raw;
+    } else {
+      input.value = fmtNum(value, { minimumFractionDigits, maximumFractionDigits });
+      input.dataset.raw = numberToStorageString(value);
+    }
+    updateRowTotal(row);
+  };
+
+  const fillRowFromItem = (row, item) => {
+    if (!(row instanceof HTMLElement) || !item) return;
+    row.dataset.id = item?.id ? String(item.id) : '';
+    row.dataset.status = item?.status ?? '';
+
+    const codeInput = row.querySelector('.code-field');
+    const nameInput = row.querySelector('.name-field');
+    const categoryInput = row.querySelector('.category-field');
+    const unitInput = row.querySelector('[data-field="base_unit"]');
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    const priceInput = row.querySelector('[data-field="base_price"]');
+    const totalInput = row.querySelector('[data-field="total"]');
+
+    if (codeInput instanceof HTMLInputElement) {
+      codeInput.value = item?.order_code ?? '';
+    }
+
+    if (nameInput instanceof HTMLInputElement) {
+      nameInput.value = item?.item_name ?? '';
+    }
+
+    if (categoryInput instanceof HTMLInputElement) {
+      categoryInput.value = item?.item_category ?? '';
+    }
+
+    if (unitInput instanceof HTMLInputElement) {
+      unitInput.value = item?.modification ?? '';
+    }
+
+    if (qtyInput instanceof HTMLInputElement) {
+      qtyInput.value = '';
+      delete qtyInput.dataset.raw;
+      qtyInput.dataset.available = numberToStorageString(item?.quantity_value);
+      const placeholderValue = fmtNum(item?.quantity_value, { maximumFractionDigits: 3 });
+      if (placeholderValue) {
+        qtyInput.setAttribute('placeholder', placeholderValue);
+      }
+    }
+
+    if (priceInput instanceof HTMLInputElement) {
+      const priceNumber = parseNumber(item?.price_value);
+      if (priceNumber === null) {
+        priceInput.value = '';
+        delete priceInput.dataset.raw;
+      } else {
+        priceInput.value = fmtNum(priceNumber, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        priceInput.dataset.raw = numberToStorageString(priceNumber);
+      }
+    }
+
+    if (totalInput instanceof HTMLInputElement) {
+      totalInput.value = '';
+    }
+
+    updateRowTotal(row);
+  };
+
+  const ensureRowControls = (row) => {
+    if (!(row instanceof HTMLElement)) return { suggestions: null, removeBtn: null };
+    let suggestions = row.querySelector('.modal6-sale-suggestions');
+    if (!(suggestions instanceof HTMLElement)) {
+      suggestions = document.createElement('div');
+      suggestions.className = 'modal6-sale-suggestions';
+      suggestions.setAttribute('aria-hidden', 'true');
+      row.appendChild(suggestions);
+    }
+
+    let removeBtn = row.querySelector('.modal6-sale-remove');
+    if (!(removeBtn instanceof HTMLButtonElement)) {
+      removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'modal6-sale-remove';
+      removeBtn.setAttribute('aria-label', 'удалить позицию');
+      removeBtn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">delete</span>';
+      row.appendChild(removeBtn);
+    }
+
+    return { suggestions, removeBtn };
+  };
+
+  const updateRemoveButtonsState = (section) => {
+    const list = lists[section];
+    if (!(list instanceof HTMLElement)) return;
+    const rows = list.querySelectorAll('.modal6-sale-row');
+    const disable = rows.length <= 1;
+    rows.forEach((row) => {
+      const button = row.querySelector('.modal6-sale-remove');
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = disable;
+      }
+    });
+  };
+
+  const removeRow = (row) => {
+    if (!(row instanceof HTMLElement)) return;
+    const section = row.dataset.section;
+    const list = lists[section];
+    if (!(list instanceof HTMLElement)) return;
+
+    hideAllSuggestions();
+    list.removeChild(row);
+
+    if (!list.querySelector('.modal6-sale-row')) {
+      addRow(section);
+    }
+
+    updateRemoveButtonsState(section);
+  };
+
+  const attachInputHandlers = (row, section) => {
+    const { suggestions } = ensureRowControls(row);
+    if (!(suggestions instanceof HTMLElement)) return;
+
+    const codeInput = row.querySelector('.code-field');
+    const nameInput = row.querySelector('.name-field');
+
+    const showSuggestions = async (input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      const items = await ensureSectionData(section);
+      const filtered = filterItems(items, input.value);
+
+      suggestions.innerHTML = '';
+
+      if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'modal6-sale-empty';
+        empty.textContent = 'нет подходящих позиций';
+        suggestions.appendChild(empty);
+      } else {
+        filtered.forEach((item) => {
+          const suggestionButton = document.createElement('button');
+          suggestionButton.type = 'button';
+          suggestionButton.className = 'modal6-sale-suggestion';
+          suggestionButton.dataset.id = item?.id ? String(item.id) : '';
+
+          const headline = document.createElement('div');
+          headline.className = 'modal6-sale-suggestion__headline';
+
+          const codeSpan = document.createElement('span');
+          codeSpan.className = 'modal6-sale-suggestion__code';
+          codeSpan.textContent = item?.order_code ?? '';
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = item?.item_name ?? '';
+
+          const categoryLine = document.createElement('div');
+          categoryLine.textContent = item?.item_category ?? '';
+
+          const metaLine = document.createElement('div');
+          const qtyText = fmtNum(item?.quantity_value, { maximumFractionDigits: 3 }) || '—';
+          const priceText = fmtNum(item?.price_value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '—';
+          metaLine.textContent = `кол-во: ${qtyText} • цена: ${priceText}`;
+
+          headline.append(codeSpan, nameSpan);
+          suggestionButton.append(headline, categoryLine, metaLine);
+
+          suggestionButton.addEventListener('click', () => {
+            fillRowFromItem(row, item);
+            hideSuggestions(suggestions);
+          });
+
+          suggestions.appendChild(suggestionButton);
+        });
+      }
+
+      suggestions.classList.add('is-visible');
+      suggestions.setAttribute('aria-hidden', 'false');
+    };
+
+    const handleFocus = (event) => {
+      showSuggestions(event.currentTarget);
+    };
+
+    const handleInput = (event) => {
+      showSuggestions(event.currentTarget);
+    };
+
+    const handleBlur = () => {
+      window.setTimeout(() => hideSuggestions(suggestions), 150);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        hideSuggestions(suggestions);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        const firstSuggestion = suggestions.querySelector('.modal6-sale-suggestion');
+        if (firstSuggestion instanceof HTMLButtonElement) {
+          event.preventDefault();
+          firstSuggestion.click();
+        }
+      }
+    };
+
+    [codeInput, nameInput].forEach((input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      input.readOnly = false;
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('spellcheck', 'false');
+      input.addEventListener('focus', handleFocus);
+      input.addEventListener('input', handleInput);
+      input.addEventListener('blur', handleBlur);
+      input.addEventListener('keydown', handleKeyDown);
+    });
+  };
+
+  const addRow = (section, item = null) => {
+    const list = lists[section];
+    if (!(list instanceof HTMLElement)) return null;
+
+    const fragment = saleTemplate.content.cloneNode(true);
+    const row = fragment.querySelector('.modal6-sale-row');
+    if (!(row instanceof HTMLElement)) return null;
+
+    row.dataset.section = section;
+
+    const qtyInput = row.querySelector('[data-field="base_qty"]');
+    const priceInput = row.querySelector('[data-field="base_price"]');
+
+    if (qtyInput instanceof HTMLInputElement) {
+      qtyInput.setAttribute('inputmode', 'decimal');
+      qtyInput.addEventListener('input', () => updateRowTotal(row));
+      qtyInput.addEventListener('blur', () => {
+        formatNumericInput(qtyInput, { maximumFractionDigits: 3 });
+      });
+    }
+
+    if (priceInput instanceof HTMLInputElement) {
+      priceInput.setAttribute('inputmode', 'decimal');
+      priceInput.addEventListener('input', () => updateRowTotal(row));
+      priceInput.addEventListener('blur', () => {
+        formatNumericInput(priceInput, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      });
+    }
+
+    const { suggestions, removeBtn } = ensureRowControls(row);
+    if (suggestions instanceof HTMLElement) {
+      suggestions.addEventListener('mousedown', (event) => event.preventDefault());
+    }
+    if (removeBtn instanceof HTMLButtonElement) {
+      removeBtn.addEventListener('click', () => removeRow(row));
+    }
+
+    list.appendChild(row);
+    attachInputHandlers(row, section);
+
+    if (item) {
+      fillRowFromItem(row, item);
+    }
+
+    updateRemoveButtonsState(section);
+    return row;
+  };
+
+  const resetSections = () => {
+    Object.entries(lists).forEach(([section, list]) => {
+      if (!(list instanceof HTMLElement)) return;
+      list.innerHTML = '';
+      addRow(section);
+    });
+  };
+
+  const resetForm = () => {
+    saleFieldInputsArray.forEach((input) => {
+      input.value = '';
+    });
+  };
+
+  const focusFirstField = () => {
+    const firstField = saleFieldInputsArray[0] ?? null;
+    if (firstField instanceof HTMLInputElement) {
+      window.setTimeout(() => firstField.focus(), 60);
+    }
+  };
+
+  const openOverlay = () => {
+    if (overlay.classList.contains('is-visible')) return;
+    hideAllSuggestions();
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal6-sale-open');
+
+    resetForm();
+    resetSections();
+    dataCache.clear();
+    loadingPromises.clear();
+    overlay.classList.add('is-visible');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    ensureSectionData('products');
+    ensureSectionData('materials');
+
+    focusFirstField();
+  };
+
+  const closeOverlay = () => {
+    if (!overlay.classList.contains('is-visible')) return;
+    hideAllSuggestions();
+    overlay.classList.remove('is-visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = previousBodyOverflow;
+    document.body.classList.remove('modal6-sale-open');
+    previousBodyOverflow = '';
+    saleFieldInputsArray.forEach((input) => input.blur());
+  };
+
+  const handleDocumentKeyDown = (event) => {
+    if (event.key === 'Escape' && overlay.classList.contains('is-visible')) {
+      event.preventDefault();
+      closeOverlay();
+    }
+  };
+
+  createSaleButton.addEventListener('click', openOverlay);
+  closeButton.addEventListener('click', closeOverlay);
+  addProductButton.addEventListener('click', () => addRow('products'));
+  addMaterialButton.addEventListener('click', () => addRow('materials'));
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      closeOverlay();
+    }
+  });
+
+  overlay.addEventListener('pointerdown', (event) => {
+    if (!(event.target instanceof HTMLElement)) return;
+    if (!event.target.closest('.modal6-sale-row')) {
+      hideAllSuggestions();
+    }
+  });
+
+  document.addEventListener('keydown', handleDocumentKeyDown);
 }
 initModal6();
 </script>
