@@ -1963,7 +1963,7 @@ export async function initModal9() {
         (row.attrs || '').split('|').forEach(pair => {
           const normalized = (pair || '').trim();
           if (!normalized) return;
-          const [p, v] = normalized.split(/[:=]/);
+          const [p, v] = normalized.split(/[&]/);
           const attrFrag = attrPairTemplate?.content.cloneNode(true);
           if (!attrFrag) return;
           const pInp = attrFrag.querySelector('.param-input');
