@@ -1960,25 +1960,28 @@ export async function initModal9() {
       const attrsWrap = rf.querySelector('.block1 .modal-content');
       if (attrsWrap) {
         attrsWrap.innerHTML = '';
-        (row.attrs || '').split('|').forEach(pair => {
-          const normalized = (pair || '').trim();
-          if (!normalized) return;
-          const [p, v] = normalized.split(/[&]/);
-          const attrFrag = attrPairTemplate?.content.cloneNode(true);
-          if (!attrFrag) return;
-          const pInp = attrFrag.querySelector('.param-input');
-          const vInp = attrFrag.querySelector('.value-input');
-          if (pInp) {
-            pInp.value = (p || '').trim();
-            pInp.readOnly = true;
-          }
-          if (vInp) {
-            vInp.value = (v || '').trim();
-            vInp.readOnly = true;
-          }
-          attrsWrap.appendChild(attrFrag);
-        });
-      }
+        function parseAttrsString(s) {
+  return (s || '').split('|').map(pair => {
+    const t = (pair || '').trim();
+    if (!t) return null;
+
+    // 1) если встретится '&' (на будущее, если вдруг понадобится)
+    const amp = t.indexOf('&');
+    if (amp >= 0) {
+      return { param: t.slice(0, amp).trim(), value: t.slice(amp + 1).trim() };
+    }
+
+    // 2) иначе разделяем ТОЛЬКО по первому ':' или '='
+    const m = t.split(/[:=]/);
+    if (m.length >= 2) {
+      const param = m.shift().trim();
+      const value = m.join('=').trim(); // сохраняем '=' внутри значения
+      return { param, value };
+    }
+
+    return { param: t, value: '' };
+  }).filter(Boolean);
+}
       const sels = selectionMap[row.id] || [];
       const block2 = rf.querySelector('.block2 .modal-content');
       if (block2) {
@@ -2125,11 +2128,11 @@ export async function initModal9() {
       return;
     }
     const { data, error } = await supabase
-      .from(POS_TABLE)
-      .select(
-        'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, pos_number_int, name, qty, unit, attrs'
-      )
+  .from(POS_TABLE)
+  .select(
+    'file_number, user_login, file_name, id, spec_id,' +
+    'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+  )
      .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
