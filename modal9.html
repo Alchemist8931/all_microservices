@@ -1065,73 +1065,12 @@ export async function initModal9() {
   const SELECT_TABLE = 'modal9_page1_positions_select';
   // URLs функций не используются напрямую; оставлены для совместимости
   const STATUS_TABLE = 'modal9_selector_status';
-  const PROJECT_URL = 'https://jviswahajwmwibedxcll.supabase.co'; // один источник истины
-  const PARSER_URL  = `${PROJECT_URL}/functions/v1/modal9-parser`;
-  const SELECTOR_URL= `${PROJECT_URL}/functions/v1/modal9-selector`;
+  const PARSER_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-parser';
+  const SELECTOR_URL = 'https://jviswahajwmwibedxcll.supabase.co/functions/v1/modal9-selector';
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
   const HISTORY_LIMIT_DEFAULT = 30;
   const HISTORY_LIMIT_STEP = 30;
   const AUTO_REFRESH_INTERVAL = 20000;
-
-  const authUserId = window.AUTH_ID || window.AUTH_USER_ID || null;
-  const rawUserKey = window.USER_KEY || window.USERKEY || null;
-  const localUserId = window.LOCAL_USER_ID || null;
-  const isAdmin = Boolean(window.IS_ADMIN);
-  let DB_COMPANY_ID = window.companyId || window.companyID || null;
-  let resolvingCompanyIdPromise = null;
-
-  const resolveCompanyId = async () => {
-    if (DB_COMPANY_ID) return DB_COMPANY_ID;
-    if (!supabase) return null;
-    if (resolvingCompanyIdPromise) return resolvingCompanyIdPromise;
-
-    const userKey = rawUserKey || authUserId || null;
-    const tablesToCheck = isAdmin ? ['administrators', 'employees'] : ['employees', 'administrators'];
-
-    resolvingCompanyIdPromise = (async () => {
-      for (const table of tablesToCheck) {
-        try {
-          let query = supabase
-            .from(table)
-            .select('company_id')
-            .limit(1);
-
-          if (localUserId) {
-            query = query.eq('id', localUserId);
-          } else if (userKey) {
-            query = query.eq('user_key', userKey);
-          } else {
-            continue;
-          }
-
-          const { data, error } = await query;
-          if (error) {
-            console.warn(`[modal9] resolveCompanyId ${table} error:`, error);
-            continue;
-          }
-
-          if (Array.isArray(data) && data.length) {
-            const companyId = data[0]?.company_id ?? null;
-            if (companyId) {
-              DB_COMPANY_ID = companyId;
-              if (!window.companyId) window.companyId = companyId;
-              return companyId;
-            }
-          }
-        } catch (err) {
-          console.warn(`[modal9] resolveCompanyId ${table} exception:`, err);
-        }
-      }
-
-      return DB_COMPANY_ID;
-    })();
-
-    try {
-      return await resolvingCompanyIdPromise;
-    } finally {
-      resolvingCompanyIdPromise = null;
-    }
-  };
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -1581,17 +1520,11 @@ export async function initModal9() {
    if (!selectedFile || uploadBtn.classList.contains('loading')) return;
     startBtnLoad();
 
-    const { data: { session } = {}, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('[modal9] getSession error before upload:', sessionError);
-    }
-    if (!session?.user) {
-      uploadStatus.textContent = 'Необходим вход';
-      stopBtnLoad();
-      return;
-    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { uploadStatus.textContent = 'Необходим вход'; stopBtnLoad(); return; }
 
-    const ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
+    const ext = selectedFile.name.split('.').pop().toLowerCase();
+
     if (!ALLOWED_EXTS.includes(ext)) {
       uploadStatus.textContent = 'Недопустимый тип файла';
       stopBtnLoad();
@@ -1613,7 +1546,6 @@ export async function initModal9() {
     xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
     xhr.setRequestHeader('apikey', window.SUPABASE_ANON_KEY);
     xhr.setRequestHeader('x-upsert', 'true');
-    xhr.setRequestHeader('Content-Type', selectedFile.type || 'application/octet-stream');
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
         const percent = Math.round((e.loaded / e.total) * 100);
@@ -1633,111 +1565,38 @@ export async function initModal9() {
     try {
       await uploadPromise;
     } catch (e) {
-      uploadStatus.textContent = 'Ошибка upload: ' + (e?.message || e);
+      uploadStatus.textContent = 'Ошибка upload: ' + e.message;
       stopBtnLoad();
       return;
     }
     uploadProgress.value = 100;
 
-    const userLogin = session.user.email
-      || session.user.user_metadata?.login
-      || window.USER_LOGIN
-      || '';
-    const sessionCompanyId = session.user.user_metadata?.company_id
-      || session.user.app_metadata?.company_id
-      || null;
-    let companyId = window.companyId || window.companyID || sessionCompanyId || null;
-    if (!companyId) {
-      companyId = await resolveCompanyId();
-    }
-    if (!companyId) {
-      uploadStatus.textContent = 'Не удалось определить компанию';
-      uploadProgress.classList.remove('running');
-      uploadProgress.style.display = 'none';
-      stopBtnLoad();
-      return;
-    }
-    companyId = String(companyId);
-
-    const optionalInsertFields = {};
-    const authUserId = session.user.id || window.AUTH_ID || null;
-    if (authUserId) {
-      optionalInsertFields.auth_user_id = String(authUserId);
-    }
-    const resolvedUserKey = session.user.user_metadata?.user_key
-      || window.USER_KEY
-      || null;
-    if (resolvedUserKey) {
-      optionalInsertFields.user_key = String(resolvedUserKey);
-    }
-
-    const payloadBase = {
-      user_login: userLogin,
-      file_path: filePath,
-      file_name: selectedFile.name,
-      file_ext: ext,
-      status: 'загружено',
-      company_id: companyId,
-      file_size: typeof selectedFile.size === 'number' ? selectedFile.size : null,
-    };
-
-    const attemptInsert = async (payload) => {
-      return supabase
+    const { data: insertedRow, error: regErr } = await supabase
         .from(TABLE)
-      .insert(payload)
+        .insert({
+            user_login: window.USER_LOGIN || '',
+            file_path: filePath,
+            file_name: selectedFile.name,
+            file_ext: ext,
+             status: 'загружено'
+        })
         .select('*')
         .single();
-    };
-
-    let insertPayload = { ...payloadBase, ...optionalInsertFields };
-    if (insertPayload.file_size === null) delete insertPayload.file_size;
-    let insertedRow = null;
-    let regErr = null;
-
-    const performInsert = async () => {
-      const { data, error } = await attemptInsert(insertPayload);
-      insertedRow = data || null;
-      regErr = error || null;
-    };
-
-    await performInsert();
 
     if (regErr) {
-        const errText = `${regErr.message || ''} ${regErr.details || ''}`.toLowerCase();
-      let payloadChanged = false;
-      ['auth_user_id', 'user_key', 'file_size'].forEach((field) => {
-        if (errText.includes(field.toLowerCase()) && field in insertPayload) {
-          delete insertPayload[field];
-          payloadChanged = true;
-        }
-      });
-      if (/duplicate key/i.test(regErr.message || '') && insertPayload.file_path) {
-        insertPayload.file_path = `${filePath}-dup-${Date.now()}`;
-        payloadChanged = true;
+        uploadStatus.textContent = 'Ошибка записи в реестр';
+        stopBtnLoad();
+        return;
       }
-      if (payloadChanged) {
-        await performInsert();
-      }
-    }
-
-    if (regErr) {
-      console.error('[modal9] registry insert error:', regErr);
-      const errorMessage = regErr.message || regErr.details || 'Ошибка записи в реестр';
-      uploadStatus.textContent = `Ошибка записи в реестр: ${errorMessage}`;
-      uploadProgress.classList.remove('running');
-      uploadProgress.style.display = 'none';
-      stopBtnLoad();
-      return;
-    }
 
      uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
-    uploadProgress.classList.remove('running');
-    uploadProgress.classList.add('done', 'fade-out');
-    setTimeout(() => {
-      uploadProgress.style.display = 'none';
-      uploadProgress.classList.remove('done', 'fade-out');
-    }, 1000);
-    stopBtnLoad();
+      uploadProgress.classList.remove('running');
+      uploadProgress.classList.add('done', 'fade-out');
+      setTimeout(() => {
+        uploadProgress.style.display = 'none';
+        uploadProgress.classList.remove('done', 'fade-out');
+      }, 1000);
+      stopBtnLoad();
 
      try {
         await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', insertedRow.id);
@@ -2098,51 +1957,28 @@ export async function initModal9() {
       if (qtyInput) qtyInput.value = row.qty || '';
       const unitInput = rf.querySelector('[data-field="unit"]');
       if (unitInput) unitInput.value = row.unit || '';
-      // внутри updateSpecContent, в rows.forEach(row => { ... })
-const attrsWrap = rf.querySelector('.block1 .modal-content');
-if (attrsWrap) {
-  attrsWrap.innerHTML = '';
-
-  // ваш парсер можно оставить как есть
-  function parseAttrsString(s) {
-    return (s || '').split('|').map(pair => {
-      const t = (pair || '').trim();
-      if (!t) return null;
-
-      // запасной вариант — если когда-нибудь решите использовать '&'
-      const amp = t.indexOf('&');
-      if (amp >= 0) {
-        return { param: t.slice(0, amp).trim(), value: t.slice(amp + 1).trim() };
+      const attrsWrap = rf.querySelector('.block1 .modal-content');
+      if (attrsWrap) {
+        attrsWrap.innerHTML = '';
+        (row.attrs || '').split('|').forEach(pair => {
+          const normalized = (pair || '').trim();
+          if (!normalized) return;
+          const [p, v] = normalized.split(/[&]/);
+          const attrFrag = attrPairTemplate?.content.cloneNode(true);
+          if (!attrFrag) return;
+          const pInp = attrFrag.querySelector('.param-input');
+          const vInp = attrFrag.querySelector('.value-input');
+          if (pInp) {
+            pInp.value = (p || '').trim();
+            pInp.readOnly = true;
+          }
+          if (vInp) {
+            vInp.value = (v || '').trim();
+            vInp.readOnly = true;
+          }
+          attrsWrap.appendChild(attrFrag);
+        });
       }
-
-      // разделяем ТОЛЬКО по первому ':' или '=' (старые записи с '=' тоже поддержатся)
-      const m = t.split(/[:=]/);
-      if (m.length >= 2) {
-        const param = m.shift().trim();
-        const value = m.join('=').trim(); // сохраняем '=' внутри значения
-        return { param, value };
-      }
-
-      return { param: t, value: '' };
-    }).filter(Boolean);
-  }
-
-  // ← ЭТО и есть «сам рендер»
-  const pairs = Array.isArray(row.attrs_json) && row.attrs_json.length
-    ? row.attrs_json
-    : parseAttrsString(row.attrs);
-
-  pairs.forEach(({ param, value }) => {
-    const attrFrag = attrPairTemplate?.content.cloneNode(true);
-    if (!attrFrag) return;
-    const pInp = attrFrag.querySelector('.param-input');
-    const vInp = attrFrag.querySelector('.value-input');
-    if (pInp) { pInp.value = param || ''; pInp.readOnly = true; }
-    if (vInp) { vInp.value = value || ''; vInp.readOnly = true; }
-    attrsWrap.appendChild(attrFrag);
-  });
-}
-
       const sels = selectionMap[row.id] || [];
       const block2 = rf.querySelector('.block2 .modal-content');
       if (block2) {
@@ -2289,11 +2125,11 @@ if (attrsWrap) {
       return;
     }
     const { data, error } = await supabase
-  .from(POS_TABLE)
-  .select(
-    'file_number, user_login, file_name, id, spec_id,' +
-    'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
-  )
+      .from(POS_TABLE)
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, pos_number_int, name, qty, unit, attrs'
+      )
      .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
@@ -3301,7 +3137,7 @@ if (attrsWrap) {
       data: { session },
     } = await supabase.auth.getSession();
     if (session) {
-      try { await fetch(`${SELECTOR_URL}?ping=1`, { method: 'GET' }); } catch (_) {}
+      await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
     }
   } catch (_) {}
 
