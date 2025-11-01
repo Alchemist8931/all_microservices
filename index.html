@@ -721,48 +721,6 @@
     }
     window.hashPassword = hashPassword;
 
-    async function syncAuthUserMetadata(profile, authInfo) {
-      if (!profile || !authInfo) {
-        return { user: authInfo || null, updated: false };
-      }
-
-      const currentMetadata = (authInfo.user_metadata || {});
-      const expectedLogin = profile.login || profile.email || profile.last_name || '';
-      const updates = {};
-
-      if (profile.company_id && currentMetadata.company_id !== profile.company_id) {
-        updates.company_id = profile.company_id;
-      }
-      if (profile.company_name && currentMetadata.company_name !== profile.company_name) {
-        updates.company_name = profile.company_name;
-      }
-      if (profile.user_key && currentMetadata.user_key !== profile.user_key) {
-        updates.user_key = profile.user_key;
-      }
-      if (expectedLogin && currentMetadata.login !== expectedLogin) {
-        updates.login = expectedLogin;
-      }
-
-      if (!Object.keys(updates).length) {
-        return { user: authInfo, updated: false };
-      }
-
-      try {
-        const { data, error } = await supabase.auth.updateUser({ data: updates });
-        if (error) {
-          console.error('Не удалось обновить метаданные пользователя:', error);
-          return { user: authInfo, updated: false };
-        }
-        if (data?.user) {
-          return { user: data.user, updated: true };
-        }
-      } catch (err) {
-        console.error('Ошибка при обновлении метаданных пользователя:', err);
-      }
-
-      return { user: authInfo, updated: false };
-    }
-
     // Прелоадер при загрузке index.html
     document.addEventListener('DOMContentLoaded', () => {
       preloader.classList.add('visible');
@@ -834,19 +792,6 @@
           throw loginErr;
         }
         loginData = ld;
-        if (loginData?.user) {
-          const { user: syncedUser, updated } = await syncAuthUserMetadata(user, loginData.user);
-          if (syncedUser && loginData.user !== syncedUser) {
-            loginData.user = syncedUser;
-          }
-          if (updated) {
-            try {
-              await supabase.auth.getSession();
-            } catch (refreshErr) {
-              console.error('Ошибка обновления сессии после изменения метаданных:', refreshErr);
-            }
-          }
-        }
       } catch (e) {
         console.error('Custom auth exception', e);
         alert('Ошибка авторизации: ' + (e.message || e.description || e));
@@ -860,8 +805,7 @@
       window.LOCAL_USER_ID = user.id;
       window.AUTH_ID = loginData?.user?.id || user.id;
       // ▼ 1. Сохраняем уникальный ключ пользователя глобально
-      const metadataUserKey = loginData?.user?.user_metadata?.user_key;
-      window.USER_KEY = metadataUserKey || user.user_key || window.AUTH_ID || user.id || '';
+      window.USER_KEY = user.user_key || window.AUTH_ID || user.id || '';
       window.IS_ADMIN = user.is_admin;
       window.USER_LEVELS = user.menu_levels || '';
       window.USER_LOGIN  = user.login || user.email || user.last_name || '';
