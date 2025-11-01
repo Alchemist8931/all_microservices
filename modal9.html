@@ -1581,11 +1581,17 @@ export async function initModal9() {
    if (!selectedFile || uploadBtn.classList.contains('loading')) return;
     startBtnLoad();
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { uploadStatus.textContent = 'Необходим вход'; stopBtnLoad(); return; }
+    const { data: { session } = {}, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('[modal9] getSession error before upload:', sessionError);
+    }
+    if (!session?.user) {
+      uploadStatus.textContent = 'Необходим вход';
+      stopBtnLoad();
+      return;
+    }
 
-    const ext = selectedFile.name.split('.').pop().toLowerCase();
-
+    const ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
     if (!ALLOWED_EXTS.includes(ext)) {
       uploadStatus.textContent = 'Недопустимый тип файла';
       stopBtnLoad();
@@ -1627,18 +1633,18 @@ export async function initModal9() {
     try {
       await uploadPromise;
     } catch (e) {
-      uploadStatus.textContent = 'Ошибка upload: ' + e.message;
+      uploadStatus.textContent = 'Ошибка upload: ' + (e?.message || e);
       stopBtnLoad();
       return;
     }
     uploadProgress.value = 100;
 
-    const userLogin = session?.user?.email
-      || session?.user?.user_metadata?.login
+    const userLogin = session.user.email
+      || session.user.user_metadata?.login
       || window.USER_LOGIN
       || '';
-    const sessionCompanyId = session?.user?.user_metadata?.company_id
-      || session?.user?.app_metadata?.company_id
+    const sessionCompanyId = session.user.user_metadata?.company_id
+      || session.user.app_metadata?.company_id
       || null;
     let companyId = window.companyId || window.companyID || sessionCompanyId || null;
     if (!companyId) {
@@ -1651,24 +1657,73 @@ export async function initModal9() {
       stopBtnLoad();
       return;
     }
-    const payload = {
+    companyId = String(companyId);
+
+    const optionalInsertFields = {};
+    const authUserId = session.user.id || window.AUTH_ID || null;
+    if (authUserId) {
+      optionalInsertFields.auth_user_id = String(authUserId);
+    }
+    const resolvedUserKey = session.user.user_metadata?.user_key
+      || window.USER_KEY
+      || null;
+    if (resolvedUserKey) {
+      optionalInsertFields.user_key = String(resolvedUserKey);
+    }
+
+    const payloadBase = {
       user_login: userLogin,
       file_path: filePath,
       file_name: selectedFile.name,
       file_ext: ext,
       status: 'загружено',
       company_id: companyId,
+      file_size: typeof selectedFile.size === 'number' ? selectedFile.size : null,
     };
 
-    const { data: insertedRow, error: regErr } = await supabase
+    const attemptInsert = async (payload) => {
+      return supabase
         .from(TABLE)
       .insert(payload)
-      .select('*')
-      .single();
+        .select('*')
+        .single();
+    };
+
+    let insertPayload = { ...payloadBase, ...optionalInsertFields };
+    if (insertPayload.file_size === null) delete insertPayload.file_size;
+    let insertedRow = null;
+    let regErr = null;
+
+    const performInsert = async () => {
+      const { data, error } = await attemptInsert(insertPayload);
+      insertedRow = data || null;
+      regErr = error || null;
+    };
+
+    await performInsert();
 
     if (regErr) {
-        console.error('[modal9] registry insert error:', regErr);
-      uploadStatus.textContent = 'Ошибка записи в реестр';
+        const errText = `${regErr.message || ''} ${regErr.details || ''}`.toLowerCase();
+      let payloadChanged = false;
+      ['auth_user_id', 'user_key', 'file_size'].forEach((field) => {
+        if (errText.includes(field.toLowerCase()) && field in insertPayload) {
+          delete insertPayload[field];
+          payloadChanged = true;
+        }
+      });
+      if (/duplicate key/i.test(regErr.message || '') && insertPayload.file_path) {
+        insertPayload.file_path = `${filePath}-dup-${Date.now()}`;
+        payloadChanged = true;
+      }
+      if (payloadChanged) {
+        await performInsert();
+      }
+    }
+
+    if (regErr) {
+      console.error('[modal9] registry insert error:', regErr);
+      const errorMessage = regErr.message || regErr.details || 'Ошибка записи в реестр';
+      uploadStatus.textContent = `Ошибка записи в реестр: ${errorMessage}`;
       uploadProgress.classList.remove('running');
       uploadProgress.style.display = 'none';
       stopBtnLoad();
@@ -1676,13 +1731,13 @@ export async function initModal9() {
     }
 
      uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
-      uploadProgress.classList.remove('running');
-      uploadProgress.classList.add('done', 'fade-out');
-      setTimeout(() => {
-        uploadProgress.style.display = 'none';
-        uploadProgress.classList.remove('done', 'fade-out');
-      }, 1000);
-      stopBtnLoad();
+    uploadProgress.classList.remove('running');
+    uploadProgress.classList.add('done', 'fade-out');
+    setTimeout(() => {
+      uploadProgress.style.display = 'none';
+      uploadProgress.classList.remove('done', 'fade-out');
+    }, 1000);
+    stopBtnLoad();
 
      try {
         await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', insertedRow.id);
