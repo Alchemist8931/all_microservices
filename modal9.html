@@ -1547,6 +1547,7 @@ export async function initModal9() {
     xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
     xhr.setRequestHeader('apikey', window.SUPABASE_ANON_KEY);
     xhr.setRequestHeader('x-upsert', 'true');
+    xhr.setRequestHeader('Content-Type', selectedFile.type || 'application/octet-stream');
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
         const percent = Math.round((e.loaded / e.total) * 100);
