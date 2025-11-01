@@ -1573,23 +1573,34 @@ export async function initModal9() {
     }
     uploadProgress.value = 100;
 
+    const userLogin = session?.user?.email
+      || session?.user?.user_metadata?.login
+      || window.USER_LOGIN
+      || '';
+    const companyId = window.companyId || window.companyID || null;
+    const payload = {
+      user_login: userLogin,
+      file_path: filePath,
+      file_name: selectedFile.name,
+      file_ext: ext,
+      status: 'загружено',
+    };
+    if (companyId) payload.company_id = companyId;
+
     const { data: insertedRow, error: regErr } = await supabase
         .from(TABLE)
-        .insert({
-            user_login: window.USER_LOGIN || '',
-            file_path: filePath,
-            file_name: selectedFile.name,
-            file_ext: ext,
-             status: 'загружено'
-        })
-        .select('*')
-        .single();
+      .insert(payload)
+      .select('*')
+      .single();
 
     if (regErr) {
-        uploadStatus.textContent = 'Ошибка записи в реестр';
-        stopBtnLoad();
-        return;
-      }
+        console.error('[modal9] registry insert error:', regErr);
+      uploadStatus.textContent = 'Ошибка записи в реестр';
+      uploadProgress.classList.remove('running');
+      uploadProgress.style.display = 'none';
+      stopBtnLoad();
+      return;
+    }
 
      uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
       uploadProgress.classList.remove('running');
