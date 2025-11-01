@@ -1637,9 +1637,19 @@ export async function initModal9() {
       || session?.user?.user_metadata?.login
       || window.USER_LOGIN
       || '';
-    let companyId = window.companyId || window.companyID || null;
+    const sessionCompanyId = session?.user?.user_metadata?.company_id
+      || session?.user?.app_metadata?.company_id
+      || null;
+    let companyId = window.companyId || window.companyID || sessionCompanyId || null;
     if (!companyId) {
       companyId = await resolveCompanyId();
+    }
+    if (!companyId) {
+      uploadStatus.textContent = 'Не удалось определить компанию';
+      uploadProgress.classList.remove('running');
+      uploadProgress.style.display = 'none';
+      stopBtnLoad();
+      return;
     }
     const payload = {
       user_login: userLogin,
@@ -1647,8 +1657,8 @@ export async function initModal9() {
       file_name: selectedFile.name,
       file_ext: ext,
       status: 'загружено',
+      company_id: companyId,
     };
-    if (companyId) payload.company_id = companyId;
 
     const { data: insertedRow, error: regErr } = await supabase
         .from(TABLE)
