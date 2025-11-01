@@ -1073,6 +1073,66 @@ export async function initModal9() {
   const HISTORY_LIMIT_STEP = 30;
   const AUTO_REFRESH_INTERVAL = 20000;
 
+  const authUserId = window.AUTH_ID || window.AUTH_USER_ID || null;
+  const rawUserKey = window.USER_KEY || window.USERKEY || null;
+  const localUserId = window.LOCAL_USER_ID || null;
+  const isAdmin = Boolean(window.IS_ADMIN);
+  let DB_COMPANY_ID = window.companyId || window.companyID || null;
+  let resolvingCompanyIdPromise = null;
+
+  const resolveCompanyId = async () => {
+    if (DB_COMPANY_ID) return DB_COMPANY_ID;
+    if (!supabase) return null;
+    if (resolvingCompanyIdPromise) return resolvingCompanyIdPromise;
+
+    const userKey = rawUserKey || authUserId || null;
+    const tablesToCheck = isAdmin ? ['administrators', 'employees'] : ['employees', 'administrators'];
+
+    resolvingCompanyIdPromise = (async () => {
+      for (const table of tablesToCheck) {
+        try {
+          let query = supabase
+            .from(table)
+            .select('company_id')
+            .limit(1);
+
+          if (localUserId) {
+            query = query.eq('id', localUserId);
+          } else if (userKey) {
+            query = query.eq('user_key', userKey);
+          } else {
+            continue;
+          }
+
+          const { data, error } = await query;
+          if (error) {
+            console.warn(`[modal9] resolveCompanyId ${table} error:`, error);
+            continue;
+          }
+
+          if (Array.isArray(data) && data.length) {
+            const companyId = data[0]?.company_id ?? null;
+            if (companyId) {
+              DB_COMPANY_ID = companyId;
+              if (!window.companyId) window.companyId = companyId;
+              return companyId;
+            }
+          }
+        } catch (err) {
+          console.warn(`[modal9] resolveCompanyId ${table} exception:`, err);
+        }
+      }
+
+      return DB_COMPANY_ID;
+    })();
+
+    try {
+      return await resolvingCompanyIdPromise;
+    } finally {
+      resolvingCompanyIdPromise = null;
+    }
+  };
+
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
   const navSlider = root.querySelector('nav.nav_copy .slider');
@@ -1577,7 +1637,10 @@ export async function initModal9() {
       || session?.user?.user_metadata?.login
       || window.USER_LOGIN
       || '';
-    const companyId = window.companyId || window.companyID || null;
+    let companyId = window.companyId || window.companyID || null;
+    if (!companyId) {
+      companyId = await resolveCompanyId();
+    }
     const payload = {
       user_login: userLogin,
       file_path: filePath,
