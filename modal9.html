@@ -1814,43 +1814,47 @@ export async function initModal9() {
   let pendingLoad = null;
 
   function computeSpecHash(specId) {
-    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
-    const summary = rows.map(row => {
-      const selections = (selectionMap[row.id] || []).map(sel => ({
-        article: sel.article ?? '',
-        model_name: sel.model_name ?? '',
-        qty: sel.qty ?? '',
-        unit: sel.unit ?? '',
-        price: sel.price ?? '',
-        sum: sel.sum ?? '',
-        price1_amount: sel.price1_amount ?? '',
-        price1_currency: sel.price1_currency ?? '',
-        price1_store: sel.price1_store ?? '',
-        price1_url: sel.price1_url ?? '',
-        price2_amount: sel.price2_amount ?? '',
-        price2_currency: sel.price2_currency ?? '',
-        price2_store: sel.price2_store ?? '',
-        price2_url: sel.price2_url ?? '',
-        price3_amount: sel.price3_amount ?? '',
-        price3_currency: sel.price3_currency ?? '',
-        price3_store: sel.price3_store ?? '',
-        price3_url: sel.price3_url ?? '',
-        pricer_status: sel.pricer_status ?? '',
-        prices_json: sel.prices_json ?? '',
-      }));
-      return {
-        id: row.id,
-        pos_number: row.pos_number ?? '',
-        pos_number_int: row.pos_number_int ?? '',
-        name: row.name ?? '',
-        qty: row.qty ?? '',
-        unit: row.unit ?? '',
-        attrs: row.attrs ?? '',
-        selections,
-      };
-    });
-    return JSON.stringify(summary);
-  }
+  const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+  const summary = rows.map(row => {
+    const selections = (selectionMap[row.id] || []).map(sel => ({
+      article: sel.article ?? '',
+      model_name: sel.model_name ?? '',
+      qty: sel.qty ?? '',
+      unit: sel.unit ?? '',
+      price: sel.price ?? '',
+      sum: sel.sum ?? '',
+      price1_amount: sel.price1_amount ?? '',
+      price1_currency: sel.price1_currency ?? '',
+      price1_store: sel.price1_store ?? '',
+      price1_url: sel.price1_url ?? '',
+      price2_amount: sel.price2_amount ?? '',
+      price2_currency: sel.price2_currency ?? '',
+      price2_store: sel.price2_store ?? '',
+      price2_url: sel.price2_url ?? '',
+      price3_amount: sel.price3_amount ?? '',
+      price3_currency: sel.price3_currency ?? '',
+      price3_store: sel.price3_store ?? '',
+      price3_url: sel.price3_url ?? '',
+      pricer_status: sel.pricer_status ?? '',
+      prices_json: sel.prices_json ?? '',
+    }));
+
+    return {
+      id: row.id,
+      pos_number: row.pos_number ?? '',
+      pos_number_int: row.pos_number_int ?? '',
+      name: row.name ?? '',
+      qty: row.qty ?? '',
+      unit: row.unit ?? '',
+      // ⬇ ключевая строка: приоритет attrs_json, но сохраняем и attrs, чтобы хэш менялся в обоих случаях
+      attrs: row.attrs ?? '',
+      attrs_json: Array.isArray(row.attrs_json) ? row.attrs_json : null,
+      selections,
+    };
+  });
+  return JSON.stringify(summary);
+}
+
 
   function createSpecContainer(specId, options = {}) {
     const { mode = 'history' } = options;
@@ -1934,6 +1938,34 @@ export async function initModal9() {
     (blockToOpen || row.querySelector('.modal-block') || row)?.classList.add('open');
   }
 
+  function parseAttrsString(s) {
+  return (s || '')
+    .split('|')
+    .map(pair => {
+      const t = (pair || '').trim();
+      if (!t) return null;
+
+      // 1) поддержка '&' как потенциального разделителя "param & value"
+      const amp = t.indexOf('&');
+      if (amp >= 0) {
+        return { param: t.slice(0, amp).trim(), value: t.slice(amp + 1).trim() };
+      }
+
+      // 2) иначе делим ТОЛЬКО по первому ':' или '='
+      const i = t.search(/[:=]/);
+      if (i >= 0) {
+        const param = t.slice(0, i).trim();
+        const value = t.slice(i + 1).trim(); // сохраняем остальные '=' внутри значения
+        return { param, value };
+      }
+
+      // 3) если разделителя нет — всё считаем параметром
+      return { param: t, value: '' };
+    })
+    .filter(Boolean);
+}
+
+
   function updateSpecContent(content, specId, options = {}) {
     if (!content || !specRowTemplate) return;
     const { mode = 'history' } = options;
@@ -1958,27 +1990,25 @@ export async function initModal9() {
       const unitInput = rf.querySelector('[data-field="unit"]');
       if (unitInput) unitInput.value = row.unit || '';
       const attrsWrap = rf.querySelector('.block1 .modal-content');
-      if (attrsWrap) {
-        attrsWrap.innerHTML = '';
-        (row.attrs || '').split('|').forEach(pair => {
-          const normalized = (pair || '').trim();
-          if (!normalized) return;
-          const [p, v] = normalized.split(/[&]/);
-          const attrFrag = attrPairTemplate?.content.cloneNode(true);
-          if (!attrFrag) return;
-          const pInp = attrFrag.querySelector('.param-input');
-          const vInp = attrFrag.querySelector('.value-input');
-          if (pInp) {
-            pInp.value = (p || '').trim();
-            pInp.readOnly = true;
-          }
-          if (vInp) {
-            vInp.value = (v || '').trim();
-            vInp.readOnly = true;
-          }
-          attrsWrap.appendChild(attrFrag);
-        });
-      }
+if (attrsWrap) {
+  attrsWrap.innerHTML = '';
+
+  // приоритет JSON; если его нет — аккуратно парсим строку
+  const pairs = (Array.isArray(row.attrs_json) && row.attrs_json.length)
+    ? row.attrs_json
+    : parseAttrsString(row.attrs);
+
+  pairs.forEach(({ param, value }) => {
+    const attrFrag = attrPairTemplate?.content.cloneNode(true);
+    if (!attrFrag) return;
+    const pInp = attrFrag.querySelector('.param-input');
+    const vInp = attrFrag.querySelector('.value-input');
+    if (pInp) { pInp.value = (param || ''); pInp.readOnly = true; }
+    if (vInp) { vInp.value = (value || ''); vInp.readOnly = true; }
+    attrsWrap.appendChild(attrFrag);
+  });
+}
+
       const sels = selectionMap[row.id] || [];
       const block2 = rf.querySelector('.block2 .modal-content');
       if (block2) {
@@ -2125,14 +2155,15 @@ export async function initModal9() {
       return;
     }
     const { data, error } = await supabase
-      .from(POS_TABLE)
-      .select(
-        'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, pos_number_int, name, qty, unit, attrs'
-      )
-     .in('spec_id', specIds)
-      .order('spec_id', { ascending: false })
-      .order('pos_number_int', { ascending: true });
+  .from(POS_TABLE)
+  .select(
+    'file_number, user_login, file_name, id, spec_id,' +
+    'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+  )
+  .in('spec_id', specIds)
+  .order('spec_id', { ascending: false })
+  .order('pos_number_int', { ascending: true });
+
 
     if (error) {
       console.error(error);
