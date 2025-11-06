@@ -746,15 +746,15 @@
             <label class="input-label">ext</label>
           </div>
           <div class="input-container">
-            <input type="text" class="styled_input_bar" data-field="status" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="парсинг">
+            <input type="text" class="styled_input_bar" data-field="status_parser" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="парсинг">
             <label class="input-label">парсинг</label>
           </div>
           <div class="input-container">
-            <input type="text" class="styled_input_bar" data-field="status2" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="подбор">
+            <input type="text" class="styled_input_bar" data-field="status_selector" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="подбор">
             <label class="input-label">подбор</label>
           </div>
           <div class="input-container">
-            <input type="text" class="styled_input_bar" data-field="status3" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="проценка">
+            <input type="text" class="styled_input_bar" data-field="status_pricer" style="width: 166px; text-transform: uppercase; text-align: center;" readonly placeholder="проценка">
             <label class="input-label">проценка</label>
           </div>
           <div class="input-container">
@@ -1651,7 +1651,7 @@ export async function initModal9() {
       const oldMap = { ...lastHistoryStatus };
       let query = supabase
         .from(TABLE)
-        .select('id, file_number, user_login, created_at, file_name, file_ext, status', { count: 'exact' })
+        .select('id, file_number, user_login, created_at, file_name, file_ext, status, status_parser, status_selector, status_pricer', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       try {
@@ -1677,6 +1677,9 @@ export async function initModal9() {
           `status.ilike.${pattern}`,
           `id::text.ilike.${pattern}`,
           `created_at::text.ilike.${pattern}`,
+          `status_parser.ilike.${pattern}`,
+          `status_selector.ilike.${pattern}`,
+          `status_pricer.ilike.${pattern}`,
         ].join(','));
       }
 
@@ -1772,7 +1775,7 @@ export async function initModal9() {
         } else if (el.textContent !== (val || '')) {
           el.textContent = val || '';
         }
-        if (field === 'status') {
+        if (field === 'status' || field === 'status_parser' || field === 'status_selector' || field === 'status_pricer') {
           updateStatus(el, val);
           if (oldMap[item.id] && oldMap[item.id] !== val) animateStatus(el, val);
           updateSpecProgress(item.id, val);
@@ -3002,22 +3005,20 @@ if (attrsWrap) {
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const { sent, received, total } = await getSelectorProgress(specId);
-      let status;
-      if (total <= 0) status = 'BLOCK 2 ( готово )';
-      else if (received >= total) status = 'BLOCK 2 ( готово )';
-      else if (sent > 0) status = `BLOCK 2 ( ${sent} / ${received} / ${total} )`;
-      else status = 'подготовка';
-      if (statusEl) updateStatus(statusEl, status);
-      setProgress(progressEl, { status, sent, received, total });
-      if (status !== lastStatus) {
-        lastStatus = status;
-        try {
-          await supabase.from(TABLE).update({ status }).eq('id', specId);
-        } catch (err) {
-          console.error('trackSelectorProgress status update error:', err);
-        }
-      }
-      if (status === 'BLOCK 2 ( готово )') break;
+      const countsText = `${sent} / ${received} / ${total}`;
+ // Обновляем второй столбец в UI (строка истории)
+ const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+ const selEl = row?.querySelector('[data-field="status_selector"]');
+ if (selEl) updateStatus(selEl, countsText);
+
+ // Ступени прогресса продолжаем подсвечивать через численные значения
+ setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
+
+ if (countsText !== lastStatus) {
+   lastStatus = countsText;
+   await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
+ }
+ if (total > 0 && received >= total) break;
       await delay(1000);
     }
 }
