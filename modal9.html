@@ -646,6 +646,37 @@
     .spec-action-btn--help::before {
       background-color: #d3bda7;
     }
+
+    /* --- блок обновлений --- */
+    .modal9-updates {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .modal9-update-card {
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(48, 119, 80, 0.25);
+      box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .modal9-update-title {
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--content-color);
+    }
+    .modal9-update-body {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--black-color, var(--content-color));
+      opacity: 0.9;
+    }
     
   </style>
   <div class="spec-context-menu" aria-hidden="true">
@@ -712,6 +743,23 @@
      <span class="toggle-text">демонстрация файлов компании</span>
    </div>
    <ul class="file-upload__list"></ul>
+
+    <!-- ИНФОРМАЦИЯ ОБ ОБНОВЛЕНИЯХ -->
+    <section class="modal9-updates" aria-label="Последние обновления">
+     <article class="modal9-update-card">
+       <h3 class="modal9-update-title">01.07 — запуск селектора</h3>
+       <p class="modal9-update-body">Добавлен повторный запуск шага BLOCK 2 / 2.1 непосредственно из карточки спецификации.</p>
+     </article>
+     <article class="modal9-update-card">
+       <h3 class="modal9-update-title">15.07 — трекер прогресса</h3>
+       <p class="modal9-update-body">Обновлён индикатор состояний: отображаются промежуточные статусы для парсинга, подбора и проценки.</p>
+     </article>
+     <article class="modal9-update-card">
+       <h3 class="modal9-update-title">22.07 — обращения в поддержку</h3>
+       <p class="modal9-update-body">В верхней панели появилась кнопка для создания обращения и автозаполнение номера спецификации.</p>
+     </article>
+   </section>
+    
  </div>
  <div class="modal9-scroll-wrapper">
  <div class="modal9-window glass3d">
