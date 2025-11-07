@@ -1355,7 +1355,7 @@ export async function initModal9() {
         if (record?.article) row.dataset.article = record.article;
         if (record?.pos_id) row.dataset.posId = String(record.pos_id);
       }
-    const setOffer = (n, amount, curr, store, url) => {
+      const setOffer = (n, amount, curr, store, url) => {
         const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
         const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
         const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
@@ -1387,7 +1387,7 @@ export async function initModal9() {
       setOffer(2, record?.price2_amount, record?.price2_currency, record?.price2_store, record?.price2_url);
       setOffer(3, record?.price3_amount, record?.price3_currency, record?.price3_store, record?.price3_url);
 
-    target.appendChild(frag);
+      target.appendChild(frag);
     });
   }
 
@@ -1507,7 +1507,7 @@ export async function initModal9() {
     } else {
       el.classList.remove('error');
     }
-}
+  }
 
   function animateStatus(el, newStatus) {
     if (!el) return;
@@ -1529,7 +1529,7 @@ export async function initModal9() {
   }
 
   uploadBtn.addEventListener('click', async () => {
-   if (!selectedFile || uploadBtn.classList.contains('loading')) return;
+    if (!selectedFile || uploadBtn.classList.contains('loading')) return;
     startBtnLoad();
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -1584,45 +1584,44 @@ export async function initModal9() {
     uploadProgress.value = 100;
 
     const { data: insertedRow, error: regErr } = await supabase
-        .from(TABLE)
-        .insert({
-            user_login: window.USER_LOGIN || '',
-            file_path: filePath,
-            file_name: selectedFile.name,
-            file_ext: ext,
-             status: 'загружено'
-        })
-        .select('*')
-        .single();
+      .from(TABLE)
+      .insert({
+        user_login: window.USER_LOGIN || '',
+        file_path: filePath,
+        file_name: selectedFile.name,
+        file_ext: ext
+      })
+      .select('*')
+      .single();
 
     if (regErr) {
-        uploadStatus.textContent = 'Ошибка записи в реестр';
-        stopBtnLoad();
-        return;
-      }
-
-     uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
-      uploadProgress.classList.remove('running');
-      uploadProgress.classList.add('done', 'fade-out');
-      setTimeout(() => {
-        uploadProgress.style.display = 'none';
-        uploadProgress.classList.remove('done', 'fade-out');
-      }, 1000);
+      uploadStatus.textContent = 'Ошибка записи в реестр';
       stopBtnLoad();
+      return;
+    }
 
-     try {
-        await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', insertedRow.id);
-        await supabase.functions.invoke('modal9-parser', {
-          body: { request_id: insertedRow.id },
-        });
-        await loadHistory();
-      } catch (err) {
-        console.error('modal9-parser error:', err);
-      }
+    uploadStatus.textContent = `Файл поставлен в очередь: ${insertedRow.file_number}`;
+    uploadProgress.classList.remove('running');
+    uploadProgress.classList.add('done', 'fade-out');
+    setTimeout(() => {
+      uploadProgress.style.display = 'none';
+      uploadProgress.classList.remove('done', 'fade-out');
+    }, 1000);
+    stopBtnLoad();
 
-      selectedFile = null;
-      fileInput.value = '';
-      renderFileList();
+    try {
+      // автозапуск modal9-parser
+      await supabase.functions.invoke('modal9-parser', {
+        body: { request_id: insertedRow.id },
+      });
+      await loadHistory();
+    } catch (err) {
+      console.error('modal9-parser error:', err);
+    }
+
+    selectedFile = null;
+    fileInput.value = '';
+    renderFileList();
   });
 
   let history = [];
@@ -1651,7 +1650,7 @@ export async function initModal9() {
       const oldMap = { ...lastHistoryStatus };
       let query = supabase
         .from(TABLE)
-        .select('id, file_number, user_login, created_at, file_name, file_ext, status, status_parser, status_selector, status_pricer', { count: 'exact' })
+        .select('id, file_number, user_login, created_at, file_name, file_ext, status_parser, status_selector, status_pricer', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       try {
@@ -1665,7 +1664,7 @@ export async function initModal9() {
         console.error('[modal9] loadHistory session error:', err);
       }
 
-    const searchValue = filterInput.value.trim();
+      const searchValue = filterInput.value.trim();
       if (searchValue) {
         const escaped = escapeSearchValue(searchValue);
         const pattern = `%${escaped}%`;
@@ -1674,7 +1673,6 @@ export async function initModal9() {
           `user_login.ilike.${pattern}`,
           `file_name.ilike.${pattern}`,
           `file_ext.ilike.${pattern}`,
-          `status.ilike.${pattern}`,
           `id::text.ilike.${pattern}`,
           `created_at::text.ilike.${pattern}`,
           `status_parser.ilike.${pattern}`,
@@ -1683,7 +1681,7 @@ export async function initModal9() {
         ].join(','));
       }
 
-    query = query.limit(historyLimit);
+      query = query.limit(historyLimit);
 
       const { data, error, count } = await query;
 
@@ -1696,8 +1694,15 @@ export async function initModal9() {
       historyTotalCount = typeof count === 'number' ? count : history.length;
       lastHistoryStatus = {};
       history.forEach(h => {
-        if (h?.id !== undefined) lastHistoryStatus[h.id] = h.status;
+        if (h?.id !== undefined) {
+          lastHistoryStatus[h.id] = {
+            status_parser:   h.status_parser,
+            status_selector: h.status_selector,
+            status_pricer:   h.status_pricer,
+          };
+        }
       });
+
       renderHistory(oldMap);
       applySecondFilter();
       updateLoadMoreVisibility();
@@ -1760,7 +1765,7 @@ export async function initModal9() {
             });
           }
         });
-      historyList.insertBefore(fragment, anchor);
+        historyList.insertBefore(fragment, anchor);
         rowEl = historyList.querySelector(`.history-item[data-spec-id="${idStr}"]`);
       }
       if (!rowEl) return;
@@ -1775,12 +1780,13 @@ export async function initModal9() {
         } else if (el.textContent !== (val || '')) {
           el.textContent = val || '';
         }
-        if (field === 'status' || field === 'status_parser' || field === 'status_selector' || field === 'status_pricer') {
-          updateStatus(el, val);
-          if (oldMap[item.id] && oldMap[item.id] !== val) animateStatus(el, val);
-          updateSpecProgress(item.id, val);
+        if (field === 'status_parser' || field === 'status_selector' || field === 'status_pricer') {
+          if (oldMap[item.id] && oldMap[item.id][field] !== val) {
+            animateStatus(el, val);
+          }
+          updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
         }
-        });
+      });
       if (anchor && rowEl !== anchor) {
         historyList.insertBefore(rowEl, anchor);
       }
@@ -1829,47 +1835,45 @@ export async function initModal9() {
   let pendingLoad = null;
 
   function computeSpecHash(specId) {
-  const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
-  const summary = rows.map(row => {
-    const selections = (selectionMap[row.id] || []).map(sel => ({
-      article: sel.article ?? '',
-      model_name: sel.model_name ?? '',
-      qty: sel.qty ?? '',
-      unit: sel.unit ?? '',
-      price: sel.price ?? '',
-      sum: sel.sum ?? '',
-      price1_amount: sel.price1_amount ?? '',
-      price1_currency: sel.price1_currency ?? '',
-      price1_store: sel.price1_store ?? '',
-      price1_url: sel.price1_url ?? '',
-      price2_amount: sel.price2_amount ?? '',
-      price2_currency: sel.price2_currency ?? '',
-      price2_store: sel.price2_store ?? '',
-      price2_url: sel.price2_url ?? '',
-      price3_amount: sel.price3_amount ?? '',
-      price3_currency: sel.price3_currency ?? '',
-      price3_store: sel.price3_store ?? '',
-      price3_url: sel.price3_url ?? '',
-      pricer_status: sel.pricer_status ?? '',
-      prices_json: sel.prices_json ?? '',
-    }));
+    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const summary = rows.map(row => {
+      const selections = (selectionMap[row.id] || []).map(sel => ({
+        article: sel.article ?? '',
+        model_name: sel.model_name ?? '',
+        qty: sel.qty ?? '',
+        unit: sel.unit ?? '',
+        price: sel.price ?? '',
+        sum: sel.sum ?? '',
+        price1_amount: sel.price1_amount ?? '',
+        price1_currency: sel.price1_currency ?? '',
+        price1_store: sel.price1_store ?? '',
+        price1_url: sel.price1_url ?? '',
+        price2_amount: sel.price2_amount ?? '',
+        price2_currency: sel.price2_currency ?? '',
+        price2_store: sel.price2_store ?? '',
+        price2_url: sel.price2_url ?? '',
+        price3_amount: sel.price3_amount ?? '',
+        price3_currency: sel.price3_currency ?? '',
+        price3_store: sel.price3_store ?? '',
+        price3_url: sel.price3_url ?? '',
+        pricer_status: sel.pricer_status ?? '',
+        prices_json: sel.prices_json ?? '',
+      }));
 
-    return {
-      id: row.id,
-      pos_number: row.pos_number ?? '',
-      pos_number_int: row.pos_number_int ?? '',
-      name: row.name ?? '',
-      qty: row.qty ?? '',
-      unit: row.unit ?? '',
-      // ⬇ ключевая строка: приоритет attrs_json, но сохраняем и attrs, чтобы хэш менялся в обоих случаях
-      attrs: row.attrs ?? '',
-      attrs_json: Array.isArray(row.attrs_json) ? row.attrs_json : null,
-      selections,
-    };
-  });
-  return JSON.stringify(summary);
-}
-
+      return {
+        id: row.id,
+        pos_number: row.pos_number ?? '',
+        pos_number_int: row.pos_number_int ?? '',
+        name: row.name ?? '',
+        qty: row.qty ?? '',
+        unit: row.unit ?? '',
+        attrs: row.attrs ?? '',
+        attrs_json: Array.isArray(row.attrs_json) ? row.attrs_json : null,
+        selections,
+      };
+    });
+    return JSON.stringify(summary);
+  }
 
   function createSpecContainer(specId, options = {}) {
     const { mode = 'history' } = options;
@@ -1899,8 +1903,8 @@ export async function initModal9() {
       container.insertBefore(progressFrag, content);
       if (progress) {
         initProgressHandlers(progress, specId);
-        const status = history.find(h => String(h.id) === idStr)?.status;
-        setProgress(progress, status);
+        // Прогресс вычисляем по ТРЁМ полям статусов
+        updateSpecProgress(idStr);
       }
     }
     const actions = insertActionButtons(container, specId);
@@ -1954,32 +1958,25 @@ export async function initModal9() {
   }
 
   function parseAttrsString(s) {
-  return (s || '')
-    .split('|')
-    .map(pair => {
-      const t = (pair || '').trim();
-      if (!t) return null;
-
-      // 1) поддержка '&' как потенциального разделителя "param & value"
-      const amp = t.indexOf('&');
-      if (amp >= 0) {
-        return { param: t.slice(0, amp).trim(), value: t.slice(amp + 1).trim() };
-      }
-
-      // 2) иначе делим ТОЛЬКО по первому ':' или '='
-      const i = t.search(/[:=]/);
-      if (i >= 0) {
-        const param = t.slice(0, i).trim();
-        const value = t.slice(i + 1).trim(); // сохраняем остальные '=' внутри значения
-        return { param, value };
-      }
-
-      // 3) если разделителя нет — всё считаем параметром
-      return { param: t, value: '' };
-    })
-    .filter(Boolean);
-}
-
+    return (s || '')
+      .split('|')
+      .map(pair => {
+        const t = (pair || '').trim();
+        if (!t) return null;
+        const amp = t.indexOf('&');
+        if (amp >= 0) {
+          return { param: t.slice(0, amp).trim(), value: t.slice(amp + 1).trim() };
+        }
+        const i = t.search(/[:=]/);
+        if (i >= 0) {
+          const param = t.slice(0, i).trim();
+          const value = t.slice(i + 1).trim();
+          return { param, value };
+        }
+        return { param: t, value: '' };
+      })
+      .filter(Boolean);
+  }
 
   function updateSpecContent(content, specId, options = {}) {
     if (!content || !specRowTemplate) return;
@@ -2005,24 +2002,21 @@ export async function initModal9() {
       const unitInput = rf.querySelector('[data-field="unit"]');
       if (unitInput) unitInput.value = row.unit || '';
       const attrsWrap = rf.querySelector('.block1 .modal-content');
-if (attrsWrap) {
-  attrsWrap.innerHTML = '';
-
-  // приоритет JSON; если его нет — аккуратно парсим строку
-  const pairs = (Array.isArray(row.attrs_json) && row.attrs_json.length)
-    ? row.attrs_json
-    : parseAttrsString(row.attrs);
-
-  pairs.forEach(({ param, value }) => {
-    const attrFrag = attrPairTemplate?.content.cloneNode(true);
-    if (!attrFrag) return;
-    const pInp = attrFrag.querySelector('.param-input');
-    const vInp = attrFrag.querySelector('.value-input');
-    if (pInp) { pInp.value = (param || ''); pInp.readOnly = true; }
-    if (vInp) { vInp.value = (value || ''); vInp.readOnly = true; }
-    attrsWrap.appendChild(attrFrag);
-  });
-}
+      if (attrsWrap) {
+        attrsWrap.innerHTML = '';
+        const pairs = (Array.isArray(row.attrs_json) && row.attrs_json.length)
+          ? row.attrs_json
+          : parseAttrsString(row.attrs);
+        pairs.forEach(({ param, value }) => {
+          const attrFrag = attrPairTemplate?.content.cloneNode(true);
+          if (!attrFrag) return;
+          const pInp = attrFrag.querySelector('.param-input');
+          const vInp = attrFrag.querySelector('.value-input');
+          if (pInp) { pInp.value = (param || ''); pInp.readOnly = true; }
+          if (vInp) { vInp.value = (value || ''); vInp.readOnly = true; }
+          attrsWrap.appendChild(attrFrag);
+        });
+      }
 
       const sels = selectionMap[row.id] || [];
       const block2 = rf.querySelector('.block2 .modal-content');
@@ -2067,9 +2061,18 @@ if (attrsWrap) {
     setupOverflowTooltips(content);
   }
 
-  function updateSpecProgress(specId, status) {
+  function updateSpecProgress(specId, info) {
     const idStr = String(specId);
-    root.querySelectorAll(`.spec-progress[data-spec-id="${idStr}"]`).forEach(el => setProgress(el, status));
+    // если info не передали — читаем три поля из строки истории
+    let statuses = info;
+    if (!statuses || (typeof statuses === 'object' && !('parser' in statuses) && !('selector' in statuses) && !('pricer' in statuses))) {
+      const row = historyList.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+      const parser = row?.querySelector('[data-field="status_parser"]')?.value || row?.querySelector('[data-field="status_parser"]')?.textContent || '';
+      const selector = row?.querySelector('[data-field="status_selector"]')?.value || row?.querySelector('[data-field="status_selector"]')?.textContent || '';
+      const pricer = row?.querySelector('[data-field="status_pricer"]')?.value || row?.querySelector('[data-field="status_pricer"]')?.textContent || '';
+      statuses = { parser, selector, pricer };
+    }
+    root.querySelectorAll(`.spec-progress[data-spec-id="${idStr}"]`).forEach(el => setProgress(el, statuses));
   }
 
   function updateHistorySpecContainers(options = {}) {
@@ -2101,7 +2104,7 @@ if (attrsWrap) {
       }
       if (!container) return;
       const progress = container.querySelector('.spec-progress');
-      if (progress) setProgress(progress, item.status);
+      if (progress) updateSpecProgress(idStr);
       const content = container.querySelector('.spec-content');
       updateSpecContent(content, idStr, { mode: 'history' });
     });
@@ -2135,8 +2138,7 @@ if (attrsWrap) {
       }
       if (container) {
         const progress = container.querySelector('.spec-progress');
-        const status = history.find(h => String(h.id) === idStr)?.status;
-        if (progress) setProgress(progress, status);
+        if (progress) updateSpecProgress(idStr);
         if (changedIds.has(idStr)) {
           const content = container.querySelector('.spec-content');
           updateSpecContent(content, idStr, { mode: 'block1' });
@@ -2170,15 +2172,14 @@ if (attrsWrap) {
       return;
     }
     const { data, error } = await supabase
-  .from(POS_TABLE)
-  .select(
-    'file_number, user_login, file_name, id, spec_id,' +
-    'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
-  )
-  .in('spec_id', specIds)
-  .order('spec_id', { ascending: false })
-  .order('pos_number_int', { ascending: true });
-
+      .from(POS_TABLE)
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+      )
+      .in('spec_id', specIds)
+      .order('spec_id', { ascending: false })
+      .order('pos_number_int', { ascending: true });
 
     if (error) {
       console.error(error);
@@ -2373,7 +2374,7 @@ if (attrsWrap) {
         if (cls) historyOpenBlocks[id] = cls;
       }
     }
-     if (actions) {
+    if (actions) {
       const oldT = hideTimers.get(actions);
       if (oldT) {
         clearTimeout(oldT);
@@ -2975,7 +2976,7 @@ if (attrsWrap) {
       btn.disabled = true;
       try {
         await refreshSelector(specId, progress);
-        } catch (err) {
+      } catch (err) {
         console.error(err);
       } finally {
         btn.classList.remove('loading');
@@ -3006,22 +3007,21 @@ if (attrsWrap) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const { sent, received, total } = await getSelectorProgress(specId);
       const countsText = `${sent} / ${received} / ${total}`;
- // Обновляем второй столбец в UI (строка истории)
- const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
- const selEl = row?.querySelector('[data-field="status_selector"]');
- if (selEl) updateStatus(selEl, countsText);
+      const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+      const selEl = row?.querySelector('[data-field="status_selector"]');
+      if (selEl) updateStatus(selEl, countsText);
 
- // Ступени прогресса продолжаем подсвечивать через численные значения
- setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
+      // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
+      setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
 
- if (countsText !== lastStatus) {
-   lastStatus = countsText;
-   await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
- }
- if (total > 0 && received >= total) break;
+      if (countsText !== lastStatus) {
+        lastStatus = countsText;
+        await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
+      }
+      if (total > 0 && received >= total) break;
       await delay(1000);
     }
-}
+  }
 
   async function refreshSelector(specId, progress) {
     const { data: { session } = {} } = await supabase.auth.getSession();
@@ -3056,16 +3056,16 @@ if (attrsWrap) {
   }
   
   function setupRealtime() {
-  if (!supabase) return;
-  realtimeSub = supabase
-    .channel('modal9-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
-      loadHistory();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => scheduleLoadBlock1())
-    .on('postgres_changes', { event: '*', schema: 'public', table: STATUS_TABLE }, () => scheduleLoadBlock1())
-    .subscribe();
-}
+    if (!supabase) return;
+    realtimeSub = supabase
+      .channel('modal9-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
+        loadHistory();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => scheduleLoadBlock1())
+      .on('postgres_changes', { event: '*', schema: 'public', table: STATUS_TABLE }, () => scheduleLoadBlock1())
+      .subscribe();
+  }
 
   function cleanupRealtime() {
     if (realtimeSub) {
@@ -3086,47 +3086,89 @@ if (attrsWrap) {
     }
   });
   
+  // ====== ПРОГРЕСС: ОПИРАЕМСЯ НА ТРИ СТАТУС-ПОЛЯ ======
+  function parseSelectorCounts(str) {
+    const m = String(str || '').match(/(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)/);
+    if (!m) return null;
+    const sent = Number(m[1]), received = Number(m[2]), total = Number(m[3]);
+    return { sent, received, total };
+  }
+  function interpretDone(str) {
+    const s = String(str || '').toLowerCase();
+    if (!s.trim()) return false;
+    if (parseSelectorCounts(s)) {
+      const c = parseSelectorCounts(s);
+      return c && c.total > 0 && c.received >= c.total;
+    }
+    return /(готов|готово|готова|done|complete|completed|обработан|обработано|success|успешн|ок|ok)/i.test(s);
+  }
+  function interpretInProgress(str) {
+    const s = String(str || '').toLowerCase();
+    const c = parseSelectorCounts(s);
+    if (c) return c.total > 0 && c.received < c.total && (c.sent > 0 || c.received > 0);
+    return /(в работе|идет|processing|running|запущ|старт|ожидан|queue|queued)/i.test(s);
+  }
+
   function setProgress(progressEl, info) {
     if (!progressEl) return;
-    let status = '', sent, received, total;
-    if (typeof info === 'string') status = info;
-    else if (info && typeof info === 'object') {
-      status = info.status || '';
-      sent = info.sent;
-      received = info.received;
-      total = info.total;
+    const specId = progressEl.dataset.specId;
+
+    // Считываем текущие статусы из строки истории (для полноты картинки)
+    const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+    const rowParser = row?.querySelector('[data-field="status_parser"]')?.value || row?.querySelector('[data-field="status_parser"]')?.textContent || '';
+    const rowSelector = row?.querySelector('[data-field="status_selector"]')?.value || row?.querySelector('[data-field="status_selector"]')?.textContent || '';
+    const rowPricer = row?.querySelector('[data-field="status_pricer"]')?.value || row?.querySelector('[data-field="status_pricer"]')?.textContent || '';
+
+    // Пришёл ли нам объект "промежуточного" прогресса селектора?
+    let parserStatus = rowParser;
+    let selectorStatus = rowSelector;
+    let pricerStatus = rowPricer;
+
+    if (typeof info === 'object' && info && 'status' in info && ('sent' in info || 'received' in info || 'total' in info)) {
+      // В трекере обновляем только шаг 2, остальные — как в DOM
+      const seg = `${Number(info.sent||0)} / ${Number(info.received||0)} / ${Number(info.total||0)}`;
+      selectorStatus = seg;
+    } else if (typeof info === 'object' && info && ('parser' in info || 'selector' in info || 'pricer' in info)) {
+      parserStatus  = info.parser  ?? parserStatus;
+      selectorStatus = info.selector ?? selectorStatus;
+      pricerStatus  = info.pricer  ?? pricerStatus;
+    } else if (typeof info === 'string') {
+      // совместимость с прежними вызовами, но основные статусы берём из трёх полей
+      // ничего не меняем
     }
-    const s = String(status || '').toLowerCase();
-    let active = -1;
-    const m2 = s.match(/block\s*2\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\)/i);
-    if (/block\s*2/i.test(s)) {
-      if ((!Number.isFinite(sent) || !Number.isFinite(received) || !Number.isFinite(total)) && m2) {
-        sent = Number(m2[1]);
-        received = Number(m2[2]);
-        total = Number(m2[3]);
-      }
-      if (/готово/.test(s) || (Number.isFinite(received) && Number.isFinite(total) && total > 0 && received >= total)) active = 2;
-      else active = 1;
-    } else if (/block\s*1/i.test(s)) {
-      if (/готово/.test(s)) active = 0;
-    } else if (s.includes('обработан') || s.includes('done')) {
-      active = 2;
-    } else if (s.includes('подбор')) {
-      active = 1;
-    } else if (s.includes('селекц')) {
-      active = 0;
-    }
+
     const steps = progressEl.querySelectorAll('.step');
-    steps.forEach((step, idx) => {
-      const icon = step.querySelector('.status');
-      if (idx <= active) {
-        step.classList.add('active');
+
+    // Вычисляем состояния каждого шага
+    const pDone  = interpretDone(parserStatus);
+    const pProg  = !pDone && interpretInProgress(parserStatus);
+
+    const sCounts = parseSelectorCounts(selectorStatus);
+    const sDone  = interpretDone(selectorStatus);
+    const sProg  = !sDone && interpretInProgress(selectorStatus);
+
+    const rDone  = interpretDone(pricerStatus);
+    const rProg  = !rDone && interpretInProgress(pricerStatus);
+
+    // Заполняем иконки/активность по шагам
+    const apply = (stepEl, done, prog) => {
+      const icon = stepEl.querySelector('.status');
+      if (done) {
+        stepEl.classList.add('active');
         if (icon) icon.textContent = 'done_all';
+      } else if (prog) {
+        stepEl.classList.add('active');
+        if (icon) icon.textContent = 'autorenew';
       } else {
-        step.classList.remove('active');
+        stepEl.classList.remove('active');
         if (icon) icon.textContent = 'indeterminate_check_box';
       }
-    });
+    };
+
+    apply(steps[0], pDone, pProg);
+    // для шага 2 — дополнительно дёргаем числа
+    apply(steps[1], sDone, sProg);
+    apply(steps[2], rDone, rProg);
   }
 
   async function getSelectorProgress(specId) {
