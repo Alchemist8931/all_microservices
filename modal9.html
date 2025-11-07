@@ -22,6 +22,14 @@
       padding-top: 15px;
       padding-bottom: 15px;
       box-sizing: border-box;
+      position: relative;
+      overflow: visible;
+      padding-right: 360px;
+    }
+    .modal9-top-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
     .spec-tabs,
     nav.nav_copy { display:flex; gap:8px; margin-bottom:10px; }
@@ -649,16 +657,83 @@
 
     /* --- блок обновлений --- */
     .modal9-updates {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      width: 320px;
+      max-height: 240px;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: rgba(24, 29, 36, 0.92);
+      border: 1px solid rgba(48, 119, 80, 0.45);
+      box-shadow: 0 18px 26px -16px rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      cursor: pointer;
+      transition: max-height 0.35s ease, box-shadow 0.35s ease;
+      z-index: 25;
+    }
+    .modal9-updates.is-expanded {
+      max-height: 800px;
+      box-shadow: 0 24px 42px -10px rgba(0, 0, 0, 0.75);
+    }
+    .modal9-updates::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(48, 119, 80, 0.3), transparent 65%);
+      pointer-events: none;
+      opacity: 0.3;
+    }
+    .modal9-updates-header {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      margin-top: 20px;
+      padding-bottom: 10px;
+      margin-bottom: 6px;
+      background: rgba(24, 29, 36, 0.95);
+      z-index: 1;
+    }
+    .modal9-updates-title {
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-color);
+    }
+    .modal9-updates-toggle {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(48, 119, 80, 0.6);
+      background: rgba(48, 119, 80, 0.25);
+      color: var(--content-color);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+    .modal9-updates-toggle:hover,
+    .modal9-updates-toggle:focus-visible {
+      background: rgba(48, 119, 80, 0.4);
+      border-color: rgba(48, 119, 80, 0.9);
+      outline: none;
+    }
+    .modal9-updates-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .modal9-update-card {
       padding: 14px 16px;
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(48, 119, 80, 0.25);
+      border: 1px solid rgba(48, 119, 80, 0.3);
       box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.8);
       display: flex;
       flex-direction: column;
@@ -708,7 +783,8 @@
    </div>
   </div>
   <div class="modal9-top-window glass3d">
-   <div class="file-upload__modal">
+   <div class="modal9-top-body">
+    <div class="file-upload__modal">
      <form class="file-upload-form js-dropzone">
        <label class="file-upload-label">
          <div class="file-upload-design" style="width: 200px; height: 74px;">
@@ -729,20 +805,42 @@
        <progress class="upload-progress spec-upload-progress" value="0" max="100" style="width:100%;display:none;"></progress>
        <div class="upload-status"></div>
      </div>
+      </div>
+    <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
+      <div class="file-filter-container input-container" style="position: relative; margin-top: 0px; width: 300px;">
+        <input id="file-filter-input" class="styled_input_bar" style="width: 100%;" />
+        <label class="input-label">поиск совпадений</label>
+        <button class="group-close ans5-close file-filter-clear" style="display:none;">×</button>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="my-files-toggle">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-text">демонстрация файлов компании</span>
+    </div>
+    <ul class="file-upload__list"></ul>
    </div>
-   <div class="button-group" style="margin-top: 15px; display:flex; align-items:center; gap:10px;">
-     <div class="file-filter-container input-container" style="position: relative; margin-top: 0px; width: 300px;">
-       <input id="file-filter-input" class="styled_input_bar" style="width: 100%;" />
-       <label class="input-label">поиск совпадений</label>
-       <button class="group-close ans5-close file-filter-clear" style="display:none;">×</button>
+   <section class="modal9-updates" aria-label="Последние обновления">
+     <div class="modal9-updates-header">
+       <h2 class="modal9-updates-title">последние обновления</h2>
+       <button type="button" class="modal9-updates-toggle" aria-expanded="false">развернуть</button>
      </div>
-     <label class="switch">
-       <input type="checkbox" id="my-files-toggle">
-       <span class="toggle-slider"></span>
-     </label>
-     <span class="toggle-text">демонстрация файлов компании</span>
-   </div>
-   <ul class="file-upload__list"></ul>
+     <div class="modal9-updates-body">
+       <article class="modal9-update-card">
+         <h3 class="modal9-update-title">01.07 — запуск селектора</h3>
+         <p class="modal9-update-body">Добавлен повторный запуск шага BLOCK 2 / 2.1 непосредственно из карточки спецификации.</p>
+       </article>
+       <article class="modal9-update-card">
+         <h3 class="modal9-update-title">15.07 — трекер прогресса</h3>
+         <p class="modal9-update-body">Обновлён индикатор состояний: отображаются промежуточные статусы для парсинга, подбора и проценки.</p>
+       </article>
+       <article class="modal9-update-card">
+         <h3 class="modal9-update-title">22.07 — обращения в поддержку</h3>
+         <p class="modal9-update-body">В верхней панели появилась кнопка для создания обращения и автозаполнение номера спецификации.</p>
+       </article>
+     </div>
+   </section>
+  </div>
 
     <!-- ИНФОРМАЦИЯ ОБ ОБНОВЛЕНИЯХ -->
     <section class="modal9-updates" aria-label="Последние обновления">
@@ -1167,6 +1265,8 @@ export async function initModal9() {
   const ticketSubjectInput = root.querySelector('#modal9-ticket-subject');
   const ticketMessageInput = root.querySelector('#modal9-ticket-message');
   const ticketSubmitBtn = root.querySelector('.modal9-submit-ticket-btn');
+  const updatesPanel = root.querySelector('.modal9-updates');
+  const updatesToggle = root.querySelector('.modal9-updates-toggle');
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   let realtimeSub = null;
@@ -1180,6 +1280,41 @@ export async function initModal9() {
   let lastSupportSpecId = null;
   let historyLimit = HISTORY_LIMIT_DEFAULT;
   let historyTotalCount = 0;
+  if (updatesPanel && !updatesPanel.dataset.bound) {
+    const toggleUpdatesHeight = expanded => {
+      const next = typeof expanded === 'boolean' ? expanded : !updatesPanel.classList.contains('is-expanded');
+      updatesPanel.classList.toggle('is-expanded', next);
+      if (updatesToggle) {
+        updatesToggle.setAttribute('aria-expanded', String(next));
+        updatesToggle.textContent = next ? 'свернуть' : 'развернуть';
+      }
+    };
+
+    const handleOutsideClick = event => {
+      if (!updatesPanel.contains(event.target)) {
+        toggleUpdatesHeight(false);
+      }
+    };
+
+    updatesPanel.addEventListener('click', event => {
+      if (updatesToggle && event.target === updatesToggle) return;
+      if (!updatesPanel.classList.contains('is-expanded')) {
+        toggleUpdatesHeight(true);
+      }
+    });
+
+    if (updatesToggle) {
+      updatesToggle.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleUpdatesHeight();
+      });
+    }
+
+    document.addEventListener('click', handleOutsideClick, { capture: true });
+    updatesPanel.dataset.bound = 'true';
+  }
+
   let isLoadingHistory = false;
   let queuedHistoryOptions = null;
   let filterDebounceTimer = null;
