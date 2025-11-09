@@ -1268,6 +1268,7 @@ export async function initModal9() {
   const updatesToggle = root.querySelector('.modal9-updates-toggle');
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
+  const TOKEN_RATE = 0.00000517;
   let realtimeSub = null;
   let autoRefreshTimer = null;
   const block1OpenBlocks = {};
@@ -1816,6 +1817,12 @@ export async function initModal9() {
     const hasMore = history.length > 0 && history.length < historyTotalCount;
     loadMoreBtn.style.display = hasMore ? 'inline-flex' : 'none';
   }
+  function formatTokenCost(tokens) {
+    const numericTokens = Number(tokens);
+    if (!Number.isFinite(numericTokens)) return '0.00$';
+    const usdValue = Math.round(numericTokens * TOKEN_RATE * 100) / 100;
+    return `${usdValue.toFixed(2)}$`;
+  }
   async function loadHistory(options = {}) {
     const { resetLimit = false } = options;
     if (resetLimit) {
@@ -1832,7 +1839,7 @@ export async function initModal9() {
       const oldMap = { ...lastHistoryStatus };
       let query = supabase
         .from(TABLE)
-        .select('id, file_number, user_login, created_at, file_name, file_ext, status_parser, status_selector, status_pricer', { count: 'exact' })
+        .select('id, file_number, user_login, created_at, file_name, file_ext, status_parser, status_selector, status_pricer, tokens', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       try {
@@ -1955,6 +1962,11 @@ export async function initModal9() {
       fields.forEach(el => {
         const field = el.dataset.field;
         if (!field) return;
+        if (field === '-') {
+          const tokenValue = formatTokenCost(item.tokens);
+          if (el.value !== tokenValue) el.value = tokenValue;
+          return;
+        }
         let val = item[field];
         if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
         if (el.tagName === 'INPUT') {
