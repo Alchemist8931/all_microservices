@@ -2436,7 +2436,7 @@ export async function initModal9() {
     const { data, error } = await supabase
       .from(POS_TABLE)
       .select(
-        'file_number, user_login, file_name, id, spec_id, updated_at,' +
+        'file_number, user_login, file_name, id, spec_id, created_at,' +
         'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json, rpp_878, torp, rrpo_1875'
       )
       .in('spec_id', specIds)
@@ -2460,7 +2460,7 @@ export async function initModal9() {
     if (posIds.length) {
       const { data: sels, error: selErr } = await supabase
         .from(SELECT_TABLE)
-        .select('pos_id, spec_id, updated_at, article, model_name, qty, unit, price, sum, \
+        .select('pos_id, spec_id, created_at, article, model_name, qty, unit, price, sum, \
           price1_amount, price1_currency, price1_store, price1_url, \
           price2_amount, price2_currency, price2_store, price2_url, \
           price3_amount, price3_currency, price3_store, price3_url, \
@@ -2473,7 +2473,8 @@ export async function initModal9() {
           ? String(s.spec_id)
           : (posToSpec.get(s.pos_id) ? String(posToSpec.get(s.pos_id)) : null);
         if (!specKey) return;
-        const updatedAt = s.updated_at ? new Date(s.updated_at).getTime() : 0;
+        const updatedAtRaw = s.updated_at || s.created_at;
+        const updatedAt = updatedAtRaw ? new Date(updatedAtRaw).getTime() : 0;
         const prevTs = selectVersionBySpec.get(specKey) || 0;
         if (updatedAt > prevTs) selectVersionBySpec.set(specKey, updatedAt);
       });
@@ -2482,7 +2483,8 @@ export async function initModal9() {
     block1Rows.forEach(r => {
       const key = String(r.spec_id);
       posToSpec.set(r.id, key);
-      const updatedAt = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+      const updatedAtRaw = r.updated_at || r.created_at;
+      const updatedAt = updatedAtRaw ? new Date(updatedAtRaw).getTime() : 0;
       const prevTs = posVersionBySpec.get(key) || 0;
       if (updatedAt > prevTs) posVersionBySpec.set(key, updatedAt);
       (specGroups[key] = specGroups[key] || []).push(r);
