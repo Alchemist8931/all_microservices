@@ -1249,7 +1249,8 @@ export async function initModal9() {
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
   const HISTORY_LIMIT_DEFAULT = 30;
   const HISTORY_LIMIT_STEP = 30;
-  const AUTO_REFRESH_INTERVAL = 20000;
+  const PROGRESS_POLL_INTERVAL = 4000;
+  const SELECTOR_PROGRESS_RPC = 'modal9_selector_progress';
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -1292,7 +1293,6 @@ export async function initModal9() {
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const TOKEN_RATE = 0.00000517;
   let realtimeSub = null;
-  let autoRefreshTimer = null;
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
@@ -1302,6 +1302,11 @@ export async function initModal9() {
   let lastSupportSpecId = null;
   let historyLimit = HISTORY_LIMIT_DEFAULT;
   let historyTotalCount = 0;
+  const ROW_MAP_SYMBOL = Symbol('modal9RowMap');
+  const specVersionCache = new Map();
+  const progressPollers = new Map();
+  const visibleProgressEntries = new Map();
+  let progressObserver = null;
   if (updatesPanel && !updatesPanel.dataset.bound) {
     const toggleUpdatesHeight = expanded => {
       const next = typeof expanded === 'boolean' ? expanded : !updatesPanel.classList.contains('is-expanded');
@@ -1441,19 +1446,6 @@ export async function initModal9() {
       block1ReloadTimer = null;
       await loadBlock1();
     }, 500);
-  }
-
-  function startAutoRefresh() {
-    if (autoRefreshTimer) return;
-    autoRefreshTimer = setInterval(() => {
-      loadHistory();
-    }, AUTO_REFRESH_INTERVAL);
-  }
-
-  function stopAutoRefresh() {
-    if (!autoRefreshTimer) return;
-    clearInterval(autoRefreshTimer);
-    autoRefreshTimer = null;
   }
 
   const DELIM = window.__DELIM || "###";
@@ -2087,50 +2079,8 @@ export async function initModal9() {
   let block1Rows = [];
   let specGroups = {};
   let selectionMap = {};
-  const specRenderCache = new Map();
   let loadingBlock1 = false;
   let pendingLoad = null;
-
-  function computeSpecHash(specId) {
-    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
-    const summary = rows.map(row => {
-      const selections = (selectionMap[row.id] || []).map(sel => ({
-        article: sel.article ?? '',
-        model_name: sel.model_name ?? '',
-        qty: sel.qty ?? '',
-        unit: sel.unit ?? '',
-        price: sel.price ?? '',
-        sum: sel.sum ?? '',
-        price1_amount: sel.price1_amount ?? '',
-        price1_currency: sel.price1_currency ?? '',
-        price1_store: sel.price1_store ?? '',
-        price1_url: sel.price1_url ?? '',
-        price2_amount: sel.price2_amount ?? '',
-        price2_currency: sel.price2_currency ?? '',
-        price2_store: sel.price2_store ?? '',
-        price2_url: sel.price2_url ?? '',
-        price3_amount: sel.price3_amount ?? '',
-        price3_currency: sel.price3_currency ?? '',
-        price3_store: sel.price3_store ?? '',
-        price3_url: sel.price3_url ?? '',
-        pricer_status: sel.pricer_status ?? '',
-        prices_json: sel.prices_json ?? '',
-      }));
-
-      return {
-        id: row.id,
-        pos_number: row.pos_number ?? '',
-        pos_number_int: row.pos_number_int ?? '',
-        name: row.name ?? '',
-        qty: row.qty ?? '',
-        unit: row.unit ?? '',
-        attrs: row.attrs ?? '',
-        attrs_json: Array.isArray(row.attrs_json) ? row.attrs_json : null,
-        selections,
-      };
-    });
-    return JSON.stringify(summary);
-  }
 
   function createSpecContainer(specId, options = {}) {
     const { mode = 'history' } = options;
@@ -2156,12 +2106,15 @@ export async function initModal9() {
         progress.dataset.specId = idStr;
         progress.classList.add('fade-toggle', 'hidden');
         progress.style.display = 'none';
+        progress.dataset.active = 'false';
+        progress.dataset.visible = 'false';
       }
       container.insertBefore(progressFrag, content);
       if (progress) {
         initProgressHandlers(progress, specId);
         // Прогресс вычисляем по ТРЁМ полям статусов
         updateSpecProgress(idStr);
+        observeProgressElement(progress);
       }
     }
     const actions = insertActionButtons(container, specId);
@@ -2240,25 +2193,39 @@ export async function initModal9() {
     const { mode = 'history' } = options;
     const idStr = String(specId);
     const rows = (specGroups[idStr] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const rowMap = content[ROW_MAP_SYMBOL] || new Map();
     if (!rows.length) {
+      rowMap.forEach(node => node?.remove());
+      if (typeof rowMap.clear === 'function') rowMap.clear();
+      content[ROW_MAP_SYMBOL] = rowMap;
       content.innerHTML = '';
-      content.dataset.renderHash = '';
+      content.dataset.version = '';
       return;
     }
-    const hash = computeSpecHash(specId);
-    if (content.dataset.renderHash === hash) return;
-    const fragment = document.createDocumentFragment();
-    rows.forEach(row => {
-      const rf = specRowTemplate.content.cloneNode(true);
-      const posInput = rf.querySelector('[data-field="pos_number"]');
-      if (posInput) posInput.value = row.pos_number || '';
-      const nameInput = rf.querySelector('[data-field="name"]');
-      if (nameInput) nameInput.value = row.name || '';
-      const qtyInput = rf.querySelector('[data-field="qty"]');
-      if (qtyInput) qtyInput.value = row.qty || '';
-      const unitInput = rf.querySelector('[data-field="unit"]');
-      if (unitInput) unitInput.value = row.unit || '';
-      const attrsWrap = rf.querySelector('.block1 .modal-content');
+    const seenIds = new Set();
+    let anchor = content.firstChild;
+
+    const applyRowData = (rowEl, row, selections) => {
+      if (!rowEl) return;
+      const assignValue = (field, value) => {
+        const input = rowEl.querySelector(`[data-field="${field}"]`);
+        if (!input) return;
+        const next = value == null ? '' : String(value);
+        if (input.value !== next) input.value = next;
+      };
+      assignValue('pos_number', row.pos_number || '');
+      assignValue('name', row.name || '');
+      assignValue('qty', row.qty || '');
+      assignValue('unit', row.unit || '');
+
+      ['rpp_878', 'torp', 'rrpo_1875'].forEach(field => {
+        const checkbox = rowEl.querySelector(`[data-field="${field}"]`);
+        if (!checkbox) return;
+        const checked = Boolean(row[field]);
+        if (checkbox.checked !== checked) checkbox.checked = checked;
+      });
+
+      const attrsWrap = rowEl.querySelector('.block1 .modal-content');
       if (attrsWrap) {
         attrsWrap.innerHTML = '';
         const pairs = (Array.isArray(row.attrs_json) && row.attrs_json.length)
@@ -2275,12 +2242,11 @@ export async function initModal9() {
         });
       }
 
-      const sels = selectionMap[row.id] || [];
-      const block2 = rf.querySelector('.block2 .modal-content');
+      const block2 = rowEl.querySelector('.block2 .modal-content');
       if (block2) {
         block2.innerHTML = '';
-        if (sels.length) {
-          sels.forEach(sel => {
+        if (selections.length) {
+          selections.forEach(sel => {
             const frag = block2Template?.content.cloneNode(true);
             if (!frag) return;
             const inputs = frag.querySelectorAll('input');
@@ -2290,28 +2256,59 @@ export async function initModal9() {
             if (inputs[3]) inputs[3].value = sel.unit || '';
             if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
             if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
-            const rowEl = frag.firstElementChild;
-            if (rowEl) rowEl.classList.add('fade-in');
+            const rowNode = frag.firstElementChild;
+            if (rowNode) rowNode.classList.add('fade-in');
             block2.appendChild(frag);
           });
         } else {
           const frag = block2Template?.content.cloneNode(true);
           if (frag) {
-            const rowEl = frag.firstElementChild;
-            if (rowEl) rowEl.classList.add('fade-in');
+            const rowNode = frag.firstElementChild;
+            if (rowNode) rowNode.classList.add('fade-in');
             block2.appendChild(frag);
           }
         }
       }
-      const block21 = rf.querySelector('.block21 .modal-content');
-      if (block21) appendBlock21Content(block21, sels);
-      const block1 = rf.querySelector('.block1');
-      if (block1) block1.classList.add('open');
-      fragment.appendChild(rf);
+      const block21 = rowEl.querySelector('.block21 .modal-content');
+      if (block21) appendBlock21Content(block21, selections);
+
+      const block1 = rowEl.querySelector('.block1');
+      if (block1 && !block1.classList.contains('open')) {
+        block1.classList.add('open');
+      }
+    };
+
+    rows.forEach(row => {
+      const posId = String(row.id);
+      const selections = selectionMap[row.id] || [];
+      let rowEl = rowMap.get(posId);
+      if (!rowEl) {
+        const rf = specRowTemplate.content.cloneNode(true);
+        rowEl = rf.querySelector('.modalCONTEINERpost');
+        if (!rowEl) return;
+        rowEl.dataset.posId = posId;
+        applyRowData(rowEl, row, selections);
+        rowEl.classList.add('fade-in');
+        content.insertBefore(rf, anchor);
+      } else {
+        applyRowData(rowEl, row, selections);
+        if (rowEl !== anchor) {
+          content.insertBefore(rowEl, anchor);
+        }
+      }
+      rowMap.set(posId, rowEl);
+      seenIds.add(posId);
+      anchor = rowEl ? rowEl.nextSibling : anchor;
     });
-    content.innerHTML = '';
-    content.appendChild(fragment);
-    content.dataset.renderHash = hash;
+    Array.from(rowMap.keys()).forEach(posId => {
+      if (seenIds.has(posId)) return;
+      const node = rowMap.get(posId);
+      if (node && node.parentNode === content) node.remove();
+      rowMap.delete(posId);
+    });
+
+    content[ROW_MAP_SYMBOL] = rowMap;
+    content.dataset.version = specVersionCache.get(idStr) || '';
     if (mode === 'history') restoreHistoryBlockState(specId, content);
     else restoreBlock1State(specId, content);
     setupDynamicBlocks(content);
@@ -2338,7 +2335,11 @@ export async function initModal9() {
     removedIds.forEach(id => {
       const idStr = String(id);
       const container = historyList.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
-      if (container) container.remove();
+      if (container) {
+        const progressEl = container.querySelector('.spec-progress');
+        if (progressEl) unobserveProgressElement(progressEl);
+        container.remove();
+      }
       delete historyOpenBlocks[idStr];
     });
     const idsForUpdate = forceAll ? new Set(history.map(item => String(item.id))) : new Set(Array.from(changedIds, id => String(id)));
@@ -2375,7 +2376,11 @@ export async function initModal9() {
     removedIds.forEach(id => {
       const idStr = String(id);
       const container = block1List.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
-      if (container) container.remove();
+      if (container) {
+        const progressEl = container.querySelector('.spec-progress');
+        if (progressEl) unobserveProgressElement(progressEl);
+        container.remove();
+      }
       delete block1OpenBlocks[idStr];
     });
     if (forceAll) {
@@ -2414,14 +2419,14 @@ export async function initModal9() {
       return;
     }
     loadingBlock1 = true;
-    const prevCache = new Map(specRenderCache);
+    const prevCache = new Map(specVersionCache);
     const specIds = Array.from(new Set((history || []).map(h => h?.id).filter(id => id !== null && id !== undefined)));
     if (!specIds.length) {
       block1Rows = [];
       specGroups = {};
       selectionMap = {};
-      const removedIds = Array.from(specRenderCache.keys());
-      specRenderCache.clear();
+      const removedIds = Array.from(specVersionCache.keys());
+      specVersionCache.clear();
       updateBlock1SpecContainers({ removedIds });
       updateHistorySpecContainers({ removedIds });
       loadingBlock1 = false;
@@ -2431,8 +2436,8 @@ export async function initModal9() {
     const { data, error } = await supabase
       .from(POS_TABLE)
       .select(
-        'file_number, user_login, file_name, id, spec_id,' +
-        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+        'file_number, user_login, file_name, id, spec_id, updated_at,' +
+        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json, rpp_878, torp, rrpo_1875'
       )
       .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
@@ -2448,11 +2453,14 @@ export async function initModal9() {
     }
     block1Rows = data || [];
     const posIds = block1Rows.map(r => r.id);
+    const posToSpec = new Map();
+    const posVersionBySpec = new Map();
+    const selectVersionBySpec = new Map();
     selectionMap = {};
     if (posIds.length) {
       const { data: sels, error: selErr } = await supabase
         .from(SELECT_TABLE)
-        .select('pos_id, article, model_name, qty, unit, price, sum, \
+        .select('pos_id, spec_id, updated_at, article, model_name, qty, unit, price, sum, \
           price1_amount, price1_currency, price1_store, price1_url, \
           price2_amount, price2_currency, price2_store, price2_url, \
           price3_amount, price3_currency, price3_store, price3_url, \
@@ -2461,27 +2469,40 @@ export async function initModal9() {
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
         (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s);
+        const specKey = s.spec_id != null
+          ? String(s.spec_id)
+          : (posToSpec.get(s.pos_id) ? String(posToSpec.get(s.pos_id)) : null);
+        if (!specKey) return;
+        const updatedAt = s.updated_at ? new Date(s.updated_at).getTime() : 0;
+        const prevTs = selectVersionBySpec.get(specKey) || 0;
+        if (updatedAt > prevTs) selectVersionBySpec.set(specKey, updatedAt);
       });
     }
     specGroups = {};
     block1Rows.forEach(r => {
       const key = String(r.spec_id);
+      posToSpec.set(r.id, key);
+      const updatedAt = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+      const prevTs = posVersionBySpec.get(key) || 0;
+      if (updatedAt > prevTs) posVersionBySpec.set(key, updatedAt);
       (specGroups[key] = specGroups[key] || []).push(r);
     });
     const nextCache = new Map();
     Object.keys(specGroups).forEach(id => {
-      nextCache.set(String(id), computeSpecHash(id));
+      const posVersion = posVersionBySpec.get(id) || 0;
+      const selectVersion = selectVersionBySpec.get(id) || 0;
+      nextCache.set(String(id), `${posVersion}-${selectVersion}`);
     });
     const changedIds = new Set();
-    nextCache.forEach((hash, id) => {
-      if (prevCache.get(id) !== hash) changedIds.add(id);
+    nextCache.forEach((version, id) => {
+      if (prevCache.get(id) !== version) changedIds.add(id);
     });
     const removedIds = [];
     prevCache.forEach((_, id) => {
       if (!nextCache.has(id)) removedIds.push(id);
     });
-    specRenderCache.clear();
-    nextCache.forEach((hash, id) => specRenderCache.set(id, hash));
+    specVersionCache.clear();
+    nextCache.forEach((version, id) => specVersionCache.set(id, version));
     updateBlock1SpecContainers({ changedIds, removedIds, forceAll: fromHistory });
     updateHistorySpecContainers({ changedIds, removedIds });
     if (!fromHistory && history.length) {
@@ -2515,6 +2536,7 @@ export async function initModal9() {
       if (p.dataset.specId !== String(id)) {
         p.classList.add('hidden');
         p.addEventListener('transitionend', () => { p.style.display = 'none'; }, { once: true });
+        setProgressActive(p, false);
       }
     });
     block1List.querySelectorAll('.spec-action-row').forEach(row => {
@@ -2566,6 +2588,7 @@ export async function initModal9() {
     if (prog) {
       prog.style.display = 'flex';
       requestAnimationFrame(() => prog.classList.remove('hidden'));
+      setProgressActive(prog, true);
     }
     if (actions) {
       actions.style.display = 'flex';
@@ -2590,6 +2613,7 @@ export async function initModal9() {
     if (prog) {
       prog.classList.add('hidden');
       prog.addEventListener('transitionend', () => { prog.style.display = 'none'; }, { once: true });
+      setProgressActive(prog, false);
     }
     if (actions) {
       actions.classList.add('hidden');
@@ -2648,6 +2672,7 @@ export async function initModal9() {
       }
       prog.style.display = 'flex';
       requestAnimationFrame(() => prog.classList.remove('hidden'));
+      setProgressActive(prog, true);
     }
 
     historyList.querySelectorAll('.spec-progress').forEach(p => {
@@ -2658,6 +2683,7 @@ export async function initModal9() {
           hideTimers.delete(p);
         }, 500);
         hideTimers.set(p, t);
+        setProgressActive(p, false);
       }
     });
     historyList.querySelectorAll('.spec-action-row').forEach(row => {
@@ -2723,6 +2749,7 @@ export async function initModal9() {
         hideTimers.delete(prog);
       }, 500);
       hideTimers.set(prog, t);
+      setProgressActive(prog, false);
     }
     if (actions) {
       actions.classList.add('hidden');
@@ -3262,7 +3289,7 @@ export async function initModal9() {
     let lastStatus = null;
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-      const { sent, received, total } = await getSelectorProgress(specId);
+      const { sent, received, total } = await requestSelectorProgress(specId);
       const countsText = `${sent} / ${received} / ${total}`;
       const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selEl = row?.querySelector('[data-field="status_selector"]');
@@ -3276,7 +3303,7 @@ export async function initModal9() {
         await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
       }
       if (total > 0 && received >= total) break;
-      await delay(1000);
+      await delay(PROGRESS_POLL_INTERVAL);
     }
   }
 
@@ -3329,19 +3356,165 @@ export async function initModal9() {
       realtimeSub.unsubscribe();
       realtimeSub = null;
     }
-    stopAutoRefresh();
+    stopAllProgressPolling();
+    if (progressObserver) {
+      progressObserver.disconnect();
+      progressObserver = null;
+    }
+    visibleProgressEntries.clear();
   }
 
   window.cleanupRealtime = cleanupRealtime;
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      stopAutoRefresh();
+      stopAllProgressPolling();
     } else {
-      startAutoRefresh();
       loadHistory();
     }
   });
+
+  function handleProgressVisibility(entries) {
+    entries.forEach(entry => {
+      const el = entry.target;
+      const specId = el?.dataset?.specId;
+      if (!specId) return;
+      let set = visibleProgressEntries.get(specId);
+      if (!set) {
+        set = new Set();
+        visibleProgressEntries.set(specId, set);
+      }
+      if (entry.isIntersecting) {
+        set.add(el);
+        el.dataset.visible = 'true';
+        if (el.dataset.active === 'true') {
+          ensureProgressPolling(specId);
+        }
+      } else {
+        set.delete(el);
+        el.dataset.visible = 'false';
+        if (!set.size) {
+          visibleProgressEntries.delete(specId);
+          stopProgressPolling(specId);
+        }
+      }
+    });
+  }
+
+  function ensureProgressObserver() {
+    if (!progressObserver) {
+      progressObserver = new IntersectionObserver(handleProgressVisibility, { threshold: 0.1 });
+    }
+    return progressObserver;
+  }
+
+  function observeProgressElement(progressEl) {
+    if (!progressEl) return;
+    if (!progressEl.dataset.active) progressEl.dataset.active = 'false';
+    if (!progressEl.dataset.visible) progressEl.dataset.visible = 'false';
+    ensureProgressObserver().observe(progressEl);
+  }
+
+  function unobserveProgressElement(progressEl) {
+    if (!progressEl) return;
+    if (progressObserver) progressObserver.unobserve(progressEl);
+    const specId = progressEl.dataset?.specId;
+    if (!specId) return;
+    const set = visibleProgressEntries.get(specId);
+    if (set) {
+      set.delete(progressEl);
+      if (!set.size) visibleProgressEntries.delete(specId);
+    }
+    if (progressEl.dataset.active === 'true') {
+      stopProgressPolling(specId);
+    }
+  }
+
+  function setProgressActive(progressEl, active) {
+    if (!progressEl) return;
+    progressEl.dataset.active = String(active);
+    const specId = progressEl.dataset?.specId;
+    if (!specId) return;
+    if (!active) {
+      stopProgressPolling(specId);
+    } else if (progressEl.dataset.visible === 'true') {
+      ensureProgressPolling(specId);
+    }
+  }
+
+  function ensureProgressPolling(specId) {
+    if (!specId) return;
+    const existing = progressPollers.get(specId);
+    if (existing && existing.active) return;
+    const state = existing || { active: true, timer: null };
+    state.active = true;
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
+    progressPollers.set(specId, state);
+
+    const tick = async () => {
+      if (!state.active) return;
+      const done = await pollSelectorProgress(specId);
+      if (!state.active) return;
+      if (done) {
+        progressPollers.delete(specId);
+      } else {
+        state.timer = setTimeout(tick, PROGRESS_POLL_INTERVAL);
+      }
+    };
+
+    tick();
+  }
+
+  function stopProgressPolling(specId) {
+    const state = progressPollers.get(specId);
+    if (!state) return;
+    state.active = false;
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
+    progressPollers.delete(specId);
+  }
+
+  function stopAllProgressPolling() {
+    Array.from(progressPollers.keys()).forEach(stopProgressPolling);
+  }
+
+  async function pollSelectorProgress(specId) {
+    if (!specId) return true;
+    try {
+      const counts = await requestSelectorProgress(specId);
+      const { sent = 0, received = 0, total = 0 } = counts || {};
+      const countsText = `${sent} / ${received} / ${total}`;
+      const row = historyList?.querySelector(`.history-item[data-spec-id="${specId}"]`);
+      const selectorField = row?.querySelector('[data-field="status_selector"]');
+      if (selectorField) updateStatus(selectorField, countsText);
+      updateSpecProgress(specId, { status: 'BLOCK 2', sent, received, total });
+      return total > 0 && received >= total;
+    } catch (err) {
+      console.error('pollSelectorProgress error:', err);
+      return true;
+    }
+  }
+
+  async function requestSelectorProgress(specId) {
+    if (!supabase) return { sent: 0, received: 0, total: 0 };
+    try {
+      const { data, error } = await supabase.rpc(SELECTOR_PROGRESS_RPC, { spec_id: Number(specId) || specId });
+      if (error) throw error;
+      const payload = Array.isArray(data) ? data[0] : (data || {});
+      const sent = Number(payload?.sent) || 0;
+      const received = Number(payload?.received) || 0;
+      const total = Number(payload?.total) || 0;
+      return { sent, received, total };
+    } catch (err) {
+      console.error('selector progress rpc error:', err);
+      return { sent: 0, received: 0, total: 0 };
+    }
+  }
   
   // ====== ПРОГРЕСС: ОПИРАЕМСЯ НА ТРИ СТАТУС-ПОЛЯ ======
   function parseSelectorCounts(str) {
@@ -3428,53 +3601,6 @@ export async function initModal9() {
     apply(steps[2], rDone, rProg);
   }
 
-  async function getSelectorProgress(specId) {
-    const [totalRes, sentRes, selectRes] = await Promise.all([
-      supabase
-        .from(POS_TABLE)
-        .select('id', { count: 'exact', head: true })
-        .eq('spec_id', specId),
-      supabase
-        .from(STATUS_TABLE)
-        .select('pos_id', { count: 'exact', head: true })
-        .eq('spec_id', specId),
-      supabase
-        .from(SELECT_TABLE)
-        .select('pos_id')
-        .eq('spec_id', specId)
-        .limit(5000),
-    ]);
-
-    const totalCount = typeof totalRes?.count === 'number' ? totalRes.count : 0;
-    if (totalRes?.error) console.error('getSelectorProgress total error:', totalRes.error);
-
-    const sentCount = typeof sentRes?.count === 'number' ? sentRes.count : 0;
-    if (sentRes?.error) console.error('getSelectorProgress sent error:', sentRes.error);
-
-    let receivedCount = 0;
-    if (selectRes?.error) {
-      console.error('getSelectorProgress received error:', selectRes.error);
-    } else if (Array.isArray(selectRes?.data)) {
-      const unique = new Set();
-      selectRes.data.forEach(row => {
-        const posId = row?.pos_id ?? row?.posId ?? row?.posid;
-        if (posId !== null && posId !== undefined) {
-          unique.add(String(posId));
-        }
-      });
-      receivedCount = unique.size;
-    }
-
-    const normalizedSent = Math.max(sentCount, receivedCount);
-    const normalizedTotal = Math.max(totalCount, normalizedSent, receivedCount);
-
-    return {
-      sent: normalizedSent,
-      received: receivedCount,
-      total: normalizedTotal,
-    };
-  }
-
   try {
     const {
       data: { session },
@@ -3486,7 +3612,6 @@ export async function initModal9() {
 
   await loadHistory({ resetLimit: true });
   setupRealtime();
-  startAutoRefresh();
 }
 
 initModal9();
