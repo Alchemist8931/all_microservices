@@ -1291,6 +1291,7 @@ export async function initModal9() {
   const updatesToggle = root.querySelector('.modal9-updates-toggle');
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
+  const REGISTRY_FLAG_FIELDS = ['rpp_878', 'torp', 'rrpo_1875'];
   const TOKEN_RATE = 0.00000517;
   let realtimeSub = null;
   const block1OpenBlocks = {};
@@ -1307,6 +1308,21 @@ export async function initModal9() {
   const progressPollers = new Map();
   const visibleProgressEntries = new Map();
   let progressObserver = null;
+  let registryColumnsSupported = true;
+
+  function updateRegistryCheckboxVisibility() {
+    const visible = registryColumnsSupported;
+    root.querySelectorAll('.registry-checkboxes').forEach(block => {
+      block.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function isMissingRegistryColumnError(error) {
+    if (!error) return false;
+    if (error.code === '42703') return true;
+    const message = String(error.message || error.error_description || '').toLowerCase();
+    return message.includes('does not exist');
+  }
   if (updatesPanel && !updatesPanel.dataset.bound) {
     const toggleUpdatesHeight = expanded => {
       const next = typeof expanded === 'boolean' ? expanded : !updatesPanel.classList.contains('is-expanded');
@@ -2218,7 +2234,7 @@ export async function initModal9() {
       assignValue('qty', row.qty || '');
       assignValue('unit', row.unit || '');
 
-      ['rpp_878', 'torp', 'rrpo_1875'].forEach(field => {
+      REGISTRY_FLAG_FIELDS.forEach(field => {
         const checkbox = rowEl.querySelector(`[data-field="${field}"]`);
         if (!checkbox) return;
         const checked = Boolean(row[field]);
@@ -2312,6 +2328,7 @@ export async function initModal9() {
     if (mode === 'history') restoreHistoryBlockState(specId, content);
     else restoreBlock1State(specId, content);
     setupDynamicBlocks(content);
+    updateRegistryCheckboxVisibility();
     setupOverflowTooltips(content);
   }
 
@@ -2433,17 +2450,28 @@ export async function initModal9() {
       pendingLoad = null;
       return;
     }
+    const baseColumns = [
+      'file_number', 'user_login', 'file_name', 'id', 'spec_id', 'created_at',
+      'pos_number', 'pos_number_int', 'name', 'qty', 'unit', 'attrs', 'attrs_json'
+    ];
+    const selectColumns = registryColumnsSupported
+      ? `${baseColumns.join(', ')}, ${REGISTRY_FLAG_FIELDS.join(', ')}`
+      : baseColumns.join(', ');
     const { data, error } = await supabase
       .from(POS_TABLE)
-      .select(
-        'file_number, user_login, file_name, id, spec_id, created_at,' +
-        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json, rpp_878, torp, rrpo_1875'
-      )
+      .select(selectColumns)
       .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
 
     if (error) {
+      if (registryColumnsSupported && isMissingRegistryColumnError(error)) {
+        console.warn('[modal9] registry flag columns unavailable, disabling support', error);
+        registryColumnsSupported = false;
+        updateRegistryCheckboxVisibility();
+        loadingBlock1 = false;
+        return loadBlock1(options);
+      }
       console.error(error);
       loadingBlock1 = false;
       const next = pendingLoad;
