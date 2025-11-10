@@ -2223,17 +2223,20 @@ export async function initModal9() {
         }
         let val = item[field];
         if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
-        if (el.tagName === 'INPUT') {
-          if (el.value !== (val || '')) el.value = val || '';
-        } else if (el.textContent !== (val || '')) {
-          el.textContent = val || '';
-        }
         if (STATUS_FIELDS.has(field)) {
+  // Нормализуем значение и триггерим иконку через централизованный апдейтер
+   updateStatus(el, val ?? '', { source: 'database' });
           applyStatusIcon(rowEl, field, val);
           if (oldMap[item.id] && oldMap[item.id][field] !== val) {
             animateStatus(el, val, { source: 'database' });
           }
           updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
+          } else {
+   if (el.tagName === 'INPUT') {
+     if (el.value !== (val || '')) el.value = val || '';
+   } else if (el.textContent !== (val || '')) {
+     el.textContent = val || '';
+   }
         }
       });
       ensureStatusSubscription(item.id);
@@ -3534,17 +3537,19 @@ export async function initModal9() {
       }
 
       // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
-      const payload = { status: 'BLOCK 2', sent, received, total };
-      if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
-        payload.parser = parserStatus;
-        payload.selector = selectorStatus;
-        payload.pricer = pricerStatus;
-      }
-      setProgress(progressEl, payload);
+      const payload = {
+    status: 'BLOCK 2',
+    sent, received, total,
+    parser: parserStatus, selector: selectorStatus, pricer: pricerStatus
+  };
+  setProgress(progressEl, payload);
 
-      updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
+  // ВАЖНО: всегда зеркалим счётчики в поле статуса селектора
+  const seg = `${sent} / ${received} / ${total}`;
+  updateHistoryStatusField(specId, 'status_selector', seg, { source: 'database' });
+  // Остальные статусы — если пришли
+  updateHistoryStatusField(specId, 'status_parser',  parserStatus,  { source: 'database' });
+  updateHistoryStatusField(specId, 'status_pricer',  pricerStatus,  { source: 'database' });
       if (total > 0 && received >= total) break;
       await delay(PROGRESS_POLL_INTERVAL);
     }
@@ -3756,12 +3761,18 @@ export async function initModal9() {
       }
       if (!selectorProgressRpcAvailable) {
         updateSpecProgress(specId, updatePayload);
+  // Отразить текущее "sent / received / total" в поле статуса
+  const seg = `${sent} / ${received} / ${total}`;
+  updateHistoryStatusField(specId, 'status_selector', seg, { source: 'database' });
         return true;
       }
       updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
       updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
       updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
-      updateSpecProgress(specId, updatePayload);
+     updateSpecProgress(specId, updatePayload);
+  // Отразить текущее "sent / received / total" в поле статуса
+  const seg = `${sent} / ${received} / ${total}`;
+  updateHistoryStatusField(specId, 'status_selector', seg, { source: 'database' });
       return total > 0 && received >= total;
     } catch (err) {
       console.error('pollSelectorProgress error:', err);
