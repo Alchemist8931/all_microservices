@@ -13,7 +13,6 @@
       margin: 0;
       box-sizing: border-box;
     }
-
     .modal9-top-window {
       color: var(--black-color, var(--content-color));
       width: 1930px;
@@ -2275,23 +2274,34 @@ if (el) {
   }
 
   function applySecondFilter() {
-    const q = filterInput.value.trim().toLowerCase();
-    filterClear.style.display = q ? 'block' : 'none';
-    historyList.querySelectorAll('.history-item').forEach(item => {
-      let visible = true;
-      if (q) {
-        visible = ['file_number','user_login','created_at','file_name','file_ext','id'].some(...);
-          const el = item.querySelector(`[data-field="${field}"]`);
-          if (!el) return false;
-          const val = (el.value || el.textContent || '').toString().toLowerCase();
-          return val.includes(q);
-        });
-      }
-      item.style.display = visible ? '' : 'none';
-      const spec = historyList.querySelector(`.spec-container[data-spec-id="${item.dataset.specId}"]`);
-      if (spec) spec.style.display = visible ? '' : 'none';
-    });
-  }
+  const q = filterInput.value.trim().toLowerCase();
+  filterClear.style.display = q ? 'block' : 'none';
+
+  const fieldsToCheck = [
+    'file_number','user_login','created_at','file_name','file_ext','id',
+    'status_parser','status_selector','status_pricer'
+  ];
+
+  historyList.querySelectorAll('.history-item').forEach(item => {
+    let visible = true;
+    if (q) {
+      visible = fieldsToCheck.some(field => {
+        const el = item.querySelector(`[data-field="${field}"]`);
+        if (!el) return false;
+        const raw = 'value' in el ? el.value : el.textContent;
+        const val = (raw || '').toString().toLowerCase();
+        return val.includes(q);
+      });
+    }
+    item.style.display = visible ? '' : 'none';
+
+    const spec = historyList.querySelector(
+      `.spec-container[data-spec-id="${item.dataset.specId}"]`
+    );
+    if (spec) spec.style.display = visible ? '' : 'none';
+  });
+}
+
 
   let block1Rows = [];
   let specGroups = {};
