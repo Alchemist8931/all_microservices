@@ -1542,6 +1542,14 @@ export async function initModal9() {
 
   const formatOfferPrice = (amount) => formatNumericValue(amount);
 
+ const toPosNum = (val) => {
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  const s = String(val ?? '').trim();
+  const m = s.match(/\d+/);            // берём первое число в строке "1", "01", "1а", "1.2" -> 1
+  return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER; // нечисловые — в конец
+};
+
+
   function appendBlock21Content(target, selections = []) {
     if (!target || !block21Template) return;
     target.innerHTML = '';
@@ -1564,7 +1572,7 @@ export async function initModal9() {
         const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
         const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
         const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
-        if (priceEl) priceEl.value = formatOfferPrice(amount, curr);
+        if (priceEl) priceEl.value = (amount, curr);
         if (storeEl) storeEl.value = store || '';
         if (urlEl) {
           const href = url || '';
@@ -2092,7 +2100,9 @@ export async function initModal9() {
   let pendingLoad = null;
 
   function computeSpecHash(specId) {
-    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const rows = (specGroups[String(specId)] || []).slice().sort(
+   (a, b) => toPosNum(a.pos_number_int ?? a.pos_number) - toPosNum(b.pos_number_int ?? b.pos_number)
+ );
     const summary = rows.map(row => {
       const selections = (selectionMap[row.id] || []).map(sel => ({
         article: sel.article ?? '',
@@ -2120,7 +2130,7 @@ export async function initModal9() {
       return {
         id: row.id,
         pos_number: row.pos_number ?? '',
-        pos_number_int: row.pos_number_int ?? '',
+        pos_number_int: toPosNum(r.pos_number_int ?? r.pos_number),
         name: row.name ?? '',
         qty: row.qty ?? '',
         unit: row.unit ?? '',
@@ -2239,7 +2249,9 @@ export async function initModal9() {
     if (!content || !specRowTemplate) return;
     const { mode = 'history' } = options;
     const idStr = String(specId);
-    const rows = (specGroups[idStr] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const rows = (specGroups[idStr] || []).slice().sort(
+   (a, b) => toPosNum(a.pos_number_int ?? a.pos_number) - toPosNum(b.pos_number_int ?? b.pos_number)
+ );
     if (!rows.length) {
       content.innerHTML = '';
       content.dataset.renderHash = '';
@@ -2446,7 +2458,7 @@ export async function initModal9() {
       if (next) loadBlock1({ fromHistory: next === 'history' });
       return;
     }
-    block1Rows = data || [];
+    block1Rows = (data || []).map(r => ({
     const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
     if (posIds.length) {
