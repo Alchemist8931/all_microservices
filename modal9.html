@@ -13,6 +13,7 @@
       margin: 0;
       box-sizing: border-box;
     }
+
     .modal9-top-window {
       color: var(--black-color, var(--content-color));
       width: 1930px;
@@ -840,25 +841,19 @@
        <button type="button" class="modal9-updates-toggle" aria-expanded="false">развернуть</button>
      </div>
       <div class="modal9-updates-body">
-        
-      <article class="modal9-update-card">
-         <h3 class="modal9-update-title">10 ноября 2025 — публикация новой версии</h3>
-         <p class="modal9-update-body">Оптимизирована нагрузка на ПК конечного пользователя</p>
-         <p class="modal9-update-body">Добавлены более очевидные индикаторы этапов обработки технического задания</p>
-         <p class="modal9-update-body">Добавлен расход токенов в $ на каждый отдельный обрабатываемый файл технического задания</p>
-       </article>
-        
       <article class="modal9-update-card">
          <h3 class="modal9-update-title">07 ноября 2025 — публикация новой версии</h3>
          <p class="modal9-update-body">На данный момент в настройках инструмента описаны следующие категории товаров:</p>
+         
          <p class="modal9-update-body">- Системный блок (всегда сборка из комплектующих)</p>
          <p class="modal9-update-body">- Моноблок (всегда сборка из комплектующих на базе AIO платформ линейки PowerCool</p>
          <p class="modal9-update-body">- Сервер (всегда сборка из комплектующих)</p>
          <p class="modal9-update-body">- Система хранения данных (всегда сборка из комплектующих)</p>
          <p class="modal9-update-body">- Ноутбуки (готовые решения в сборе)</p>
          <p class="modal9-update-body">- Десктоп / Неттоп SFF (всегда сборка из комплектующих)</p>
+       
+         
        </article>
-        
        <article class="modal9-update-card">
          <h3 class="modal9-update-title">07 ноября 2025 — публикация новой версии</h3>
          <p class="modal9-update-body">Статус каждой спецификации (файла) теперь разбит на очевидные этапы: ПАРСИНГ / ПОДБОР / ПРОЦЕНКА</p>
@@ -867,12 +862,10 @@
          <p class="modal9-update-body">второе значение: сколько заданий получено от OpenAI</p>
          <p class="modal9-update-body">третье значение: сколько всего заданий редусмотрено в рамках этапа ПАРСИНГ / ПОДБОР / ПРОЦЕНКА конкретно для этой спецификации</p>
        </article>
-        
        <article class="modal9-update-card">
          <h3 class="modal9-update-title">07 ноября 2025 — TEST</h3>
          <p class="modal9-update-body">test</p>
        </article>
-        
      </div>
    </section>
 
@@ -1256,28 +1249,7 @@ export async function initModal9() {
   const ALLOWED_EXTS = ['doc', 'docx', 'txt', 'xls', 'rtf', 'pdf', 'ods', 'csv', 'xlsx'];
   const HISTORY_LIMIT_DEFAULT = 30;
   const HISTORY_LIMIT_STEP = 30;
-  const PROGRESS_POLL_INTERVAL = 4000;
-  const SELECTOR_PROGRESS_RPC = 'modal9_selector_progress';
-  let selectorProgressRpcAvailable = true;
-  let selectorProgressRpcWarned = false;
-  let selectorProgressStatusTableAvailable = true;
-  let selectorProgressStatusTableWarned = false;
-  const selectorProgressFallback = { sent: 0, received: 0, total: 0 };
-
-  function normalizeSpecId(value) {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : value;
-  }
-
-  function coerceProgressNumber(value) {
-    const num = Number(value);
-    return Number.isFinite(num) && num >= 0 ? num : 0;
-  }
-
-  function isMissingSelectorStatusTableError(err) {
-    const message = String(err?.message || err?.details || '');
-    return err?.code === 'PGRST302' || err?.code === 'PGRST202' || /modal9_selector_status/i.test(message);
-  }
+  const AUTO_REFRESH_INTERVAL = 20000;
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -1318,9 +1290,9 @@ export async function initModal9() {
   const updatesToggle = root.querySelector('.modal9-updates-toggle');
   const BLOCK2_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
   const BLOCK3_COLUMNS = ['артикул', 'наименование', 'кол-во', 'ед. изм.', 'цена', 'сумма'];
-  const REGISTRY_FLAG_FIELDS = ['rpp_878', 'torp', 'rrpo_1875'];
   const TOKEN_RATE = 0.00000517;
   let realtimeSub = null;
+  let autoRefreshTimer = null;
   const block1OpenBlocks = {};
   const historyOpenBlocks = {};
   const hideTimers = new WeakMap();
@@ -1330,169 +1302,6 @@ export async function initModal9() {
   let lastSupportSpecId = null;
   let historyLimit = HISTORY_LIMIT_DEFAULT;
   let historyTotalCount = 0;
-  const ROW_MAP_SYMBOL = Symbol('modal9RowMap');
-  const specVersionCache = new Map();
-  const progressPollers = new Map();
-  const statusSubscriptions = new Map();
-  const visibleProgressEntries = new Map();
-  let progressObserver = null;
-  let registryColumnsSupported = true;
-
-  function updateRegistryCheckboxVisibility() {
-    const visible = registryColumnsSupported;
-    root.querySelectorAll('.registry-checkboxes').forEach(block => {
-      block.style.display = visible ? '' : 'none';
-    });
-  }
-
-  function handleStatusRealtimeUpdate(specId, record = {}) {
-    if (specId === undefined || specId === null || !record) return;
-    const idStr = String(specId);
-    const updates = {};
-    ['status_parser','status_selector','status_pricer'].forEach(field => {
-  if (Object.prototype.hasOwnProperty.call(record, field)) {
-    updates[field] = record[field];
-  }
-});
-    if (!Object.keys(updates).length) return;
-
-    Object.entries(updates).forEach(([field, value]) => {
-      updateHistoryStatusField(specId, field, value, { source: 'database' });
-    });
-
-    if (!lastHistoryStatus[idStr]) lastHistoryStatus[idStr] = {};
-    Object.assign(lastHistoryStatus[idStr], updates);
-
-    const historyItem = history.find(item => item && String(item.id) === idStr);
-    if (historyItem) Object.assign(historyItem, updates);
-  }
-
-  function handleStatusTableRealtimeUpdate(specId, record = {}) {
-    if (specId === undefined || specId === null || !record || typeof record !== 'object') return;
-    const mapped = {};
-
-    const parserStatus = Object.prototype.hasOwnProperty.call(record, 'parser_status')
-      ? record.parser_status
-      : record.parser;
-    const selectorStatus = Object.prototype.hasOwnProperty.call(record, 'selector_status')
-      ? record.selector_status
-      : record.selector;
-    const pricerStatus = Object.prototype.hasOwnProperty.call(record, 'pricer_status')
-      ? record.pricer_status
-      : record.pricer;
-
-    if (parserStatus !== undefined) mapped.status_parser = parserStatus ?? '';
-if (pricerStatus !== undefined) mapped.status_pricer = pricerStatus ?? '';
-
-const sentRaw = record.sent ?? record.selector_sent ?? record.progress_sent;
-const receivedRaw = record.received ?? record.selector_received ?? record.progress_received;
-const totalRaw = record.total ?? record.selector_total ?? record.progress_total;
-
-if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined) {
-  const sent = coerceProgressNumber(sentRaw);
-  const received = coerceProgressNumber(receivedRaw);
-  const total = coerceProgressNumber(totalRaw);
-  mapped.status_selector = `${sent} / ${received} / ${total}`; // всегда берём «тройку»
-} else if (record.selector_status !== undefined || record.selector !== undefined) {
-  mapped.status_selector = (record.selector_status ?? record.selector) ?? '';
-}
-
-    if (!Object.keys(mapped).length) return;
-    handleStatusRealtimeUpdate(specId, mapped);
-  }
-
-  function ensureStatusSubscription(specId) {
-    if (!supabase || specId === undefined || specId === null) return null;
-    const idStr = String(specId);
-    if (statusSubscriptions.has(idStr)) return statusSubscriptions.get(idStr);
-    const entry = { table: null, status: null };
-
-    const safeUnsubscribe = channel => {
-      if (!channel) return;
-      try {
-        channel.unsubscribe();
-      } catch (_) {
-        /* ignore */
-      }
-    };
-
-    const bindChannelLifecycle = (channel, key) => {
-      if (!channel) return;
-      channel.subscribe(state => {
-        if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
-          safeUnsubscribe(channel);
-          const current = statusSubscriptions.get(idStr);
-          if (!current) return;
-          if (current[key] === channel) current[key] = null;
-          if (!current.table && !current.status) statusSubscriptions.delete(idStr);
-        }
-      });
-    };
-
-    const tableChannel = supabase.channel(`modal9-status-${idStr}`);
-    tableChannel.on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: TABLE,
-      filter: `id=eq.${idStr}`,
-    }, payload => {
-      handleStatusRealtimeUpdate(idStr, payload?.new || {});
-    });
-    entry.table = tableChannel;
-    bindChannelLifecycle(tableChannel, 'table');
-
-    const statusChannel = supabase.channel(`modal9-status-table-${idStr}`);
-    statusChannel.on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: STATUS_TABLE,
-      filter: `spec_id=eq.${idStr}`,
-    }, payload => {
-      const data = payload?.new || payload?.old || {};
-      handleStatusTableRealtimeUpdate(idStr, data);
-    });
-    entry.status = statusChannel;
-    bindChannelLifecycle(statusChannel, 'status');
-
-    statusSubscriptions.set(idStr, entry);
-    return entry;
-  }
-
-  function removeStatusSubscription(specId) {
-    const idStr = String(specId);
-    const entry = statusSubscriptions.get(idStr);
-    if (!entry) return;
-    [entry.table, entry.status].forEach(channel => {
-      if (!channel) return;
-      try {
-        channel.unsubscribe();
-      } catch (_) {
-        /* ignore */
-      }
-    });
-    statusSubscriptions.delete(idStr);
-  }
-
-  function cleanupStatusSubscriptions() {
-    statusSubscriptions.forEach(entry => {
-      [entry.table, entry.status].forEach(channel => {
-        if (!channel) return;
-        try {
-          channel.unsubscribe();
-        } catch (_) {
-          /* ignore */
-        }
-      });
-    });
-    statusSubscriptions.clear();
-  }
-
-  function isMissingRegistryColumnError(error) {
-    if (!error) return false;
-    if (error.code === '42703') return true;
-    const message = String(error.message || error.error_description || '').toLowerCase();
-    return message.includes('does not exist');
-  }
   if (updatesPanel && !updatesPanel.dataset.bound) {
     const toggleUpdatesHeight = expanded => {
       const next = typeof expanded === 'boolean' ? expanded : !updatesPanel.classList.contains('is-expanded');
@@ -1632,6 +1441,19 @@ if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined
       block1ReloadTimer = null;
       await loadBlock1();
     }, 500);
+  }
+
+  function startAutoRefresh() {
+    if (autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(() => {
+      loadHistory();
+    }, AUTO_REFRESH_INTERVAL);
+  }
+
+  function stopAutoRefresh() {
+    if (!autoRefreshTimer) return;
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
   }
 
   const DELIM = window.__DELIM || "###";
@@ -1895,68 +1717,6 @@ if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined
     icon.style.color = state.color;
     icon.style.textShadow = state.glow ? '0 0 8px #5dd62c' : 'none';
   }
-  // ДОБАВЬТЕ рядом с другими утилитами:
-function isProgressTriplet(v) {
-  return /^\s*\d+\s*\/\s*\d+\s*\/\s*\d+\s*$/.test(String(v||''));
-}
-
-  // ДОБАВИТЕ рядом с isProgressTriplet:
-function parseProgressTriplet(v) {
-  const m = String(v || '').match(/(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)/);
-  return m ? { sent: +m[1], received: +m[2], total: +m[3] } : null;
-}
-
-  function isResetLike(field, v) {
-  const s = String(v ?? '').trim().toLowerCase();
-  if (!s || s === '-') return true;
-  if (field === 'status_parser'  && s === 'парсинг')   return true;
-  if (field === 'status_selector'&& s === 'подбор')    return true;
-  if (field === 'status_pricer'  && s === 'проценка')  return true;
-  return false;
-}
-
-  function updateHistoryStatusField(specId, field, value, options = {}) {
-  if (!STATUS_FIELDS.has(field)) return;
-  if (value === undefined) return;
-
-  const idStr = String(specId);
-  const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
-  const el = row?.querySelector(`[data-field="${field}"]`);
-  if (!el) return;
-
-  const current  = (('value' in el ? el.value : el.textContent) || '');
-  const incoming = (value ?? '');
-
-  const curReset = isResetLike(field, current);
-  const incReset = isResetLike(field, incoming);
-
-  if (field === 'status_selector') {
-    const curTrip = parseProgressTriplet(current);
-    const incTrip = parseProgressTriplet(incoming);
-
-    // 1) Не затираем не-дефолт значением по умолчанию
-    if (!curReset && incReset) return;
-
-    // 2) Если уже отображаем тройку — не заменяем её не-тройкой
-    if (curTrip && !incTrip) return;
-
-    // 3) Если и текущее, и входящее — тройки, разрешаем только "монотонное улучшение"
-    if (curTrip && incTrip) {
-      const improves =
-        incTrip.total   > curTrip.total   ||
-        incTrip.received > curTrip.received ||
-        incTrip.sent     > curTrip.sent;
-      if (!improves) return;
-    }
-  } else {
-    // Для parser/pricer сохраняем вашу защиту от отката к дефолту
-    if (!isResetLike(field, current) && incReset) return;
-  }
-
-  updateStatus(el, incoming, options);
-}
-
-
 
   function showCopyTip(el) {
     const tip = document.createElement('div');
@@ -1969,12 +1729,8 @@ function parseProgressTriplet(v) {
     setTimeout(() => tip.remove(), 1000);
   }
 
-  function updateStatus(el, status, options = {}) {
+  function updateStatus(el, status) {
     if (!el) return;
-    const field = el.dataset?.field;
-    if (field && STATUS_FIELDS.has(field) && options?.source !== 'database') {
-      return;
-    }
     const s = String(status || '');
     const match = s.match(/^BLOCK\s*2\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\)$/i);
     const display = match ? `${match[1]} / ${match[2]} / ${match[3]}` : s;
@@ -1982,6 +1738,7 @@ function parseProgressTriplet(v) {
       el.value = display;
     }
     el.textContent = display;
+    const field = el.dataset?.field;
     if (field && STATUS_FIELDS.has(field)) {
       const rowEl = el.closest('.history-item');
       if (rowEl) {
@@ -1997,11 +1754,11 @@ function parseProgressTriplet(v) {
     }
   }
 
-  function animateStatus(el, newStatus, options = {}) {
+  function animateStatus(el, newStatus) {
     if (!el) return;
     el.classList.add('fade');
     setTimeout(() => {
-      updateStatus(el, newStatus, options);
+      updateStatus(el, newStatus);
       el.classList.remove('fade');
     }, 1000);
   }
@@ -2265,25 +2022,28 @@ function parseProgressTriplet(v) {
       if (!rowEl) return;
       const fields = rowEl.querySelectorAll('[data-field]');
       fields.forEach(el => {
-  const field = el.dataset.field;
-  if (!field) return;
-
-  if (STATUS_FIELDS.has(field)) {
-    // ВАЖНО: обновляем через «безопасный» путь с анти-регрессом
-    updateHistoryStatusField(item.id, field, item[field], { source: 'database' });
-  } else {
-    // обычные поля как раньше
-    let val = item[field];
-    if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
-    if (el.tagName === 'INPUT') {
-      if (el.value !== (val || '')) el.value = val || '';
-    } else if (el.textContent !== (val || '')) {
-      el.textContent = val || '';
-    }
-  }
-});
-
-      ensureStatusSubscription(item.id);
+        const field = el.dataset.field;
+        if (!field) return;
+        if (field === '-') {
+          const tokenValue = formatTokenCost(item.tokens);
+          if (el.value !== tokenValue) el.value = tokenValue;
+          return;
+        }
+        let val = item[field];
+        if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+        if (el.tagName === 'INPUT') {
+          if (el.value !== (val || '')) el.value = val || '';
+        } else if (el.textContent !== (val || '')) {
+          el.textContent = val || '';
+        }
+        if (STATUS_FIELDS.has(field)) {
+          applyStatusIcon(rowEl, field, val);
+          if (oldMap[item.id] && oldMap[item.id][field] !== val) {
+            animateStatus(el, val);
+          }
+          updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
+        }
+      });
       if (anchor && rowEl !== anchor) {
         historyList.insertBefore(rowEl, anchor);
       }
@@ -2299,7 +2059,6 @@ function parseProgressTriplet(v) {
         const specContainer = historyList.querySelector(`.spec-container[data-spec-id="${id}"]`);
         if (specContainer) specContainer.remove();
         delete historyOpenBlocks[id];
-        removeStatusSubscription(id);
       }
     });
     setupOverflowTooltips(historyList);
@@ -2307,40 +2066,71 @@ function parseProgressTriplet(v) {
   }
 
   function applySecondFilter() {
-  const q = filterInput.value.trim().toLowerCase();
-  filterClear.style.display = q ? 'block' : 'none';
-
-  const fieldsToCheck = [
-    'file_number','user_login','created_at','file_name','file_ext','id',
-    'status_parser','status_selector','status_pricer'
-  ];
-
-  historyList.querySelectorAll('.history-item').forEach(item => {
-    let visible = true;
-    if (q) {
-      visible = fieldsToCheck.some(field => {
-        const el = item.querySelector(`[data-field="${field}"]`);
-        if (!el) return false;
-        const raw = 'value' in el ? el.value : el.textContent;
-        const val = (raw || '').toString().toLowerCase();
-        return val.includes(q);
-      });
-    }
-    item.style.display = visible ? '' : 'none';
-
-    const spec = historyList.querySelector(
-      `.spec-container[data-spec-id="${item.dataset.specId}"]`
-    );
-    if (spec) spec.style.display = visible ? '' : 'none';
-  });
-}
-
+    const q = filterInput.value.trim().toLowerCase();
+    filterClear.style.display = q ? 'block' : 'none';
+    historyList.querySelectorAll('.history-item').forEach(item => {
+      let visible = true;
+      if (q) {
+        visible = ['file_number','user_login','created_at','file_name','file_ext','status','id'].some(field => {
+          const el = item.querySelector(`[data-field="${field}"]`);
+          if (!el) return false;
+          const val = (el.value || el.textContent || '').toString().toLowerCase();
+          return val.includes(q);
+        });
+      }
+      item.style.display = visible ? '' : 'none';
+      const spec = historyList.querySelector(`.spec-container[data-spec-id="${item.dataset.specId}"]`);
+      if (spec) spec.style.display = visible ? '' : 'none';
+    });
+  }
 
   let block1Rows = [];
   let specGroups = {};
   let selectionMap = {};
+  const specRenderCache = new Map();
   let loadingBlock1 = false;
   let pendingLoad = null;
+
+  function computeSpecHash(specId) {
+    const rows = (specGroups[String(specId)] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
+    const summary = rows.map(row => {
+      const selections = (selectionMap[row.id] || []).map(sel => ({
+        article: sel.article ?? '',
+        model_name: sel.model_name ?? '',
+        qty: sel.qty ?? '',
+        unit: sel.unit ?? '',
+        price: sel.price ?? '',
+        sum: sel.sum ?? '',
+        price1_amount: sel.price1_amount ?? '',
+        price1_currency: sel.price1_currency ?? '',
+        price1_store: sel.price1_store ?? '',
+        price1_url: sel.price1_url ?? '',
+        price2_amount: sel.price2_amount ?? '',
+        price2_currency: sel.price2_currency ?? '',
+        price2_store: sel.price2_store ?? '',
+        price2_url: sel.price2_url ?? '',
+        price3_amount: sel.price3_amount ?? '',
+        price3_currency: sel.price3_currency ?? '',
+        price3_store: sel.price3_store ?? '',
+        price3_url: sel.price3_url ?? '',
+        pricer_status: sel.pricer_status ?? '',
+        prices_json: sel.prices_json ?? '',
+      }));
+
+      return {
+        id: row.id,
+        pos_number: row.pos_number ?? '',
+        pos_number_int: row.pos_number_int ?? '',
+        name: row.name ?? '',
+        qty: row.qty ?? '',
+        unit: row.unit ?? '',
+        attrs: row.attrs ?? '',
+        attrs_json: Array.isArray(row.attrs_json) ? row.attrs_json : null,
+        selections,
+      };
+    });
+    return JSON.stringify(summary);
+  }
 
   function createSpecContainer(specId, options = {}) {
     const { mode = 'history' } = options;
@@ -2366,15 +2156,12 @@ function parseProgressTriplet(v) {
         progress.dataset.specId = idStr;
         progress.classList.add('fade-toggle', 'hidden');
         progress.style.display = 'none';
-        progress.dataset.active = 'false';
-        progress.dataset.visible = 'false';
       }
       container.insertBefore(progressFrag, content);
       if (progress) {
         initProgressHandlers(progress, specId);
         // Прогресс вычисляем по ТРЁМ полям статусов
         updateSpecProgress(idStr);
-        observeProgressElement(progress);
       }
     }
     const actions = insertActionButtons(container, specId);
@@ -2453,39 +2240,25 @@ function parseProgressTriplet(v) {
     const { mode = 'history' } = options;
     const idStr = String(specId);
     const rows = (specGroups[idStr] || []).slice().sort((a, b) => (a.pos_number_int ?? 0) - (b.pos_number_int ?? 0));
-    const rowMap = content[ROW_MAP_SYMBOL] || new Map();
     if (!rows.length) {
-      rowMap.forEach(node => node?.remove());
-      if (typeof rowMap.clear === 'function') rowMap.clear();
-      content[ROW_MAP_SYMBOL] = rowMap;
       content.innerHTML = '';
-      content.dataset.version = '';
+      content.dataset.renderHash = '';
       return;
     }
-    const seenIds = new Set();
-    let anchor = content.firstChild;
-
-    const applyRowData = (rowEl, row, selections) => {
-      if (!rowEl) return;
-      const assignValue = (field, value) => {
-        const input = rowEl.querySelector(`[data-field="${field}"]`);
-        if (!input) return;
-        const next = value == null ? '' : String(value);
-        if (input.value !== next) input.value = next;
-      };
-      assignValue('pos_number', row.pos_number || '');
-      assignValue('name', row.name || '');
-      assignValue('qty', row.qty || '');
-      assignValue('unit', row.unit || '');
-
-      REGISTRY_FLAG_FIELDS.forEach(field => {
-        const checkbox = rowEl.querySelector(`[data-field="${field}"]`);
-        if (!checkbox) return;
-        const checked = Boolean(row[field]);
-        if (checkbox.checked !== checked) checkbox.checked = checked;
-      });
-
-      const attrsWrap = rowEl.querySelector('.block1 .modal-content');
+    const hash = computeSpecHash(specId);
+    if (content.dataset.renderHash === hash) return;
+    const fragment = document.createDocumentFragment();
+    rows.forEach(row => {
+      const rf = specRowTemplate.content.cloneNode(true);
+      const posInput = rf.querySelector('[data-field="pos_number"]');
+      if (posInput) posInput.value = row.pos_number || '';
+      const nameInput = rf.querySelector('[data-field="name"]');
+      if (nameInput) nameInput.value = row.name || '';
+      const qtyInput = rf.querySelector('[data-field="qty"]');
+      if (qtyInput) qtyInput.value = row.qty || '';
+      const unitInput = rf.querySelector('[data-field="unit"]');
+      if (unitInput) unitInput.value = row.unit || '';
+      const attrsWrap = rf.querySelector('.block1 .modal-content');
       if (attrsWrap) {
         attrsWrap.innerHTML = '';
         const pairs = (Array.isArray(row.attrs_json) && row.attrs_json.length)
@@ -2502,11 +2275,12 @@ function parseProgressTriplet(v) {
         });
       }
 
-      const block2 = rowEl.querySelector('.block2 .modal-content');
+      const sels = selectionMap[row.id] || [];
+      const block2 = rf.querySelector('.block2 .modal-content');
       if (block2) {
         block2.innerHTML = '';
-        if (selections.length) {
-          selections.forEach(sel => {
+        if (sels.length) {
+          sels.forEach(sel => {
             const frag = block2Template?.content.cloneNode(true);
             if (!frag) return;
             const inputs = frag.querySelectorAll('input');
@@ -2516,63 +2290,31 @@ function parseProgressTriplet(v) {
             if (inputs[3]) inputs[3].value = sel.unit || '';
             if (inputs[4]) inputs[4].value = formatNumericValue(sel.price);
             if (inputs[5]) inputs[5].value = formatNumericValue(sel.sum);
-            const rowNode = frag.firstElementChild;
-            if (rowNode) rowNode.classList.add('fade-in');
+            const rowEl = frag.firstElementChild;
+            if (rowEl) rowEl.classList.add('fade-in');
             block2.appendChild(frag);
           });
         } else {
           const frag = block2Template?.content.cloneNode(true);
           if (frag) {
-            const rowNode = frag.firstElementChild;
-            if (rowNode) rowNode.classList.add('fade-in');
+            const rowEl = frag.firstElementChild;
+            if (rowEl) rowEl.classList.add('fade-in');
             block2.appendChild(frag);
           }
         }
       }
-      const block21 = rowEl.querySelector('.block21 .modal-content');
-      if (block21) appendBlock21Content(block21, selections);
-
-      const block1 = rowEl.querySelector('.block1');
-      if (block1 && !block1.classList.contains('open')) {
-        block1.classList.add('open');
-      }
-    };
-
-    rows.forEach(row => {
-      const posId = String(row.id);
-      const selections = selectionMap[row.id] || [];
-      let rowEl = rowMap.get(posId);
-      if (!rowEl) {
-        const rf = specRowTemplate.content.cloneNode(true);
-        rowEl = rf.querySelector('.modalCONTEINERpost');
-        if (!rowEl) return;
-        rowEl.dataset.posId = posId;
-        applyRowData(rowEl, row, selections);
-        rowEl.classList.add('fade-in');
-        content.insertBefore(rf, anchor);
-      } else {
-        applyRowData(rowEl, row, selections);
-        if (rowEl !== anchor) {
-          content.insertBefore(rowEl, anchor);
-        }
-      }
-      rowMap.set(posId, rowEl);
-      seenIds.add(posId);
-      anchor = rowEl ? rowEl.nextSibling : anchor;
+      const block21 = rf.querySelector('.block21 .modal-content');
+      if (block21) appendBlock21Content(block21, sels);
+      const block1 = rf.querySelector('.block1');
+      if (block1) block1.classList.add('open');
+      fragment.appendChild(rf);
     });
-    Array.from(rowMap.keys()).forEach(posId => {
-      if (seenIds.has(posId)) return;
-      const node = rowMap.get(posId);
-      if (node && node.parentNode === content) node.remove();
-      rowMap.delete(posId);
-    });
-
-    content[ROW_MAP_SYMBOL] = rowMap;
-    content.dataset.version = specVersionCache.get(idStr) || '';
+    content.innerHTML = '';
+    content.appendChild(fragment);
+    content.dataset.renderHash = hash;
     if (mode === 'history') restoreHistoryBlockState(specId, content);
     else restoreBlock1State(specId, content);
     setupDynamicBlocks(content);
-    updateRegistryCheckboxVisibility();
     setupOverflowTooltips(content);
   }
 
@@ -2596,11 +2338,7 @@ function parseProgressTriplet(v) {
     removedIds.forEach(id => {
       const idStr = String(id);
       const container = historyList.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
-      if (container) {
-        const progressEl = container.querySelector('.spec-progress');
-        if (progressEl) unobserveProgressElement(progressEl);
-        container.remove();
-      }
+      if (container) container.remove();
       delete historyOpenBlocks[idStr];
     });
     const idsForUpdate = forceAll ? new Set(history.map(item => String(item.id))) : new Set(Array.from(changedIds, id => String(id)));
@@ -2637,11 +2375,7 @@ function parseProgressTriplet(v) {
     removedIds.forEach(id => {
       const idStr = String(id);
       const container = block1List.querySelector(`.spec-container[data-spec-id="${idStr}"]`);
-      if (container) {
-        const progressEl = container.querySelector('.spec-progress');
-        if (progressEl) unobserveProgressElement(progressEl);
-        container.remove();
-      }
+      if (container) container.remove();
       delete block1OpenBlocks[idStr];
     });
     if (forceAll) {
@@ -2680,42 +2414,31 @@ function parseProgressTriplet(v) {
       return;
     }
     loadingBlock1 = true;
-    const prevCache = new Map(specVersionCache);
+    const prevCache = new Map(specRenderCache);
     const specIds = Array.from(new Set((history || []).map(h => h?.id).filter(id => id !== null && id !== undefined)));
     if (!specIds.length) {
       block1Rows = [];
       specGroups = {};
       selectionMap = {};
-      const removedIds = Array.from(specVersionCache.keys());
-      specVersionCache.clear();
+      const removedIds = Array.from(specRenderCache.keys());
+      specRenderCache.clear();
       updateBlock1SpecContainers({ removedIds });
       updateHistorySpecContainers({ removedIds });
       loadingBlock1 = false;
       pendingLoad = null;
       return;
     }
-    const baseColumns = [
-      'file_number', 'user_login', 'file_name', 'id', 'spec_id', 'created_at',
-      'pos_number', 'pos_number_int', 'name', 'qty', 'unit', 'attrs', 'attrs_json'
-    ];
-    const selectColumns = registryColumnsSupported
-      ? `${baseColumns.join(', ')}, ${REGISTRY_FLAG_FIELDS.join(', ')}`
-      : baseColumns.join(', ');
     const { data, error } = await supabase
       .from(POS_TABLE)
-      .select(selectColumns)
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+      )
       .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
 
     if (error) {
-      if (registryColumnsSupported && isMissingRegistryColumnError(error)) {
-        console.warn('[modal9] registry flag columns unavailable, disabling support', error);
-        registryColumnsSupported = false;
-        updateRegistryCheckboxVisibility();
-        loadingBlock1 = false;
-        return loadBlock1(options);
-      }
       console.error(error);
       loadingBlock1 = false;
       const next = pendingLoad;
@@ -2725,61 +2448,40 @@ function parseProgressTriplet(v) {
     }
     block1Rows = data || [];
     const posIds = block1Rows.map(r => r.id);
-    const posToSpec = new Map();
-    const posVersionBySpec = new Map();
-    const selectVersionBySpec = new Map();
     selectionMap = {};
     if (posIds.length) {
-      const selectionColumns = [
-        'pos_id', 'spec_id', 'article', 'model_name', 'qty', 'unit', 'price', 'sum',
-        'price1_amount', 'price1_currency', 'price1_store', 'price1_url',
-        'price2_amount', 'price2_currency', 'price2_store', 'price2_url',
-        'price3_amount', 'price3_currency', 'price3_store', 'price3_url',
-        'prices_json', 'pricer_status', 'pricer_updated_at'
-      ].join(', ');
       const { data: sels, error: selErr } = await supabase
         .from(SELECT_TABLE)
-        .select(selectionColumns)
+        .select('pos_id, article, model_name, qty, unit, price, sum, \
+          price1_amount, price1_currency, price1_store, price1_url, \
+          price2_amount, price2_currency, price2_store, price2_url, \
+          price3_amount, price3_currency, price3_store, price3_url, \
+          prices_json, pricer_status')
         .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => {
         (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s);
-        const specKey = s.spec_id != null
-          ? String(s.spec_id)
-          : (posToSpec.get(s.pos_id) ? String(posToSpec.get(s.pos_id)) : null);
-        if (!specKey) return;
-        const updatedAtRaw = s.pricer_updated_at || s.updated_at || s.created_at;
-        const updatedAt = updatedAtRaw ? new Date(updatedAtRaw).getTime() : 0;
-        const prevTs = selectVersionBySpec.get(specKey) || 0;
-        if (updatedAt > prevTs) selectVersionBySpec.set(specKey, updatedAt);
       });
     }
     specGroups = {};
     block1Rows.forEach(r => {
       const key = String(r.spec_id);
-      posToSpec.set(r.id, key);
-      const updatedAtRaw = r.updated_at || r.created_at;
-      const updatedAt = updatedAtRaw ? new Date(updatedAtRaw).getTime() : 0;
-      const prevTs = posVersionBySpec.get(key) || 0;
-      if (updatedAt > prevTs) posVersionBySpec.set(key, updatedAt);
       (specGroups[key] = specGroups[key] || []).push(r);
     });
     const nextCache = new Map();
     Object.keys(specGroups).forEach(id => {
-      const posVersion = posVersionBySpec.get(id) || 0;
-      const selectVersion = selectVersionBySpec.get(id) || 0;
-      nextCache.set(String(id), `${posVersion}-${selectVersion}`);
+      nextCache.set(String(id), computeSpecHash(id));
     });
     const changedIds = new Set();
-    nextCache.forEach((version, id) => {
-      if (prevCache.get(id) !== version) changedIds.add(id);
+    nextCache.forEach((hash, id) => {
+      if (prevCache.get(id) !== hash) changedIds.add(id);
     });
     const removedIds = [];
     prevCache.forEach((_, id) => {
       if (!nextCache.has(id)) removedIds.push(id);
     });
-    specVersionCache.clear();
-    nextCache.forEach((version, id) => specVersionCache.set(id, version));
+    specRenderCache.clear();
+    nextCache.forEach((hash, id) => specRenderCache.set(id, hash));
     updateBlock1SpecContainers({ changedIds, removedIds, forceAll: fromHistory });
     updateHistorySpecContainers({ changedIds, removedIds });
     if (!fromHistory && history.length) {
@@ -2813,7 +2515,6 @@ function parseProgressTriplet(v) {
       if (p.dataset.specId !== String(id)) {
         p.classList.add('hidden');
         p.addEventListener('transitionend', () => { p.style.display = 'none'; }, { once: true });
-        setProgressActive(p, false);
       }
     });
     block1List.querySelectorAll('.spec-action-row').forEach(row => {
@@ -2865,7 +2566,6 @@ function parseProgressTriplet(v) {
     if (prog) {
       prog.style.display = 'flex';
       requestAnimationFrame(() => prog.classList.remove('hidden'));
-      setProgressActive(prog, true);
     }
     if (actions) {
       actions.style.display = 'flex';
@@ -2890,7 +2590,6 @@ function parseProgressTriplet(v) {
     if (prog) {
       prog.classList.add('hidden');
       prog.addEventListener('transitionend', () => { prog.style.display = 'none'; }, { once: true });
-      setProgressActive(prog, false);
     }
     if (actions) {
       actions.classList.add('hidden');
@@ -2949,7 +2648,6 @@ function parseProgressTriplet(v) {
       }
       prog.style.display = 'flex';
       requestAnimationFrame(() => prog.classList.remove('hidden'));
-      setProgressActive(prog, true);
     }
 
     historyList.querySelectorAll('.spec-progress').forEach(p => {
@@ -2960,7 +2658,6 @@ function parseProgressTriplet(v) {
           hideTimers.delete(p);
         }, 500);
         hideTimers.set(p, t);
-        setProgressActive(p, false);
       }
     });
     historyList.querySelectorAll('.spec-action-row').forEach(row => {
@@ -3026,7 +2723,6 @@ function parseProgressTriplet(v) {
         hideTimers.delete(prog);
       }, 500);
       hideTimers.set(prog, t);
-      setProgressActive(prog, false);
     }
     if (actions) {
       actions.classList.add('hidden');
@@ -3563,52 +3259,24 @@ function parseProgressTriplet(v) {
 
   async function trackSelectorProgress(specId, progressEl, statusEl, options = {}) {
     const { signal } = options;
-    const normalizedSpecId = normalizeSpecId(specId);
+    let lastStatus = null;
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-     const progressInfo = await requestSelectorProgress(normalizedSpecId);
-      const {
-        sent = 0,
-        received = 0,
-        total = 0,
-        parser: parserStatus,
-        selector: selectorStatus,
-        pricer: pricerStatus,
-      } = progressInfo || {};
-      // всегда отражаем числовой прогресс в строке истории
-  if (statusEl) {
-    updateStatus(statusEl, `${sent} / ${received} / ${total}`, { source: 'database' });
-  }
-      if (!selectorProgressRpcAvailable) {
-        const payload = { status: 'BLOCK 2', sent, received, total };
-        if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
-          payload.parser = parserStatus;
-          payload.selector = selectorStatus;
-          payload.pricer = pricerStatus;
-        }
-        if (statusEl) updateStatus(statusEl, `${sent} / ${received} / ${total}`, { source: 'database' });
-        setProgress(progressEl, payload);
-        updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
-        updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
-        updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
-        updateSpecProgress(specId, payload);
-        break;
-      }
+      const { sent, received, total } = await getSelectorProgress(specId);
+      const countsText = `${sent} / ${received} / ${total}`;
+      const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+      const selEl = row?.querySelector('[data-field="status_selector"]');
+      if (selEl) updateStatus(selEl, countsText);
 
       // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
-      const payload = { status: 'BLOCK 2', sent, received, total };
-      if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
-        payload.parser = parserStatus;
-        payload.selector = selectorStatus;
-        payload.pricer = pricerStatus;
-      }
-      setProgress(progressEl, payload);
+      setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
 
-      updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
+      if (countsText !== lastStatus) {
+        lastStatus = countsText;
+        await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
+      }
       if (total > 0 && received >= total) break;
-      await delay(PROGRESS_POLL_INTERVAL);
+      await delay(1000);
     }
   }
 
@@ -3616,8 +3284,9 @@ function parseProgressTriplet(v) {
     const { data: { session } = {} } = await supabase.auth.getSession();
     if (!session) return;
 
-    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status_selector"]`);
-    setProgress(progress, { selector: 'подготовка' });
+    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
+    updateStatus(statusEl, 'подготовка');
+    setProgress(progress, 'подготовка');
     const controller = new AbortController();
     const trackerPromise = (async () => {
       try {
@@ -3627,12 +3296,8 @@ function parseProgressTriplet(v) {
       }
     })();
     try {
-      const normalizedSpecId = normalizeSpecId(specId);
-      await supabase
-        .from(TABLE)
-        .update({ status: 'подготовка' })
-        .eq('id', normalizedSpecId);
-      const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: normalizedSpecId } });
+      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', specId);
+      const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
       if (error) throw error;
     } catch (err) {
       controller.abort();
@@ -3664,247 +3329,19 @@ function parseProgressTriplet(v) {
       realtimeSub.unsubscribe();
       realtimeSub = null;
     }
-    cleanupStatusSubscriptions();
-    stopAllProgressPolling();
-    if (progressObserver) {
-      progressObserver.disconnect();
-      progressObserver = null;
-    }
-    visibleProgressEntries.clear();
+    stopAutoRefresh();
   }
 
   window.cleanupRealtime = cleanupRealtime;
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      stopAllProgressPolling();
+      stopAutoRefresh();
     } else {
+      startAutoRefresh();
       loadHistory();
     }
   });
-
-  function handleProgressVisibility(entries) {
-    entries.forEach(entry => {
-      const el = entry.target;
-      const specId = el?.dataset?.specId;
-      if (!specId) return;
-      let set = visibleProgressEntries.get(specId);
-      if (!set) {
-        set = new Set();
-        visibleProgressEntries.set(specId, set);
-      }
-      if (entry.isIntersecting) {
-        set.add(el);
-        el.dataset.visible = 'true';
-        if (el.dataset.active === 'true') {
-          ensureProgressPolling(specId);
-        }
-      } else {
-        set.delete(el);
-        el.dataset.visible = 'false';
-        if (!set.size) {
-          visibleProgressEntries.delete(specId);
-          stopProgressPolling(specId);
-        }
-      }
-    });
-  }
-
-  function ensureProgressObserver() {
-    if (!progressObserver) {
-      progressObserver = new IntersectionObserver(handleProgressVisibility, { threshold: 0.1 });
-    }
-    return progressObserver;
-  }
-
-  function observeProgressElement(progressEl) {
-    if (!progressEl) return;
-    if (!progressEl.dataset.active) progressEl.dataset.active = 'false';
-    if (!progressEl.dataset.visible) progressEl.dataset.visible = 'false';
-    ensureProgressObserver().observe(progressEl);
-  }
-
-  function unobserveProgressElement(progressEl) {
-    if (!progressEl) return;
-    if (progressObserver) progressObserver.unobserve(progressEl);
-    const specId = progressEl.dataset?.specId;
-    if (!specId) return;
-    const set = visibleProgressEntries.get(specId);
-    if (set) {
-      set.delete(progressEl);
-      if (!set.size) visibleProgressEntries.delete(specId);
-    }
-    if (progressEl.dataset.active === 'true') {
-      stopProgressPolling(specId);
-    }
-  }
-
-  function setProgressActive(progressEl, active) {
-    if (!progressEl) return;
-    progressEl.dataset.active = String(active);
-    const specId = progressEl.dataset?.specId;
-    if (!specId) return;
-    if (!active) {
-      stopProgressPolling(specId);
-    } else if (progressEl.dataset.visible === 'true') {
-      ensureProgressPolling(specId);
-    }
-  }
-
-  function ensureProgressPolling(specId) {
-    if (!specId) return;
-    const existing = progressPollers.get(specId);
-    if (existing && existing.active) return;
-    const state = existing || { active: true, timer: null };
-    state.active = true;
-    if (state.timer) {
-      clearTimeout(state.timer);
-      state.timer = null;
-    }
-    progressPollers.set(specId, state);
-
-    const tick = async () => {
-      if (!state.active) return;
-      const done = await pollSelectorProgress(specId);
-      if (!state.active) return;
-      if (done) {
-        progressPollers.delete(specId);
-      } else {
-        state.timer = setTimeout(tick, PROGRESS_POLL_INTERVAL);
-      }
-    };
-
-    tick();
-  }
-
-  function stopProgressPolling(specId) {
-    const state = progressPollers.get(specId);
-    if (!state) return;
-    state.active = false;
-    if (state.timer) {
-      clearTimeout(state.timer);
-      state.timer = null;
-    }
-    progressPollers.delete(specId);
-  }
-
-  function stopAllProgressPolling() {
-    Array.from(progressPollers.keys()).forEach(stopProgressPolling);
-  }
-
-  async function pollSelectorProgress(specId) {
-    if (!specId) return true;
-    try {
-      const counts = await requestSelectorProgress(specId);
-      const {
-        sent = 0,
-        received = 0,
-        total = 0,
-        parser: parserStatus,
-        selector: selectorStatus,
-        pricer: pricerStatus,
-      } = counts || {};
-      // отразим тройку в истории (DOM) — это «истинный» прогресс селектора
-      updateHistoryStatusField(specId, 'status_selector', `${sent} / ${received} / ${total}`, { source: 'database' });
-      const updatePayload = {};
-      if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
-        updatePayload.parser = parserStatus;
-        updatePayload.selector = selectorStatus;
-        updatePayload.pricer = pricerStatus;
-      }
-      if ('sent' in (counts || {}) || 'received' in (counts || {}) || 'total' in (counts || {})) {
-        updatePayload.status = 'BLOCK 2';
-        updatePayload.sent = sent;
-        updatePayload.received = received;
-        updatePayload.total = total;
-      }
-      if (!selectorProgressRpcAvailable) {
-        updateSpecProgress(specId, updatePayload);
-        return true;
-      }
-      updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
-      updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
-      updateSpecProgress(specId, updatePayload);
-      return total > 0 && received >= total;
-    } catch (err) {
-      console.error('pollSelectorProgress error:', err);
-      return true;
-    }
-  }
-
-  async function fetchSelectorProgressFromStatusTable(specId) {
-    if (!supabase || !selectorProgressStatusTableAvailable) {
-      return { ...selectorProgressFallback };
-    }
-    try {
-      const { data, error } = await supabase
-        .from(STATUS_TABLE)
-        .select('sent, received, total, parser_status, selector_status, pricer_status, parser, selector, pricer')
-        .eq('spec_id', specId)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return { ...selectorProgressFallback };
-      const sent = coerceProgressNumber(data.sent ?? data.selector_sent ?? data.progress_sent);
-      const received = coerceProgressNumber(data.received ?? data.selector_received ?? data.progress_received);
-      const total = coerceProgressNumber(data.total ?? data.selector_total ?? data.progress_total);
-      return {
-        sent,
-        received,
-        total,
-        parser: data.parser_status ?? data.parser ?? undefined,
-        selector: data.selector_status ?? data.selector ?? undefined,
-        pricer: data.pricer_status ?? data.pricer ?? undefined,
-      };
-    } catch (err) {
-      if (isMissingSelectorStatusTableError(err)) {
-        selectorProgressStatusTableAvailable = false;
-        if (!selectorProgressStatusTableWarned) {
-          selectorProgressStatusTableWarned = true;
-          console.info('selector status table unavailable, using fallback progress data');
-        }
-      } else {
-        console.error('selector status table error:', err);
-      }
-      return { ...selectorProgressFallback };
-    }
-  }
-
-  async function requestSelectorProgress(specId) {
-    if (!supabase) return { ...selectorProgressFallback };
-    const normalizedSpecId = normalizeSpecId(specId);
-    if (!selectorProgressRpcAvailable) {
-      return fetchSelectorProgressFromStatusTable(normalizedSpecId);
-    }
-    try {
-      const { data, error } = await supabase.rpc(SELECTOR_PROGRESS_RPC, { spec_id: normalizedSpecId });
-      if (error) throw error;
-      const payload = Array.isArray(data) ? data[0] : (data || {});
-      const sent = coerceProgressNumber(payload?.sent);
-      const received = coerceProgressNumber(payload?.received);
-      const total = coerceProgressNumber(payload?.total);
-      return {
-        sent,
-        received,
-        total,
-        parser: payload?.parser_status ?? payload?.parser ?? undefined,
-        selector: payload?.selector_status ?? payload?.selector ?? undefined,
-        pricer: payload?.pricer_status ?? payload?.pricer ?? undefined,
-      };
-    } catch (err) {
-      const missingFn = err?.code === 'PGRST202' || /modal9_selector_progress/i.test(err?.message || '');
-      if (missingFn) {
-        selectorProgressRpcAvailable = false;
-        if (!selectorProgressRpcWarned) {
-          selectorProgressRpcWarned = true;
-          console.info('selector progress rpc unavailable, using fallback progress data');
-        }
-        return fetchSelectorProgressFromStatusTable(normalizedSpecId);
-      }
-      console.error('selector progress rpc error:', err);
-      return { ...selectorProgressFallback };
-    }
-  }
   
   // ====== ПРОГРЕСС: ОПИРАЕМСЯ НА ТРИ СТАТУС-ПОЛЯ ======
   function parseSelectorCounts(str) {
@@ -3926,7 +3363,7 @@ function parseProgressTriplet(v) {
     const s = String(str || '').toLowerCase();
     const c = parseSelectorCounts(s);
     if (c) return c.total > 0 && c.received < c.total && (c.sent > 0 || c.received > 0);
-    return /(в работе|идет|processing|running|запущ|старт|ожидан|queue|queued|подгот)/i.test(s);
+    return /(в работе|идет|processing|running|запущ|старт|ожидан|queue|queued)/i.test(s);
   }
 
   function setProgress(progressEl, info) {
@@ -3991,8 +3428,65 @@ function parseProgressTriplet(v) {
     apply(steps[2], rDone, rProg);
   }
 
+  async function getSelectorProgress(specId) {
+    const [totalRes, sentRes, selectRes] = await Promise.all([
+      supabase
+        .from(POS_TABLE)
+        .select('id', { count: 'exact', head: true })
+        .eq('spec_id', specId),
+      supabase
+        .from(STATUS_TABLE)
+        .select('pos_id', { count: 'exact', head: true })
+        .eq('spec_id', specId),
+      supabase
+        .from(SELECT_TABLE)
+        .select('pos_id')
+        .eq('spec_id', specId)
+        .limit(5000),
+    ]);
+
+    const totalCount = typeof totalRes?.count === 'number' ? totalRes.count : 0;
+    if (totalRes?.error) console.error('getSelectorProgress total error:', totalRes.error);
+
+    const sentCount = typeof sentRes?.count === 'number' ? sentRes.count : 0;
+    if (sentRes?.error) console.error('getSelectorProgress sent error:', sentRes.error);
+
+    let receivedCount = 0;
+    if (selectRes?.error) {
+      console.error('getSelectorProgress received error:', selectRes.error);
+    } else if (Array.isArray(selectRes?.data)) {
+      const unique = new Set();
+      selectRes.data.forEach(row => {
+        const posId = row?.pos_id ?? row?.posId ?? row?.posid;
+        if (posId !== null && posId !== undefined) {
+          unique.add(String(posId));
+        }
+      });
+      receivedCount = unique.size;
+    }
+
+    const normalizedSent = Math.max(sentCount, receivedCount);
+    const normalizedTotal = Math.max(totalCount, normalizedSent, receivedCount);
+
+    return {
+      sent: normalizedSent,
+      received: receivedCount,
+      total: normalizedTotal,
+    };
+  }
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
+    }
+  } catch (_) {}
+
   await loadHistory({ resetLimit: true });
   setupRealtime();
+  startAutoRefresh();
 }
 
 initModal9();
