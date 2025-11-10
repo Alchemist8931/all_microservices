@@ -1572,7 +1572,11 @@ export async function initModal9() {
         const priceEl = frag.querySelector(`[data-offer="${n}-price"]`);
         const storeEl = frag.querySelector(`[data-offer="${n}-store"]`);
         const urlEl = frag.querySelector(`[data-offer="${n}-url"]`);
-        if (priceEl) priceEl.value = (amount, curr);
+        if (priceEl) {
+  priceEl.value = (amount ?? '') === ''
+    ? ''
+    : `${formatOfferPrice(amount)}${curr ? ' ' + curr : ''}`;
+}
         if (storeEl) storeEl.value = store || '';
         if (urlEl) {
           const href = url || '';
@@ -2079,7 +2083,7 @@ export async function initModal9() {
     historyList.querySelectorAll('.history-item').forEach(item => {
       let visible = true;
       if (q) {
-        visible = ['file_number','user_login','created_at','file_name','file_ext','status','id'].some(field => {
+        visible = ['file_number','user_login','created_at','file_name','file_ext','status_parser','status_selector','status_pricer','id'].some(field => {
           const el = item.querySelector(`[data-field="${field}"]`);
           if (!el) return false;
           const val = (el.value || el.textContent || '').toString().toLowerCase();
@@ -2130,7 +2134,7 @@ export async function initModal9() {
       return {
         id: row.id,
         pos_number: row.pos_number ?? '',
-        pos_number_int: toPosNum(r.pos_number_int ?? r.pos_number),
+        pos_number_int: toPosNum(row.pos_number_int ?? row.pos_number),
         name: row.name ?? '',
         qty: row.qty ?? '',
         unit: row.unit ?? '',
@@ -2459,7 +2463,21 @@ export async function initModal9() {
       return;
     }
     block1Rows = (data || []).map(r => ({
-    const posIds = block1Rows.map(r => r.id);
+  file_number:   r.file_number,
+  user_login:    r.user_login,
+  file_name:     r.file_name,
+  id:            r.id,
+  spec_id:       r.spec_id,
+  pos_number:    r.pos_number,
+  pos_number_int: toPosNum(r.pos_number_int ?? r.pos_number),
+  name:          r.name,
+  qty:           r.qty,
+  unit:          r.unit,
+  attrs:         r.attrs,
+  attrs_json:    r.attrs_json
+}));
+
+const posIds = block1Rows.map(r => r.id);
     selectionMap = {};
     if (posIds.length) {
       const { data: sels, error: selErr } = await supabase
