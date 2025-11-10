@@ -1754,6 +1754,15 @@ export async function initModal9() {
     icon.style.textShadow = state.glow ? '0 0 8px #5dd62c' : 'none';
   }
 
+  function updateHistoryStatusField(specId, field, value) {
+    if (!STATUS_FIELDS.has(field)) return;
+    if (value === undefined) return;
+    const idStr = String(specId);
+    const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+    const el = row?.querySelector(`[data-field="${field}"]`);
+    if (el) updateStatus(el, value ?? '');
+  }
+
   function showCopyTip(el) {
     const tip = document.createElement('div');
     tip.className = 'copy-tooltip';
@@ -3347,7 +3356,6 @@ export async function initModal9() {
 
   async function trackSelectorProgress(specId, progressEl, statusEl, options = {}) {
     const { signal } = options;
-    let lastStatus = null;
     const normalizedSpecId = normalizeSpecId(specId);
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -3369,6 +3377,9 @@ export async function initModal9() {
         }
         if (statusEl) updateStatus(statusEl, `${sent} / ${received} / ${total}`);
         setProgress(progressEl, payload);
+        updateHistoryStatusField(specId, 'status_parser', parserStatus);
+        updateHistoryStatusField(specId, 'status_selector', selectorStatus);
+        updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
         updateSpecProgress(specId, payload);
         break;
       }
@@ -3387,10 +3398,9 @@ export async function initModal9() {
       }
       setProgress(progressEl, payload);
 
-      if (countsText !== lastStatus) {
-        lastStatus = countsText;
-        await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', normalizedSpecId);
-      }
+      updateHistoryStatusField(specId, 'status_parser', parserStatus);
+      updateHistoryStatusField(specId, 'status_selector', selectorStatus);
+      updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
       if (total > 0 && received >= total) break;
       await delay(PROGRESS_POLL_INTERVAL);
     }
@@ -3415,7 +3425,7 @@ export async function initModal9() {
       const normalizedSpecId = normalizeSpecId(specId);
       await supabase
         .from(TABLE)
-        .update({ status: 'подготовка', status_selector: 'подготовка' })
+        .update({ status: 'подготовка' })
         .eq('id', normalizedSpecId);
       const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: normalizedSpecId } });
       if (error) throw error;
@@ -3608,6 +3618,9 @@ export async function initModal9() {
       const row = historyList?.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selectorField = row?.querySelector('[data-field="status_selector"]');
       if (selectorField) updateStatus(selectorField, countsText);
+      updateHistoryStatusField(specId, 'status_parser', parserStatus);
+      updateHistoryStatusField(specId, 'status_selector', selectorStatus);
+      updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
       updateSpecProgress(specId, updatePayload);
       return total > 0 && received >= total;
     } catch (err) {
