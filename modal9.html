@@ -1251,6 +1251,9 @@ export async function initModal9() {
   const HISTORY_LIMIT_STEP = 30;
   const PROGRESS_POLL_INTERVAL = 4000;
   const SELECTOR_PROGRESS_RPC = 'modal9_selector_progress';
+  let selectorProgressRpcAvailable = true;
+  let selectorProgressRpcWarned = false;
+  const selectorProgressFallback = { sent: 0, received: 0, total: 0 };
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -3323,6 +3326,10 @@ export async function initModal9() {
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const { sent, received, total } = await requestSelectorProgress(specId);
+      if (!selectorProgressRpcAvailable) {
+        setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
+        break;
+      }
       const countsText = `${sent} / ${received} / ${total}`;
       const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selEl = row?.querySelector('[data-field="status_selector"]');
@@ -3521,6 +3528,10 @@ export async function initModal9() {
     try {
       const counts = await requestSelectorProgress(specId);
       const { sent = 0, received = 0, total = 0 } = counts || {};
+      if (!selectorProgressRpcAvailable) {
+        updateSpecProgress(specId, { status: 'BLOCK 2', sent, received, total });
+        return true;
+      }
       const countsText = `${sent} / ${received} / ${total}`;
       const row = historyList?.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selectorField = row?.querySelector('[data-field="status_selector"]');
@@ -3534,7 +3545,7 @@ export async function initModal9() {
   }
 
   async function requestSelectorProgress(specId) {
-    if (!supabase) return { sent: 0, received: 0, total: 0 };
+    if (!supabase || !selectorProgressRpcAvailable) return { ...selectorProgressFallback };
     try {
       const { data, error } = await supabase.rpc(SELECTOR_PROGRESS_RPC, { spec_id: Number(specId) || specId });
       if (error) throw error;
@@ -3544,8 +3555,17 @@ export async function initModal9() {
       const total = Number(payload?.total) || 0;
       return { sent, received, total };
     } catch (err) {
+      const missingFn = err?.code === 'PGRST202' || /modal9_selector_progress/i.test(err?.message || '');
+      if (missingFn) {
+        selectorProgressRpcAvailable = false;
+        if (!selectorProgressRpcWarned) {
+          selectorProgressRpcWarned = true;
+          console.info('selector progress rpc unavailable, using fallback progress data');
+        }
+        return { ...selectorProgressFallback };
+      }
       console.error('selector progress rpc error:', err);
-      return { sent: 0, received: 0, total: 0 };
+      return { ...selectorProgressFallback };
     }
   }
   
