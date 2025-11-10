@@ -1261,7 +1261,24 @@ export async function initModal9() {
   const SELECTOR_PROGRESS_RPC = 'modal9_selector_progress';
   let selectorProgressRpcAvailable = true;
   let selectorProgressRpcWarned = false;
+  let selectorProgressStatusTableAvailable = true;
+  let selectorProgressStatusTableWarned = false;
   const selectorProgressFallback = { sent: 0, received: 0, total: 0 };
+
+  function normalizeSpecId(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : value;
+  }
+
+  function coerceProgressNumber(value) {
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0 ? num : 0;
+  }
+
+  function isMissingSelectorStatusTableError(err) {
+    const message = String(err?.message || err?.details || '');
+    return err?.code === 'PGRST302' || err?.code === 'PGRST202' || /modal9_selector_status/i.test(message);
+  }
 
   const root = document.getElementById('modal9-container');
   const tabs = root.querySelectorAll('.tab');
@@ -3331,11 +3348,27 @@ export async function initModal9() {
   async function trackSelectorProgress(specId, progressEl, statusEl, options = {}) {
     const { signal } = options;
     let lastStatus = null;
+    const normalizedSpecId = normalizeSpecId(specId);
     for (;;) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-      const { sent, received, total } = await requestSelectorProgress(specId);
+     const progressInfo = await requestSelectorProgress(normalizedSpecId);
+      const {
+        sent = 0,
+        received = 0,
+        total = 0,
+        parser: parserStatus,
+        selector: selectorStatus,
+        pricer: pricerStatus,
+      } = progressInfo || {};
       if (!selectorProgressRpcAvailable) {
-        setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
+        const payload = { status: 'BLOCK 2', sent, received, total };
+        if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
+          payload.parser = parserStatus;
+          payload.selector = selectorStatus;
+          payload.pricer = pricerStatus;
+        }
+        setProgress(progressEl, payload);
+        updateSpecProgress(specId, payload);
         break;
       }
       const countsText = `${sent} / ${received} / ${total}`;
@@ -3344,11 +3377,17 @@ export async function initModal9() {
       if (selEl) updateStatus(selEl, countsText);
 
       // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
-      setProgress(progressEl, { status: 'BLOCK 2', sent, received, total });
+      const payload = { status: 'BLOCK 2', sent, received, total };
+      if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
+        payload.parser = parserStatus;
+        payload.selector = selectorStatus;
+        payload.pricer = pricerStatus;
+      }
+      setProgress(progressEl, payload);
 
       if (countsText !== lastStatus) {
         lastStatus = countsText;
-        await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', specId);
+        await supabase.from(TABLE).update({ status_selector: countsText }).eq('id', normalizedSpecId);
       }
       if (total > 0 && received >= total) break;
       await delay(PROGRESS_POLL_INTERVAL);
@@ -3371,8 +3410,9 @@ export async function initModal9() {
       }
     })();
     try {
-      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', specId);
-      const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
+      const normalizedSpecId = normalizeSpecId(specId);
+      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', normalizedSpecId);
+      const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: normalizedSpecId } });
       if (error) throw error;
     } catch (err) {
       controller.abort();
@@ -3535,16 +3575,35 @@ export async function initModal9() {
     if (!specId) return true;
     try {
       const counts = await requestSelectorProgress(specId);
-      const { sent = 0, received = 0, total = 0 } = counts || {};
+      const {
+        sent = 0,
+        received = 0,
+        total = 0,
+        parser: parserStatus,
+        selector: selectorStatus,
+        pricer: pricerStatus,
+      } = counts || {};
+      const updatePayload = {};
+      if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
+        updatePayload.parser = parserStatus;
+        updatePayload.selector = selectorStatus;
+        updatePayload.pricer = pricerStatus;
+      }
+      if ('sent' in (counts || {}) || 'received' in (counts || {}) || 'total' in (counts || {})) {
+        updatePayload.status = 'BLOCK 2';
+        updatePayload.sent = sent;
+        updatePayload.received = received;
+        updatePayload.total = total;
+      }
       if (!selectorProgressRpcAvailable) {
-        updateSpecProgress(specId, { status: 'BLOCK 2', sent, received, total });
+        updateSpecProgress(specId, updatePayload);
         return true;
       }
       const countsText = `${sent} / ${received} / ${total}`;
       const row = historyList?.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selectorField = row?.querySelector('[data-field="status_selector"]');
       if (selectorField) updateStatus(selectorField, countsText);
-      updateSpecProgress(specId, { status: 'BLOCK 2', sent, received, total });
+      updateSpecProgress(specId, updatePayload);
       return total > 0 && received >= total;
     } catch (err) {
       console.error('pollSelectorProgress error:', err);
@@ -3552,16 +3611,64 @@ export async function initModal9() {
     }
   }
 
-  async function requestSelectorProgress(specId) {
-    if (!supabase || !selectorProgressRpcAvailable) return { ...selectorProgressFallback };
+  async function fetchSelectorProgressFromStatusTable(specId) {
+    if (!supabase || !selectorProgressStatusTableAvailable) {
+      return { ...selectorProgressFallback };
+    }
     try {
-      const { data, error } = await supabase.rpc(SELECTOR_PROGRESS_RPC, { spec_id: Number(specId) || specId });
+      const { data, error } = await supabase
+        .from(STATUS_TABLE)
+        .select('sent, received, total, parser_status, selector_status, pricer_status, parser, selector, pricer')
+        .eq('spec_id', specId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return { ...selectorProgressFallback };
+      const sent = coerceProgressNumber(data.sent ?? data.selector_sent ?? data.progress_sent);
+      const received = coerceProgressNumber(data.received ?? data.selector_received ?? data.progress_received);
+      const total = coerceProgressNumber(data.total ?? data.selector_total ?? data.progress_total);
+      return {
+        sent,
+        received,
+        total,
+        parser: data.parser_status ?? data.parser ?? undefined,
+        selector: data.selector_status ?? data.selector ?? undefined,
+        pricer: data.pricer_status ?? data.pricer ?? undefined,
+      };
+    } catch (err) {
+      if (isMissingSelectorStatusTableError(err)) {
+        selectorProgressStatusTableAvailable = false;
+        if (!selectorProgressStatusTableWarned) {
+          selectorProgressStatusTableWarned = true;
+          console.info('selector status table unavailable, using fallback progress data');
+        }
+      } else {
+        console.error('selector status table error:', err);
+      }
+      return { ...selectorProgressFallback };
+    }
+  }
+
+  async function requestSelectorProgress(specId) {
+    if (!supabase) return { ...selectorProgressFallback };
+    const normalizedSpecId = normalizeSpecId(specId);
+    if (!selectorProgressRpcAvailable) {
+      return fetchSelectorProgressFromStatusTable(normalizedSpecId);
+    }
+    try {
+      const { data, error } = await supabase.rpc(SELECTOR_PROGRESS_RPC, { spec_id: normalizedSpecId });
       if (error) throw error;
       const payload = Array.isArray(data) ? data[0] : (data || {});
-      const sent = Number(payload?.sent) || 0;
-      const received = Number(payload?.received) || 0;
-      const total = Number(payload?.total) || 0;
-      return { sent, received, total };
+      const sent = coerceProgressNumber(payload?.sent);
+      const received = coerceProgressNumber(payload?.received);
+      const total = coerceProgressNumber(payload?.total);
+      return {
+        sent,
+        received,
+        total,
+        parser: payload?.parser_status ?? payload?.parser ?? undefined,
+        selector: payload?.selector_status ?? payload?.selector ?? undefined,
+        pricer: payload?.pricer_status ?? payload?.pricer ?? undefined,
+      };
     } catch (err) {
       const missingFn = err?.code === 'PGRST202' || /modal9_selector_progress/i.test(err?.message || '');
       if (missingFn) {
@@ -3570,7 +3677,7 @@ export async function initModal9() {
           selectorProgressRpcWarned = true;
           console.info('selector progress rpc unavailable, using fallback progress data');
         }
-        return { ...selectorProgressFallback };
+        return fetchSelectorProgressFromStatusTable(normalizedSpecId);
       }
       console.error('selector progress rpc error:', err);
       return { ...selectorProgressFallback };
@@ -3661,15 +3768,6 @@ export async function initModal9() {
     apply(steps[1], sDone, sProg);
     apply(steps[2], rDone, rProg);
   }
-
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.functions.invoke('modal9-selector', { body: { mode: 'ping' } });
-    }
-  } catch (_) {}
 
   await loadHistory({ resetLimit: true });
   setupRealtime();
