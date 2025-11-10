@@ -1350,11 +1350,11 @@ export async function initModal9() {
     if (specId === undefined || specId === null || !record) return;
     const idStr = String(specId);
     const updates = {};
-    STATUS_FIELDS.forEach(field => {
-      if (Object.prototype.hasOwnProperty.call(record, field)) {
-        updates[field] = record[field];
-      }
-    });
+    ['status_parser','status_pricer'].forEach(field => {
+  if (Object.prototype.hasOwnProperty.call(record, field)) {
+    updates[field] = record[field];
+  }
+});
     if (!Object.keys(updates).length) return;
 
     Object.entries(updates).forEach(([field, value]) => {
@@ -1383,21 +1383,20 @@ export async function initModal9() {
       : record.pricer;
 
     if (parserStatus !== undefined) mapped.status_parser = parserStatus ?? '';
-    if (selectorStatus !== undefined) mapped.status_selector = selectorStatus ?? '';
-    if (pricerStatus !== undefined) mapped.status_pricer = pricerStatus ?? '';
+if (pricerStatus !== undefined) mapped.status_pricer = pricerStatus ?? '';
 
-    const sentRaw = record.sent ?? record.selector_sent ?? record.progress_sent;
-    const receivedRaw = record.received ?? record.selector_received ?? record.progress_received;
-    const totalRaw = record.total ?? record.selector_total ?? record.progress_total;
-    if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined) {
-      const sent = coerceProgressNumber(sentRaw);
-      const received = coerceProgressNumber(receivedRaw);
-      const total = coerceProgressNumber(totalRaw);
-      const progressString = `${sent} / ${received} / ${total}`;
-      if (!Object.prototype.hasOwnProperty.call(mapped, 'status_selector') || !mapped.status_selector) {
-        mapped.status_selector = progressString;
-      }
-    }
+const sentRaw = record.sent ?? record.selector_sent ?? record.progress_sent;
+const receivedRaw = record.received ?? record.selector_received ?? record.progress_received;
+const totalRaw = record.total ?? record.selector_total ?? record.progress_total;
+
+if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined) {
+  const sent = coerceProgressNumber(sentRaw);
+  const received = coerceProgressNumber(receivedRaw);
+  const total = coerceProgressNumber(totalRaw);
+  mapped.status_selector = `${sent} / ${received} / ${total}`; // всегда берём «тройку»
+} else if (record.selector_status !== undefined || record.selector !== undefined) {
+  mapped.status_selector = (record.selector_status ?? record.selector) ?? '';
+}
 
     if (!Object.keys(mapped).length) return;
     handleStatusRealtimeUpdate(specId, mapped);
@@ -1897,6 +1896,10 @@ export async function initModal9() {
     icon.style.color = state.color;
     icon.style.textShadow = state.glow ? '0 0 8px #5dd62c' : 'none';
   }
+  // ДОБАВЬТЕ рядом с другими утилитами:
+function isProgressTriplet(v) {
+  return /^\s*\d+\s*\/\s*\d+\s*\/\s*\d+\s*$/.test(String(v||''));
+}
 
   function updateHistoryStatusField(specId, field, value, options = {}) {
     if (!STATUS_FIELDS.has(field)) return;
@@ -1904,7 +1907,19 @@ export async function initModal9() {
     const idStr = String(specId);
     const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
     const el = row?.querySelector(`[data-field="${field}"]`);
-    if (el) updateStatus(el, value ?? '', options);
+if (el) {
+  const current = ('value' in el ? el.value : el.textContent) || '';
+  const incoming = value ?? '';
+  // Не даём пустым/дефолтным значениям затирать прогресс-тройку
+  if (
+    field === 'status_selector' &&
+    isProgressTriplet(current) &&
+    (!incoming || incoming === '-' || !isProgressTriplet(incoming))
+  ) {
+    return; // сохраняем текущее информативное значение
+  }
+  updateStatus(el, incoming, options);
+}
   }
 
   function showCopyTip(el) {
@@ -2265,7 +2280,7 @@ export async function initModal9() {
     historyList.querySelectorAll('.history-item').forEach(item => {
       let visible = true;
       if (q) {
-        visible = ['file_number','user_login','created_at','file_name','file_ext','status','id'].some(field => {
+        visible = ['file_number','user_login','created_at','file_name','file_ext','id'].some(...);
           const el = item.querySelector(`[data-field="${field}"]`);
           if (!el) return false;
           const val = (el.value || el.textContent || '').toString().toLowerCase();
