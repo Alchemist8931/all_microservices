@@ -1754,13 +1754,13 @@ export async function initModal9() {
     icon.style.textShadow = state.glow ? '0 0 8px #5dd62c' : 'none';
   }
 
-  function updateHistoryStatusField(specId, field, value) {
+  function updateHistoryStatusField(specId, field, value, options = {}) {
     if (!STATUS_FIELDS.has(field)) return;
     if (value === undefined) return;
     const idStr = String(specId);
     const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
     const el = row?.querySelector(`[data-field="${field}"]`);
-    if (el) updateStatus(el, value ?? '');
+    if (el) updateStatus(el, value ?? '', options);
   }
 
   function showCopyTip(el) {
@@ -1774,8 +1774,12 @@ export async function initModal9() {
     setTimeout(() => tip.remove(), 1000);
   }
 
-  function updateStatus(el, status) {
+  function updateStatus(el, status, options = {}) {
     if (!el) return;
+    const field = el.dataset?.field;
+    if (field && STATUS_FIELDS.has(field) && options?.source !== 'database') {
+      return;
+    }
     const s = String(status || '');
     const match = s.match(/^BLOCK\s*2\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*\)$/i);
     const display = match ? `${match[1]} / ${match[2]} / ${match[3]}` : s;
@@ -1783,7 +1787,6 @@ export async function initModal9() {
       el.value = display;
     }
     el.textContent = display;
-    const field = el.dataset?.field;
     if (field && STATUS_FIELDS.has(field)) {
       const rowEl = el.closest('.history-item');
       if (rowEl) {
@@ -1799,11 +1802,11 @@ export async function initModal9() {
     }
   }
 
-  function animateStatus(el, newStatus) {
+  function animateStatus(el, newStatus, options = {}) {
     if (!el) return;
     el.classList.add('fade');
     setTimeout(() => {
-      updateStatus(el, newStatus);
+      updateStatus(el, newStatus, options);
       el.classList.remove('fade');
     }, 1000);
   }
@@ -2084,7 +2087,7 @@ export async function initModal9() {
         if (STATUS_FIELDS.has(field)) {
           applyStatusIcon(rowEl, field, val);
           if (oldMap[item.id] && oldMap[item.id][field] !== val) {
-            animateStatus(el, val);
+            animateStatus(el, val, { source: 'database' });
           }
           updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
         }
@@ -3375,19 +3378,14 @@ export async function initModal9() {
           payload.selector = selectorStatus;
           payload.pricer = pricerStatus;
         }
-        if (statusEl) updateStatus(statusEl, `${sent} / ${received} / ${total}`);
+        if (statusEl) updateStatus(statusEl, `${sent} / ${received} / ${total}`, { source: 'database' });
         setProgress(progressEl, payload);
-        updateHistoryStatusField(specId, 'status_parser', parserStatus);
-        updateHistoryStatusField(specId, 'status_selector', selectorStatus);
-        updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
+        updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
+        updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
+        updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
         updateSpecProgress(specId, payload);
         break;
       }
-      const countsText = `${sent} / ${received} / ${total}`;
-      const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
-      const selEl = row?.querySelector('[data-field="status_selector"]');
-      if (statusEl) updateStatus(statusEl, countsText);
-      else if (selEl) updateStatus(selEl, countsText);
 
       // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
       const payload = { status: 'BLOCK 2', sent, received, total };
@@ -3398,9 +3396,9 @@ export async function initModal9() {
       }
       setProgress(progressEl, payload);
 
-      updateHistoryStatusField(specId, 'status_parser', parserStatus);
-      updateHistoryStatusField(specId, 'status_selector', selectorStatus);
-      updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
+      updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
+      updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
+      updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
       if (total > 0 && received >= total) break;
       await delay(PROGRESS_POLL_INTERVAL);
     }
@@ -3411,7 +3409,6 @@ export async function initModal9() {
     if (!session) return;
 
     const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status_selector"]`);
-    updateStatus(statusEl, 'подготовка');
     setProgress(progress, { selector: 'подготовка' });
     const controller = new AbortController();
     const trackerPromise = (async () => {
@@ -3614,13 +3611,9 @@ export async function initModal9() {
         updateSpecProgress(specId, updatePayload);
         return true;
       }
-      const countsText = `${sent} / ${received} / ${total}`;
-      const row = historyList?.querySelector(`.history-item[data-spec-id="${specId}"]`);
-      const selectorField = row?.querySelector('[data-field="status_selector"]');
-      if (selectorField) updateStatus(selectorField, countsText);
-      updateHistoryStatusField(specId, 'status_parser', parserStatus);
-      updateHistoryStatusField(specId, 'status_selector', selectorStatus);
-      updateHistoryStatusField(specId, 'status_pricer', pricerStatus);
+      updateHistoryStatusField(specId, 'status_parser', parserStatus, { source: 'database' });
+      updateHistoryStatusField(specId, 'status_selector', selectorStatus, { source: 'database' });
+      updateHistoryStatusField(specId, 'status_pricer', pricerStatus, { source: 'database' });
       updateSpecProgress(specId, updatePayload);
       return total > 0 && received >= total;
     } catch (err) {
