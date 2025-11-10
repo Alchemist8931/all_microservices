@@ -1334,6 +1334,7 @@ export async function initModal9() {
   const ROW_MAP_SYMBOL = Symbol('modal9RowMap');
   const specVersionCache = new Map();
   const progressPollers = new Map();
+  const statusSubscriptions = new Map();
   const visibleProgressEntries = new Map();
   let progressObserver = null;
   let registryColumnsSupported = true;
@@ -1343,6 +1344,66 @@ export async function initModal9() {
     root.querySelectorAll('.registry-checkboxes').forEach(block => {
       block.style.display = visible ? '' : 'none';
     });
+  }
+
+  function handleStatusRealtimeUpdate(specId, record = {}) {
+    if (specId === undefined || specId === null || !record) return;
+    const idStr = String(specId);
+    const updates = {};
+    STATUS_FIELDS.forEach(field => {
+      if (Object.prototype.hasOwnProperty.call(record, field)) {
+        updates[field] = record[field];
+      }
+    });
+    if (!Object.keys(updates).length) return;
+
+    Object.entries(updates).forEach(([field, value]) => {
+      updateHistoryStatusField(specId, field, value, { source: 'database' });
+    });
+
+    if (!lastHistoryStatus[idStr]) lastHistoryStatus[idStr] = {};
+    Object.assign(lastHistoryStatus[idStr], updates);
+
+    const historyItem = history.find(item => item && String(item.id) === idStr);
+    if (historyItem) Object.assign(historyItem, updates);
+  }
+
+  function ensureStatusSubscription(specId) {
+    if (!supabase || specId === undefined || specId === null) return null;
+    const idStr = String(specId);
+    if (statusSubscriptions.has(idStr)) return statusSubscriptions.get(idStr);
+    const channel = supabase.channel(`modal9-status-${idStr}`);
+    channel.on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: TABLE,
+      filter: `id=eq.${idStr}`,
+    }, payload => {
+      handleStatusRealtimeUpdate(idStr, payload?.new || {});
+    });
+    channel.subscribe(status => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        channel.unsubscribe().catch(() => {});
+        statusSubscriptions.delete(idStr);
+      }
+    });
+    statusSubscriptions.set(idStr, channel);
+    return channel;
+  }
+
+  function removeStatusSubscription(specId) {
+    const idStr = String(specId);
+    const channel = statusSubscriptions.get(idStr);
+    if (!channel) return;
+    channel.unsubscribe().catch(() => {});
+    statusSubscriptions.delete(idStr);
+  }
+
+  function cleanupStatusSubscriptions() {
+    statusSubscriptions.forEach(channel => {
+      channel.unsubscribe().catch(() => {});
+    });
+    statusSubscriptions.clear();
   }
 
   function isMissingRegistryColumnError(error) {
@@ -2092,6 +2153,7 @@ export async function initModal9() {
           updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
         }
       });
+      ensureStatusSubscription(item.id);
       if (anchor && rowEl !== anchor) {
         historyList.insertBefore(rowEl, anchor);
       }
@@ -2107,6 +2169,7 @@ export async function initModal9() {
         const specContainer = historyList.querySelector(`.spec-container[data-spec-id="${id}"]`);
         if (specContainer) specContainer.remove();
         delete historyOpenBlocks[id];
+        removeStatusSubscription(id);
       }
     });
     setupOverflowTooltips(historyList);
@@ -3456,6 +3519,7 @@ export async function initModal9() {
       realtimeSub.unsubscribe();
       realtimeSub = null;
     }
+    cleanupStatusSubscriptions();
     stopAllProgressPolling();
     if (progressObserver) {
       progressObserver.disconnect();
