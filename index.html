@@ -670,14 +670,14 @@
         <!-- Правая половина: Вход (по умолчанию видна) -->
         <div class="sign-up show" id="sign-up-info" style="margin-left: 130px;">
           <h2>Relative Parallel</h2>
-          <form id="login-form">
+          <form id="login-form" method="post" autocomplete="on">
             <div class="modalFORM">
               <h3>ФОРМА ВХОДА</h3>
               <div class="inputForm">
-                <input class="inputField" type="email" placeholder="email: user@gmail.com" id="loginEmail"/>
+                <input class="inputField" type="email" placeholder="email: user@gmail.com" id="loginEmail" name="email" autocomplete="username"/>
               </div>
               <div class="inputForm">
-                <input class="inputField" type="password" placeholder="ваш пароль" id="loginPassword"/>
+                <input class="inputField" type="password" placeholder="ваш пароль" id="loginPassword" name="password" autocomplete="current-password"/>
               </div>
               <button class="button-submit" id="loginBtn">Войти</button>
             </div>
@@ -809,6 +809,33 @@
       window.IS_ADMIN = user.is_admin;
       window.USER_LEVELS = user.menu_levels || '';
       window.USER_LOGIN  = user.login || user.email || user.last_name || '';
+      // Попытка сохранить логин/пароль в менеджере паролей браузера
+      if (navigator.credentials && typeof navigator.credentials.store === 'function') {
+        try {
+          const displayName = window.USER_LOGIN || user.email || email;
+          let credential = null;
+          if (typeof PasswordCredential !== 'undefined') {
+            credential = new PasswordCredential({
+              id: email,
+              name: displayName,
+              password: pass
+            });
+          } else if (typeof navigator.credentials.create === 'function') {
+            credential = await navigator.credentials.create({
+              password: {
+                id: email,
+                name: displayName,
+                password: pass
+              }
+            });
+          }
+          if (credential) {
+            await navigator.credentials.store(credential);
+          }
+        } catch (credErr) {
+          console.warn('Не удалось сохранить пароль через Credential Management API', credErr);
+        }
+      }
       // ▼ 2. Ограничиваем меню доступными уровнями
      // Вызываем фильтр меню даже при пустых правах
       filterMenuByUserLevels(user.menu_levels || '');
