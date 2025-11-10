@@ -1900,6 +1900,12 @@ function isProgressTriplet(v) {
   return /^\s*\d+\s*\/\s*\d+\s*\/\s*\d+\s*$/.test(String(v||''));
 }
 
+  // ДОБАВИТЕ рядом с isProgressTriplet:
+function parseProgressTriplet(v) {
+  const m = String(v || '').match(/(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)/);
+  return m ? { sent: +m[1], received: +m[2], total: +m[3] } : null;
+}
+
   function isResetLike(field, v) {
   const s = String(v ?? '').trim().toLowerCase();
   if (!s || s === '-') return true;
@@ -1912,6 +1918,7 @@ function isProgressTriplet(v) {
   function updateHistoryStatusField(specId, field, value, options = {}) {
   if (!STATUS_FIELDS.has(field)) return;
   if (value === undefined) return;
+
   const idStr = String(specId);
   const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
   const el = row?.querySelector(`[data-field="${field}"]`);
@@ -1920,26 +1927,35 @@ function isProgressTriplet(v) {
   const current  = (('value' in el ? el.value : el.textContent) || '');
   const incoming = (value ?? '');
 
-  // 1) Для селектора: если сейчас уже «тройка» прогресса, не даём затирать её пустым/дефолтом/нес-тройкой
-  if (
-    field === 'status_selector' &&
-    isProgressTriplet(current) &&
-    (isResetLike(field, incoming) || !isProgressTriplet(incoming))
-  ) {
-    return;
-  }
+  const curReset = isResetLike(field, current);
+  const incReset = isResetLike(field, incoming);
 
-  // 2) Для parser/pricer: если текущее значение не пустое/не дефолт, не даём затирать его «сбросом»
-  if (
-    field !== 'status_selector' &&
-    !isResetLike(field, current) &&
-    isResetLike(field, incoming)
-  ) {
-    return;
+  if (field === 'status_selector') {
+    const curTrip = parseProgressTriplet(current);
+    const incTrip = parseProgressTriplet(incoming);
+
+    // 1) Не затираем не-дефолт значением по умолчанию
+    if (!curReset && incReset) return;
+
+    // 2) Если уже отображаем тройку — не заменяем её не-тройкой
+    if (curTrip && !incTrip) return;
+
+    // 3) Если и текущее, и входящее — тройки, разрешаем только "монотонное улучшение"
+    if (curTrip && incTrip) {
+      const improves =
+        incTrip.total   > curTrip.total   ||
+        incTrip.received > curTrip.received ||
+        incTrip.sent     > curTrip.sent;
+      if (!improves) return;
+    }
+  } else {
+    // Для parser/pricer сохраняем вашу защиту от отката к дефолту
+    if (!isResetLike(field, current) && incReset) return;
   }
 
   updateStatus(el, incoming, options);
 }
+
 
 
   function showCopyTip(el) {
