@@ -1368,12 +1368,71 @@ export async function initModal9() {
     if (historyItem) Object.assign(historyItem, updates);
   }
 
+  function handleStatusTableRealtimeUpdate(specId, record = {}) {
+    if (specId === undefined || specId === null || !record || typeof record !== 'object') return;
+    const mapped = {};
+
+    const parserStatus = Object.prototype.hasOwnProperty.call(record, 'parser_status')
+      ? record.parser_status
+      : record.parser;
+    const selectorStatus = Object.prototype.hasOwnProperty.call(record, 'selector_status')
+      ? record.selector_status
+      : record.selector;
+    const pricerStatus = Object.prototype.hasOwnProperty.call(record, 'pricer_status')
+      ? record.pricer_status
+      : record.pricer;
+
+    if (parserStatus !== undefined) mapped.status_parser = parserStatus ?? '';
+    if (selectorStatus !== undefined) mapped.status_selector = selectorStatus ?? '';
+    if (pricerStatus !== undefined) mapped.status_pricer = pricerStatus ?? '';
+
+    const sentRaw = record.sent ?? record.selector_sent ?? record.progress_sent;
+    const receivedRaw = record.received ?? record.selector_received ?? record.progress_received;
+    const totalRaw = record.total ?? record.selector_total ?? record.progress_total;
+    if (sentRaw !== undefined || receivedRaw !== undefined || totalRaw !== undefined) {
+      const sent = coerceProgressNumber(sentRaw);
+      const received = coerceProgressNumber(receivedRaw);
+      const total = coerceProgressNumber(totalRaw);
+      const progressString = `${sent} / ${received} / ${total}`;
+      if (!Object.prototype.hasOwnProperty.call(mapped, 'status_selector') || !mapped.status_selector) {
+        mapped.status_selector = progressString;
+      }
+    }
+
+    if (!Object.keys(mapped).length) return;
+    handleStatusRealtimeUpdate(specId, mapped);
+  }
+
   function ensureStatusSubscription(specId) {
     if (!supabase || specId === undefined || specId === null) return null;
     const idStr = String(specId);
     if (statusSubscriptions.has(idStr)) return statusSubscriptions.get(idStr);
-    const channel = supabase.channel(`modal9-status-${idStr}`);
-    channel.on('postgres_changes', {
+    const entry = { table: null, status: null };
+
+    const safeUnsubscribe = channel => {
+      if (!channel) return;
+      try {
+        channel.unsubscribe();
+      } catch (_) {
+        /* ignore */
+      }
+    };
+
+    const bindChannelLifecycle = (channel, key) => {
+      if (!channel) return;
+      channel.subscribe(state => {
+        if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
+          safeUnsubscribe(channel);
+          const current = statusSubscriptions.get(idStr);
+          if (!current) return;
+          if (current[key] === channel) current[key] = null;
+          if (!current.table && !current.status) statusSubscriptions.delete(idStr);
+        }
+      });
+    };
+
+    const tableChannel = supabase.channel(`modal9-status-${idStr}`);
+    tableChannel.on('postgres_changes', {
       event: 'UPDATE',
       schema: 'public',
       table: TABLE,
@@ -1381,27 +1440,51 @@ export async function initModal9() {
     }, payload => {
       handleStatusRealtimeUpdate(idStr, payload?.new || {});
     });
-    channel.subscribe(status => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        channel.unsubscribe().catch(() => {});
-        statusSubscriptions.delete(idStr);
-      }
+    entry.table = tableChannel;
+    bindChannelLifecycle(tableChannel, 'table');
+
+    const statusChannel = supabase.channel(`modal9-status-table-${idStr}`);
+    statusChannel.on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: STATUS_TABLE,
+      filter: `spec_id=eq.${idStr}`,
+    }, payload => {
+      const data = payload?.new || payload?.old || {};
+      handleStatusTableRealtimeUpdate(idStr, data);
     });
-    statusSubscriptions.set(idStr, channel);
-    return channel;
+    entry.status = statusChannel;
+    bindChannelLifecycle(statusChannel, 'status');
+
+    statusSubscriptions.set(idStr, entry);
+    return entry;
   }
 
   function removeStatusSubscription(specId) {
     const idStr = String(specId);
-    const channel = statusSubscriptions.get(idStr);
-    if (!channel) return;
-    channel.unsubscribe().catch(() => {});
+    const entry = statusSubscriptions.get(idStr);
+    if (!entry) return;
+    [entry.table, entry.status].forEach(channel => {
+      if (!channel) return;
+      try {
+        channel.unsubscribe();
+      } catch (_) {
+        /* ignore */
+      }
+    });
     statusSubscriptions.delete(idStr);
   }
 
   function cleanupStatusSubscriptions() {
-    statusSubscriptions.forEach(channel => {
-      channel.unsubscribe().catch(() => {});
+    statusSubscriptions.forEach(entry => {
+      [entry.table, entry.status].forEach(channel => {
+        if (!channel) return;
+        try {
+          channel.unsubscribe();
+        } catch (_) {
+          /* ignore */
+        }
+      });
     });
     statusSubscriptions.clear();
   }
