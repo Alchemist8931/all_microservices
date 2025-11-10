@@ -1320,11 +1320,11 @@ export async function initModal9() {
   const hideTimers = new WeakMap();    // анимации скрытия
 
   // keyed-diff хранилища:
-  // specId -> Map(posId -> DOMRow)
+  // specId -> версия (максимальная метка времени из POS/SELECT)
   const specDomRows = new Map();
   // specId -> версия (max(updated_at) из POS/SELECT)
   const specVersionCache = new Map();
-  // posId -> updated_at последнего рендера
+  // posId -> отметка времени последнего рендера
   const posVersionCache = new Map();
 
   // для восстановления открытых блоков
@@ -1649,7 +1649,7 @@ export async function initModal9() {
       const oldMap = { ...lastHistoryStatus };
       let query = supabase
         .from(TABLE)
-        .select('id, file_number, user_login, created_at, updated_at, file_name, file_ext, status_parser, status_selector, status_pricer, tokens', { count: 'exact' })
+        .select('id, file_number, user_login, created_at, file_name, file_ext, status_parser, status_selector, status_pricer, tokens', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       try {
@@ -1764,7 +1764,7 @@ export async function initModal9() {
     historyList.querySelectorAll('.history-item').forEach(item => {
       let visible = true;
       if (q) {
-        visible = ['file_number','user_login','created_at','file_name','file_ext','status','id'].some(field => {
+        visible = ['file_number','user_login','created_at','file_name','file_ext','id'].some(field => {
           const el = item.querySelector(`[data-field="${field}"]`);
           if (!el) return false;
           const val = (el.value || el.textContent || '').toString().toLowerCase();
@@ -2013,7 +2013,7 @@ export async function initModal9() {
       const posId = String(row.id);
       newIdsSet.add(posId);
       const sels = selectionMap[row.id] || [];
-      const currentVersion = Number(new Date(row.updated_at || 0).getTime());
+      const currentVersion = Number(new Date(row.status_changed_at || row.created_at || 0).getTime());
       const lastVersion = posVersionCache.get(posId) || 0;
 
       let rowEl = map.get(posId);
@@ -2142,7 +2142,7 @@ export async function initModal9() {
     setupDynamicBlocks(block1List);
   }
 
-  // Загрузка данных спецификаций (BLOCK1) + вычисление версий на базе updated_at
+  // Загрузка данных спецификаций (BLOCK1) + вычисление версий на базе меток времени
   async function loadBlock1({ fromHistory = false } = {}) {
     if (loadingBlock1) { pendingLoad = fromHistory ? 'history' : 'default'; return; }
     loadingBlock1 = true;
@@ -2160,7 +2160,7 @@ export async function initModal9() {
 
     const { data: posData, error: posErr } = await supabase
       .from(POS_TABLE)
-      .select('file_number, user_login, file_name, id, spec_id, pos_number, pos_number_int, name, qty, unit, attrs, attrs_json, updated_at')
+      .select('file_number, user_login, file_name, id, spec_id, pos_number, pos_number_int, name, qty, unit, attrs, attrs_json, created_at, status_changed_at')
       .in('spec_id', specIds)
       .order('spec_id', { ascending: false })
       .order('pos_number_int', { ascending: true });
@@ -2172,7 +2172,7 @@ export async function initModal9() {
     if (posIds.length) {
       const { data: sels, error: selErr } = await supabase
         .from(SELECT_TABLE)
-        .select('id, pos_id, spec_id, article, model_name, qty, unit, price, sum, price1_amount, price1_currency, price1_store, price1_url, price2_amount, price2_currency, price2_store, price2_url, price3_amount, price3_currency, price3_store, price3_url, prices_json, pricer_status, updated_at')
+        .select('id, pos_id, spec_id, article, model_name, qty, unit, price, sum, price1_amount, price1_currency, price1_store, price1_url, price2_amount, price2_currency, price2_store, price2_url, price3_amount, price3_currency, price3_store, price3_url, prices_json, pricer_status, pricer_updated_at, created_at')
         .in('pos_id', posIds);
       if (selErr) console.error(selErr);
       (sels || []).forEach(s => { (selectionMap[s.pos_id] = selectionMap[s.pos_id] || []).push(s); });
@@ -2182,19 +2182,19 @@ export async function initModal9() {
     specGroups = {};
     block1Rows.forEach(r => { const key = String(r.spec_id); (specGroups[key] = specGroups[key] || []).push(r); });
 
-    // Считаем версию по spec = max(updated_at по POS/SELECT)
+    // Считаем версию по spec = max(метки времени по POS/SELECT)
     const nextVersions = new Map();
     const selectMaxBySpec = {};
     Object.keys(specGroups).forEach(id => nextVersions.set(String(id), 0));
     block1Rows.forEach(r => {
       const specId = String(r.spec_id);
-      const t = Number(new Date(r.updated_at || 0).getTime());
+      const t = Number(new Date(r.status_changed_at || r.created_at || 0).getTime());
       nextVersions.set(specId, Math.max(nextVersions.get(specId) || 0, t));
     });
     Object.entries(selectionMap).forEach(([posId, sels]) => {
       (sels || []).forEach(s => {
         const specId = String(s.spec_id || (block1Rows.find(r => String(r.id) === String(posId))?.spec_id));
-        const t = Number(new Date(s.updated_at || 0).getTime());
+        const t = Number(new Date(s.pricer_updated_at || s.created_at || 0).getTime());
         if (specId) nextVersions.set(specId, Math.max(nextVersions.get(specId) || 0, t));
       });
     });
@@ -2405,7 +2405,7 @@ export async function initModal9() {
       if (historyEntry) { if (field === 'created_at') return historyEntry.created_at ? new Date(historyEntry.created_at).toLocaleString() : ''; const value = historyEntry[field]; if (value != null) return String(value).trim(); }
       return '';
     };
-    const data = { id: idStr, header: { file_number: readField('file_number'), user_login: readField('user_login'), created_at: readField('created_at'), file_name: readField('file_name'), file_ext: readField('file_ext'), status: readField('status'), spec_id: idStr }, positions: [] };
+    const data = { id: idStr, header: { file_number: readField('file_number'), user_login: readField('user_login'), created_at: readField('created_at'), file_name: readField('file_name'), file_ext: readField('file_ext'), spec_id: idStr }, positions: [] };
     container.querySelectorAll('.modalCONTEINERpost').forEach(node => {
       const pos = {
         posNumber: node.querySelector('[data-field="pos_number"]')?.value?.trim() || '',
@@ -2443,7 +2443,7 @@ export async function initModal9() {
   function formatSpecForClipboard(data) {
     if (!data) return '';
     const lines = [];
-    const headerMap = [ ['номер', 'file_number'], ['login', 'user_login'], ['дата', 'created_at'], ['файл', 'file_name'], ['ext', 'file_ext'], ['статус', 'status'], ['spec #', 'spec_id'] ];
+    const headerMap = [ ['номер', 'file_number'], ['login', 'user_login'], ['дата', 'created_at'], ['файл', 'file_name'], ['ext', 'file_ext'], ['spec #', 'spec_id'] ];
     headerMap.forEach(([label, key]) => { const value = data.header?.[key] ?? ''; lines.push(`${label}\t${value}`); });
     lines.push('');
     lines.push('BLOCK 1'); lines.push(['№ в ТЗ', 'наименование', 'кол-во', 'ед. изм.', 'РПП 878', 'ТОРП', 'РРПО 1875'].join('\t'));
@@ -2480,7 +2480,7 @@ export async function initModal9() {
   function buildExcelHtml(data) {
     if (!data) return '';
     const tables = [];
-    const headerRows = [ ['номер', data.header?.file_number || ''], ['login', data.header?.user_login || ''], ['дата', data.header?.created_at || ''], ['файл', data.header?.file_name || ''], ['ext', data.header?.file_ext || ''], ['статус', data.header?.status || ''], ['spec #', data.header?.spec_id || ''] ];
+    const headerRows = [ ['номер', data.header?.file_number || ''], ['login', data.header?.user_login || ''], ['дата', data.header?.created_at || ''], ['файл', data.header?.file_name || ''], ['ext', data.header?.file_ext || ''], ['spec #', data.header?.spec_id || ''] ];
     tables.push(buildTableHtml('Реквизиты файла', ['Поле', 'Значение'], headerRows));
 
     const block1MainRows = data.positions.map(pos => { const regs = pos.registries || {}; return [ pos.posNumber || '', pos.name || '', pos.qty || '', pos.unit || '', boolLabel(regs.rpp_878), boolLabel(regs.torp), boolLabel(regs.rrpo_1875) ]; });
@@ -2641,7 +2641,14 @@ export async function initModal9() {
     try {
       await supabase.from(SELECT_TABLE).delete().eq('spec_id', specId);
       await supabase.from(POS_TABLE).delete().eq('spec_id', specId);
-      await supabase.from(TABLE).update({ status: 'BLOCK 1 ( в работе )' }).eq('id', specId);
+      await supabase.from(TABLE).update({ status_parser: 'BLOCK 1 ( в работе )', status_selector: '-', status_pricer: '-' }).eq('id', specId);
+      const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+      if (row) {
+        updateStatus(row.querySelector('[data-field="status_parser"]'), 'BLOCK 1 ( в работе )');
+        updateStatus(row.querySelector('[data-field="status_selector"]'), '-');
+        updateStatus(row.querySelector('[data-field="status_pricer"]'), '-');
+      }
+      if (progress) setProgress(progress, { parser: 'BLOCK 1 ( в работе )', selector: '-', pricer: '-' });
       await supabase.functions.invoke('modal9-parser', { body: { request_id: specId } });
       await loadHistory();
     } catch (err) { console.error('refreshParser error:', err); }
@@ -2649,10 +2656,10 @@ export async function initModal9() {
 
   async function refreshSelector(specId, progress) {
     const { data: { session } = {} } = await supabase.auth.getSession(); if (!session) return;
-    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
-    updateStatus(statusEl, 'подготовка'); setProgress(progress, 'подготовка');
+    const selectorEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status_selector"]`);
+    updateStatus(selectorEl, 'подготовка'); setProgress(progress, { selector: 'подготовка' });
     try {
-      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', specId);
+      await supabase.from(TABLE).update({ status_selector: 'подготовка' }).eq('id', specId);
       const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: specId } });
       if (error) throw error;
       // Запускаем мониторинг прогресса через IO (только при видимости)
