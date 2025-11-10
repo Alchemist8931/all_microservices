@@ -1900,26 +1900,47 @@ function isProgressTriplet(v) {
   return /^\s*\d+\s*\/\s*\d+\s*\/\s*\d+\s*$/.test(String(v||''));
 }
 
+  function isResetLike(field, v) {
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s || s === '-') return true;
+  if (field === 'status_parser'  && s === 'парсинг')   return true;
+  if (field === 'status_selector'&& s === 'подбор')    return true;
+  if (field === 'status_pricer'  && s === 'проценка')  return true;
+  return false;
+}
+
   function updateHistoryStatusField(specId, field, value, options = {}) {
-    if (!STATUS_FIELDS.has(field)) return;
-    if (value === undefined) return;
-    const idStr = String(specId);
-    const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
-    const el = row?.querySelector(`[data-field="${field}"]`);
-if (el) {
-  const current = ('value' in el ? el.value : el.textContent) || '';
-  const incoming = value ?? '';
-  // Не даём пустым/дефолтным значениям затирать прогресс-тройку
+  if (!STATUS_FIELDS.has(field)) return;
+  if (value === undefined) return;
+  const idStr = String(specId);
+  const row = historyList?.querySelector(`.history-item[data-spec-id="${idStr}"]`);
+  const el = row?.querySelector(`[data-field="${field}"]`);
+  if (!el) return;
+
+  const current  = (('value' in el ? el.value : el.textContent) || '');
+  const incoming = (value ?? '');
+
+  // 1) Для селектора: если сейчас уже «тройка» прогресса, не даём затирать её пустым/дефолтом/нес-тройкой
   if (
     field === 'status_selector' &&
     isProgressTriplet(current) &&
-    (!incoming || incoming === '-' || !isProgressTriplet(incoming))
+    (isResetLike(field, incoming) || !isProgressTriplet(incoming))
   ) {
-    return; // сохраняем текущее информативное значение
+    return;
   }
+
+  // 2) Для parser/pricer: если текущее значение не пустое/не дефолт, не даём затирать его «сбросом»
+  if (
+    field !== 'status_selector' &&
+    !isResetLike(field, current) &&
+    isResetLike(field, incoming)
+  ) {
+    return;
+  }
+
   updateStatus(el, incoming, options);
 }
-  }
+
 
   function showCopyTip(el) {
     const tip = document.createElement('div');
@@ -2228,28 +2249,24 @@ if (el) {
       if (!rowEl) return;
       const fields = rowEl.querySelectorAll('[data-field]');
       fields.forEach(el => {
-        const field = el.dataset.field;
-        if (!field) return;
-        if (field === '-') {
-          const tokenValue = formatTokenCost(item.tokens);
-          if (el.value !== tokenValue) el.value = tokenValue;
-          return;
-        }
-        let val = item[field];
-        if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
-        if (el.tagName === 'INPUT') {
-          if (el.value !== (val || '')) el.value = val || '';
-        } else if (el.textContent !== (val || '')) {
-          el.textContent = val || '';
-        }
-        if (STATUS_FIELDS.has(field)) {
-          applyStatusIcon(rowEl, field, val);
-          if (oldMap[item.id] && oldMap[item.id][field] !== val) {
-            animateStatus(el, val, { source: 'database' });
-          }
-          updateSpecProgress(item.id); // пересчёт прогресса на базе трёх полей
-        }
-      });
+  const field = el.dataset.field;
+  if (!field) return;
+
+  if (STATUS_FIELDS.has(field)) {
+    // ВАЖНО: обновляем через «безопасный» путь с анти-регрессом
+    updateHistoryStatusField(item.id, field, item[field], { source: 'database' });
+  } else {
+    // обычные поля как раньше
+    let val = item[field];
+    if (field === 'created_at') val = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+    if (el.tagName === 'INPUT') {
+      if (el.value !== (val || '')) el.value = val || '';
+    } else if (el.textContent !== (val || '')) {
+      el.textContent = val || '';
+    }
+  }
+});
+
       ensureStatusSubscription(item.id);
       if (anchor && rowEl !== anchor) {
         historyList.insertBefore(rowEl, anchor);
