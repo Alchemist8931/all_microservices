@@ -1349,7 +1349,7 @@ export async function initModal9() {
     if (specId === undefined || specId === null || !record) return;
     const idStr = String(specId);
     const updates = {};
-    ['status_parser','status_pricer'].forEach(field => {
+    ['status_parser','status_selector','status_pricer'].forEach(field => {
   if (Object.prototype.hasOwnProperty.call(record, field)) {
     updates[field] = record[field];
   }
@@ -3559,6 +3559,10 @@ function isProgressTriplet(v) {
         selector: selectorStatus,
         pricer: pricerStatus,
       } = progressInfo || {};
+      // всегда отражаем числовой прогресс в строке истории
+  if (statusEl) {
+    updateStatus(statusEl, `${sent} / ${received} / ${total}`, { source: 'database' });
+  }
       if (!selectorProgressRpcAvailable) {
         const payload = { status: 'BLOCK 2', sent, received, total };
         if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
@@ -3784,6 +3788,8 @@ function isProgressTriplet(v) {
         selector: selectorStatus,
         pricer: pricerStatus,
       } = counts || {};
+      // отразим тройку в истории (DOM) — это «истинный» прогресс селектора
+      updateHistoryStatusField(specId, 'status_selector', `${sent} / ${received} / ${total}`, { source: 'database' });
       const updatePayload = {};
       if (parserStatus !== undefined || selectorStatus !== undefined || pricerStatus !== undefined) {
         updatePayload.parser = parserStatus;
