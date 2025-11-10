@@ -3367,6 +3367,7 @@ export async function initModal9() {
           payload.selector = selectorStatus;
           payload.pricer = pricerStatus;
         }
+        if (statusEl) updateStatus(statusEl, `${sent} / ${received} / ${total}`);
         setProgress(progressEl, payload);
         updateSpecProgress(specId, payload);
         break;
@@ -3374,7 +3375,8 @@ export async function initModal9() {
       const countsText = `${sent} / ${received} / ${total}`;
       const row = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
       const selEl = row?.querySelector('[data-field="status_selector"]');
-      if (selEl) updateStatus(selEl, countsText);
+      if (statusEl) updateStatus(statusEl, countsText);
+      else if (selEl) updateStatus(selEl, countsText);
 
       // Показываем прогресс на шаге 2, остальное читаем из DOM трёх полей
       const payload = { status: 'BLOCK 2', sent, received, total };
@@ -3398,9 +3400,9 @@ export async function initModal9() {
     const { data: { session } = {} } = await supabase.auth.getSession();
     if (!session) return;
 
-    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status"]`);
+    const statusEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"] [data-field="status_selector"]`);
     updateStatus(statusEl, 'подготовка');
-    setProgress(progress, 'подготовка');
+    setProgress(progress, { selector: 'подготовка' });
     const controller = new AbortController();
     const trackerPromise = (async () => {
       try {
@@ -3411,7 +3413,10 @@ export async function initModal9() {
     })();
     try {
       const normalizedSpecId = normalizeSpecId(specId);
-      await supabase.from(TABLE).update({ status: 'подготовка' }).eq('id', normalizedSpecId);
+      await supabase
+        .from(TABLE)
+        .update({ status: 'подготовка', status_selector: 'подготовка' })
+        .eq('id', normalizedSpecId);
       const { error } = await supabase.functions.invoke('modal9-selector', { body: { spec_id: normalizedSpecId } });
       if (error) throw error;
     } catch (err) {
@@ -3704,7 +3709,7 @@ export async function initModal9() {
     const s = String(str || '').toLowerCase();
     const c = parseSelectorCounts(s);
     if (c) return c.total > 0 && c.received < c.total && (c.sent > 0 || c.received > 0);
-    return /(в работе|идет|processing|running|запущ|старт|ожидан|queue|queued)/i.test(s);
+    return /(в работе|идет|processing|running|запущ|старт|ожидан|queue|queued|подгот)/i.test(s);
   }
 
   function setProgress(progressEl, info) {
