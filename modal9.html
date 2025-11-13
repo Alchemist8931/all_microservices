@@ -1322,6 +1322,43 @@ export async function initModal9() {
   let lastSupportSpecId = null;
   let historyLimit = HISTORY_LIMIT_DEFAULT;
   let historyTotalCount = 0;
+    // Сколько последних записей держим в realtime
+  const REALTIME_ROW_LIMIT = 6;
+
+  // Набор spec_id, для которых реально слушаем обновления
+  const watchedSpecIds = new Set();
+
+  // Дебаунс на подгрузку одной спецификации
+  const reloadTimers = new Map();
+
+    function ensureSpecWatched(specId) {
+    if (specId === null || specId === undefined) return;
+    watchedSpecIds.add(String(specId));
+  }
+
+  function recomputeWatchedSpecIds() {
+    watchedSpecIds.clear();
+
+    // база — верхние REALTIME_ROW_LIMIT из текущей истории
+    const base = (history || [])
+      .slice(0, REALTIME_ROW_LIMIT)
+      .map(item => String(item.id))
+      .filter(Boolean);
+
+    base.forEach(id => watchedSpecIds.add(id));
+
+    // плюс все открытые в блоке 1 (page 2)
+    Object.keys(block1OpenBlocks || {}).forEach(id => {
+      watchedSpecIds.add(String(id));
+    });
+
+    // плюс все открытые в истории (page 1)
+    Object.keys(historyOpenBlocks || {}).forEach(id => {
+      watchedSpecIds.add(String(id));
+    });
+  }
+
+
   if (updatesPanel && !updatesPanel.dataset.bound) {
     const toggleUpdatesHeight = expanded => {
       const next = typeof expanded === 'boolean' ? expanded : !updatesPanel.classList.contains('is-expanded');
@@ -1462,6 +1499,107 @@ export async function initModal9() {
       await loadBlock1();
     }, 500);
   }
+
+    function scheduleReloadSpec(specId) {
+    if (specId === null || specId === undefined) return;
+    const key = String(specId);
+    if (reloadTimers.has(key)) return;
+
+    const timer = setTimeout(async () => {
+      reloadTimers.delete(key);
+      try {
+        await reloadSingleSpec(specId);
+      } catch (err) {
+        console.error('[modal9] reloadSingleSpec error:', err);
+      }
+    }, 400); // немного ждём, чтобы склеить пачку событий по одной спеки
+
+    reloadTimers.set(key, timer);
+  }
+
+  async function reloadSingleSpec(specId) {
+    const idStr = String(specId);
+
+    // старые строки для этой спеки
+    const prevRowsForSpec = block1Rows.filter(row => String(row.spec_id) === idStr);
+
+    // тянем позиции только этой спецификации
+    const { data, error } = await supabase
+      .from(POS_TABLE)
+      .select(
+        'file_number, user_login, file_name, id, spec_id,' +
+        'pos_number, pos_number_int, name, qty, unit, attrs, attrs_json'
+      )
+      .eq('spec_id', specId)
+      .order('pos_number_int', { ascending: true });
+
+    if (error) {
+      console.error('[modal9] reloadSingleSpec POS_TABLE error:', error);
+      return;
+    }
+
+    const newRows = (data || []).map(r => ({
+      file_number:    r.file_number,
+      user_login:     r.user_login,
+      file_name:      r.file_name,
+      id:             r.id,
+      spec_id:        r.spec_id,
+      pos_number:     r.pos_number,
+      pos_number_int: toPosNum(r.pos_number_int ?? r.pos_number),
+      name:           r.name,
+      qty:            r.qty,
+      unit:           r.unit,
+      attrs:          r.attrs,
+      attrs_json:     r.attrs_json,
+    }));
+
+    // обновляем общий массив позиций
+    block1Rows = block1Rows
+      .filter(row => String(row.spec_id) !== idStr)
+      .concat(newRows);
+
+    // чистим старые селекты для старых позиций этой спеки
+    prevRowsForSpec.forEach(row => {
+      delete selectionMap[row.id];
+    });
+
+    // подтягиваем новые селекты только по текущим pos_id
+    const posIds = newRows.map(r => r.id);
+    if (posIds.length) {
+      const { data: sels, error: selErr } = await supabase
+        .from(SELECT_TABLE)
+        .select(
+          'pos_id, article, model_name, qty, unit, price, sum, ' +
+          'price1_amount, price1_currency, price1_store, price1_url, ' +
+          'price2_amount, price2_currency, price2_store, price2_url, ' +
+          'price3_amount, price3_currency, price3_store, price3_url, ' +
+          'prices_json, pricer_status'
+        )
+        .in('pos_id', posIds);
+
+      if (selErr) {
+        console.error('[modal9] reloadSingleSpec SELECT_TABLE error:', selErr);
+      } else if (Array.isArray(sels)) {
+        sels.forEach(s => {
+          const key = s.pos_id;
+          if (key === null || key === undefined) return;
+          const list = selectionMap[key] || [];
+          list.push(s);
+          selectionMap[key] = list;
+        });
+      }
+    }
+
+    // обновляем сгруппированные данные по спекам
+    specGroups[idStr] = newRows;
+
+    // хэш и ререндер только этой спеки
+    specRenderCache.set(idStr, computeSpecHash(specId));
+    const changedIds = new Set([idStr]);
+    updateBlock1SpecContainers({ changedIds });
+    updateHistorySpecContainers({ changedIds });
+  }
+
 
   function startAutoRefresh() {
     if (autoRefreshTimer) return;
@@ -1805,15 +1943,17 @@ export async function initModal9() {
     uploadBtn.disabled = false;
   }
 
-    function applyRealtimeRegistryUpdate(newRow) {
+  function applyRealtimeRegistryUpdate(newRow) {
     if (!newRow || !newRow.id) return;
     const specId = String(newRow.id);
+
+    // realtime ТОЛЬКО по наблюдаемым
+    if (!watchedSpecIds.has(specId)) return;
 
     // обновляем кэш history
     const idx = history.findIndex(h => String(h.id) === specId);
     if (idx === -1) {
-      // этой строки нет в текущем лимите истории — просто перезагрузим всё
-      loadHistory();
+      // этой строки нет в текущей выборке — просто игнорируем
       return;
     }
 
@@ -1838,9 +1978,7 @@ export async function initModal9() {
 
       let displayValue = '';
 
-      if (fieldName === 'created_at') {
-        displayValue = dbValue ? new Date(dbValue).toLocaleString() : '';
-      } else if (isTokens) {
+      if (isTokens) {
         displayValue = formatTokenCost(dbValue);
       } else {
         displayValue = dbValue ?? '';
@@ -1850,7 +1988,6 @@ export async function initModal9() {
       if (prevValue === displayValue) return;
 
       if (STATUS_FIELDS.has(fieldName) || animate) {
-        // плавное обновление + иконки + прогресс
         animateStatus(el, displayValue);
       } else {
         if ('value' in el) el.value = displayValue;
@@ -1858,24 +1995,18 @@ export async function initModal9() {
       }
     };
 
-    // статусы (парсинг / подбор / проценка)
+    // статусы (ПАРСИНГ / ПОДБОР / ПРОЦЕНКА)
     updateField('status_parser',   newRow.status_parser,   { animate: true });
     updateField('status_selector', newRow.status_selector, { animate: true });
     updateField('status_pricer',   newRow.status_pricer,   { animate: true });
 
-    // стоимость токенов
+    // стоимость токенов (минимальная нагрузка)
     updateField('tokens', newRow.tokens, { isTokens: true });
-
-    // на всякий случай обновим ещё дату / имя файла, если прилетели
-    if (newRow.created_at !== undefined) updateField('created_at', newRow.created_at);
-    if (newRow.file_name  !== undefined) updateField('file_name',  newRow.file_name);
-    if (newRow.file_ext   !== undefined) updateField('file_ext',   newRow.file_ext);
-    if (newRow.file_number!== undefined) updateField('file_number',newRow.file_number);
-    if (newRow.user_login !== undefined) updateField('user_login', newRow.user_login);
 
     // пересчитать прогресс по трём статусам для всех прогресс-баров этой спеки
     updateSpecProgress(specId);
   }
+
 
 
   uploadBtn.addEventListener('click', async () => {
@@ -2058,6 +2189,8 @@ export async function initModal9() {
           };
         }
       });
+            // пересчитываем набор spec_id, по которым реально слушаем realtime
+      recomputeWatchedSpecIds();
 
       renderHistory(oldMap);
       applySecondFilter();
@@ -2621,6 +2754,7 @@ const posIds = block1Rows.map(r => r.id);
   }
 
   function openGroup(id, saved) {
+    ensureSpecWatched(id);
     block1List.querySelectorAll('.spec-content').forEach(c => {
       if (c.dataset.specId !== String(id)) {
         c.classList.add('hidden');
@@ -2725,6 +2859,7 @@ const posIds = block1Rows.map(r => r.id);
     if (openedSpecId && openedSpecId !== id) {
       closeRowGroup(openedSpecId);
     }
+    ensureSpecWatched(id);
     openedSpecId = id;
     const cont = historyList.querySelector(`.spec-content[data-spec-id="${id}"]`);
     const prog = historyList.querySelector(`.spec-progress[data-spec-id="${id}"]`);
@@ -3458,59 +3593,67 @@ const posIds = block1Rows.map(r => r.id);
     }
   }
   
-    function setupRealtime() {
+      function setupRealtime() {
     if (!supabase) return;
 
     realtimeSub = supabase
       .channel('modal9-realtime')
 
-      // Реестр файлов: INSERT/DELETE -> reload, UPDATE -> точечный обновлений статусов
+      // Реестр файлов: слушаем INSERT/DELETE для перезагрузки истории,
+      // UPDATE — только для наблюдаемых spec_id и только статусы
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: TABLE },
         payload => {
           if (!payload) return;
-          const { eventType, new: newRow } = payload;
+          const { eventType, new: newRow, old } = payload;
+          const specId = newRow?.id ?? old?.id;
 
-          if (eventType === 'UPDATE' && newRow) {
-            // обновляем только строку + прогресс
+          if (eventType === 'UPDATE' && newRow && specId != null && watchedSpecIds.has(String(specId))) {
             applyRealtimeRegistryUpdate(newRow);
-          } else {
-            // новые / удалённые строки — живём по старинке
+          } else if (eventType === 'INSERT' || eventType === 'DELETE') {
+            // новая/удалённая запись: перечитываем историю, пересчитываем топ-12
             loadHistory();
           }
         }
       )
 
-      // позиции спеки (BLOCK 1 / 2 / 3)
+      // POS_TABLE: позиции спецификации (BLOCK 1 / 2 / 3)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: POS_TABLE },
-        () => {
-          scheduleLoadBlock1();
+        payload => {
+          const specId = payload.new?.spec_id ?? payload.old?.spec_id;
+          if (specId == null || !watchedSpecIds.has(String(specId))) return;
+          scheduleReloadSpec(specId);
         }
       )
 
-      // результаты селектора / прайсера (BLOCK 2 / 2.1 / 3 / 3.1)
+      // SELECT_TABLE: результаты селектора / прайсера (BLOCK 2 / 2.1 / 3 / 3.1)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: SELECT_TABLE },
-        () => {
-          scheduleLoadBlock1();
+        payload => {
+          const specId = payload.new?.spec_id ?? payload.old?.spec_id;
+          if (specId == null || !watchedSpecIds.has(String(specId))) return;
+          scheduleReloadSpec(specId);
         }
       )
 
-      // таблица статусов селектора — влияет только на содержимое блоков
+      // STATUS_TABLE: статусы селектора — влияют на содержимое блоков
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: STATUS_TABLE },
-        () => {
-          scheduleLoadBlock1();
+        payload => {
+          const specId = payload.new?.spec_id ?? payload.old?.spec_id;
+          if (specId == null || !watchedSpecIds.has(String(specId))) return;
+          scheduleReloadSpec(specId);
         }
       )
 
       .subscribe();
   }
+
 
 
   
