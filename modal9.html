@@ -508,17 +508,20 @@
       user-select:none;
       margin-left:0px;
       margin-top:0px;
+      --block1-height:auto;
     }
     .modal-block {
       position:relative;
       width:50px;
-      max-height:max-content;
+      height:var(--block1-height, auto);
       border:1px solid var(--content-color);
       border-radius:6px;
       background: var(--fon);
       overflow:hidden;
       transition:width 0.3s;
       box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
     }
     .modal-title {
       position:absolute;
@@ -537,15 +540,16 @@
       padding:0;
       transition:0.5s;
       box-sizing:border-box;
+      height:100%;
+      overflow-y:auto;
     }
     .modal-block.open {
       width:max-content;
       border:none;
-      min-height:var(--block1-height, auto);
+      height:var(--block1-height, auto);
     }
     .modal-block.open .modal-content {
       opacity:1;
-      min-height:var(--block1-height, auto);
     }
     .modal-block.open .modal-title { opacity:0.15; }
     .block21-entry {
@@ -2789,8 +2793,13 @@ const posIds = block1Rows.map(r => r.id);
     }
     requestAnimationFrame(() => {
       const height = block1Content.scrollHeight;
-      if (height) dm.style.setProperty('--block1-height', `${height}px`);
-      else dm.style.removeProperty('--block1-height');
+      if (height) {
+        dm.style.setProperty('--block1-height', `${height}px`);
+        dm.style.height = `${height}px`;
+      } else {
+        dm.style.removeProperty('--block1-height');
+        dm.style.removeProperty('height');
+      }
     });
   }
 
