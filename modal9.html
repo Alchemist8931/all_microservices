@@ -512,7 +512,6 @@
     .modal-block {
       position:relative;
       width:50px;
-      min-height:100%;
       max-height:max-content;
       border:1px solid var(--content-color);
       border-radius:6px;
@@ -542,8 +541,12 @@
     .modal-block.open {
       width:max-content;
       border:none;
+      min-height:var(--block1-height, auto);
     }
-    .modal-block.open .modal-content { opacity:1; }
+    .modal-block.open .modal-content {
+      opacity:1;
+      min-height:var(--block1-height, auto);
+    }
     .modal-block.open .modal-title { opacity:0.15; }
     .block21-entry {
       display:flex;
@@ -2777,6 +2780,20 @@ const posIds = block1Rows.map(r => r.id);
     if (extra) extra.remove();
   }
 
+  function updateDynamicModalHeight(dm) {
+    if (!dm) return;
+    const block1Content = dm.querySelector('.modal-block.block1 .modal-content');
+    if (!block1Content) {
+      dm.style.removeProperty('--block1-height');
+      return;
+    }
+    requestAnimationFrame(() => {
+      const height = block1Content.scrollHeight;
+      if (height) dm.style.setProperty('--block1-height', `${height}px`);
+      else dm.style.removeProperty('--block1-height');
+    });
+  }
+
   function resetDynamicBlocks(scope) {
     scope.querySelectorAll('.dynamic-modals').forEach(dm => {
       const blocks = dm.querySelectorAll('.modal-block');
@@ -2784,13 +2801,16 @@ const posIds = block1Rows.map(r => r.id);
         if (i === 0) b.classList.add('open');
         else b.classList.remove('open');
       });
+      updateDynamicModalHeight(dm);
     });
   }
 
   function setupDynamicBlocks(scope) {
     scope.querySelectorAll('.dynamic-modals').forEach(dm => {
       const blocks = dm.querySelectorAll('.modal-block');
-      (dm.querySelector('.modal-block.open') || blocks[0])?.classList.add('open');
+      const initiallyOpen = dm.querySelector('.modal-block.open') || blocks[0];
+      if (initiallyOpen) initiallyOpen.classList.add('open');
+      updateDynamicModalHeight(dm);
       blocks.forEach(block => {
         block.addEventListener('dblclick', () => {
           dm.querySelectorAll('.modal-block').forEach(b => b.classList.remove('open'));
@@ -2801,6 +2821,7 @@ const posIds = block1Rows.map(r => r.id);
           if (specId && cls && posInput) {
             block1OpenBlocks[specId] = { block: cls, pos: posInput.value };
           }
+          updateDynamicModalHeight(dm);
         });
       });
     });
