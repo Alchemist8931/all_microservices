@@ -3408,10 +3408,7 @@ const posIds = block1Rows.map(r => r.id);
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      stopAutoRefresh();
-    } else {
-      startAutoRefresh();
-      loadHistory();
+     loadHistory();
     }
   });
   
@@ -3558,7 +3555,6 @@ const posIds = block1Rows.map(r => r.id);
 
   await loadHistory({ resetLimit: true });
   setupRealtime();
-  startAutoRefresh();
 }
 
 initModal9();
