@@ -1805,6 +1805,79 @@ export async function initModal9() {
     uploadBtn.disabled = false;
   }
 
+    function applyRealtimeRegistryUpdate(newRow) {
+    if (!newRow || !newRow.id) return;
+    const specId = String(newRow.id);
+
+    // обновляем кэш history
+    const idx = history.findIndex(h => String(h.id) === specId);
+    if (idx === -1) {
+      // этой строки нет в текущем лимите истории — просто перезагрузим всё
+      loadHistory();
+      return;
+    }
+
+    const prev = history[idx];
+    history[idx] = { ...prev, ...newRow };
+
+    lastHistoryStatus[newRow.id] = {
+      status_parser:   newRow.status_parser,
+      status_selector: newRow.status_selector,
+      status_pricer:   newRow.status_pricer,
+    };
+
+    const rowEl = historyList.querySelector(`.history-item[data-spec-id="${specId}"]`);
+    if (!rowEl) return;
+
+    const updateField = (fieldName, dbValue, { animate = false, isTokens = false } = {}) => {
+      let selector = `[data-field="${fieldName}"]`;
+      if (isTokens) selector = '[data-field="-"]';
+
+      const el = rowEl.querySelector(selector);
+      if (!el) return;
+
+      let displayValue = '';
+
+      if (fieldName === 'created_at') {
+        displayValue = dbValue ? new Date(dbValue).toLocaleString() : '';
+      } else if (isTokens) {
+        displayValue = formatTokenCost(dbValue);
+      } else {
+        displayValue = dbValue ?? '';
+      }
+
+      const prevValue = 'value' in el ? el.value : el.textContent;
+      if (prevValue === displayValue) return;
+
+      if (STATUS_FIELDS.has(fieldName) || animate) {
+        // плавное обновление + иконки + прогресс
+        animateStatus(el, displayValue);
+      } else {
+        if ('value' in el) el.value = displayValue;
+        else el.textContent = displayValue;
+      }
+    };
+
+    // статусы (парсинг / подбор / проценка)
+    updateField('status_parser',   newRow.status_parser,   { animate: true });
+    updateField('status_selector', newRow.status_selector, { animate: true });
+    updateField('status_pricer',   newRow.status_pricer,   { animate: true });
+
+    // стоимость токенов
+    updateField('tokens', newRow.tokens, { isTokens: true });
+
+    // на всякий случай обновим ещё дату / имя файла, если прилетели
+    if (newRow.created_at !== undefined) updateField('created_at', newRow.created_at);
+    if (newRow.file_name  !== undefined) updateField('file_name',  newRow.file_name);
+    if (newRow.file_ext   !== undefined) updateField('file_ext',   newRow.file_ext);
+    if (newRow.file_number!== undefined) updateField('file_number',newRow.file_number);
+    if (newRow.user_login !== undefined) updateField('user_login', newRow.user_login);
+
+    // пересчитать прогресс по трём статусам для всех прогресс-баров этой спеки
+    updateSpecProgress(specId);
+  }
+
+
   uploadBtn.addEventListener('click', async () => {
     if (!selectedFile || uploadBtn.classList.contains('loading')) return;
     startBtnLoad();
@@ -3385,33 +3458,62 @@ const posIds = block1Rows.map(r => r.id);
     }
   }
   
-  function setupRealtime() {
-  if (!supabase) return;
+    function setupRealtime() {
+    if (!supabase) return;
 
-  realtimeSub = supabase
-    .channel('modal9-realtime')
+    realtimeSub = supabase
+      .channel('modal9-realtime')
 
-    // изменение реестра файлов — полностью перезагружаем историю
-    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
-      loadHistory();
-    })
+      // Реестр файлов: INSERT/DELETE -> reload, UPDATE -> точечный обновлений статусов
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: TABLE },
+        payload => {
+          if (!payload) return;
+          const { eventType, new: newRow } = payload;
 
-    // изменение позиций спеки — перезагружаем только BLOCK 1/2/3 для уже известных spec_id
-    .on('postgres_changes', { event: '*', schema: 'public', table: POS_TABLE }, () => {
-      scheduleLoadBlock1();
-    })
+          if (eventType === 'UPDATE' && newRow) {
+            // обновляем только строку + прогресс
+            applyRealtimeRegistryUpdate(newRow);
+          } else {
+            // новые / удалённые строки — живём по старинке
+            loadHistory();
+          }
+        }
+      )
 
-    // изменения по селектору — тоже только BLOCK 2 / 2.1 / 3 / 3.1
-    .on('postgres_changes', { event: '*', schema: 'public', table: SELECT_TABLE }, () => {
-      scheduleLoadBlock1();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: STATUS_TABLE }, () => {
-      scheduleLoadBlock1();
-    })
+      // позиции спеки (BLOCK 1 / 2 / 3)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: POS_TABLE },
+        () => {
+          scheduleLoadBlock1();
+        }
+      )
 
-    .subscribe();
-}
+      // результаты селектора / прайсера (BLOCK 2 / 2.1 / 3 / 3.1)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: SELECT_TABLE },
+        () => {
+          scheduleLoadBlock1();
+        }
+      )
 
+      // таблица статусов селектора — влияет только на содержимое блоков
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: STATUS_TABLE },
+        () => {
+          scheduleLoadBlock1();
+        }
+      )
+
+      .subscribe();
+  }
+
+
+  
 
   function cleanupRealtime() {
     if (realtimeSub) {
