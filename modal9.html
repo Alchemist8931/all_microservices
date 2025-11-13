@@ -551,6 +551,21 @@
     .modal-block.open .modal-content {
       opacity:1;
     }
+        /* --- миниатюры для BLOCK 2 / 2.1 / 3 / 3.1 --- */
+    .dynamic-modals .block2 .modal-content,
+    .dynamic-modals .block21 .modal-content,
+    .dynamic-modals .block3 .modal-content,
+    .dynamic-modals .block31 .modal-content {
+      display: none;           /* в свернутом состоянии контента не видно вообще */
+    }
+
+    .dynamic-modals .block2.open .modal-content,
+    .dynamic-modals .block21.open .modal-content,
+    .dynamic-modals .block3.open .modal-content,
+    .dynamic-modals .block31.open .modal-content {
+      display: block;          /* показываем только когда блок раскрыт (есть .open) */
+    }
+
     .modal-block.open .modal-title { opacity:0.15; }
     .block21-entry {
       display:flex;
