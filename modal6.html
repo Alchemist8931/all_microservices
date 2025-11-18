@@ -543,7 +543,7 @@
       left: 35px;
       right: 16px;
       top: calc(100% - 6px);
-      z-index: 10;
+      z-index: 4100;
       display: none;
       flex-direction: column;
       gap: 6px;
@@ -684,6 +684,7 @@
     <div class="modal6-sale-dialog glass-panel">
       <header class="modal6-sale-header">
         <h3 class="modal6-sale-title">создать реализацию</h3>
+        <button class="button-form modal6-sale-add" type="button" data-action="add-product-header">создать</button>
       </header>
       <div class="modal6-sale-content">
         <div class="modal6-sale-fields">
@@ -829,6 +830,8 @@ export function initModal6() {
   const materialList = overlay?.querySelector('[data-list="materials"]');
   const addProductButton = overlay?.querySelector('[data-action="add-product"]');
   const addMaterialButton = overlay?.querySelector('[data-action="add-material"]');
+  const headerAddButton = overlay?.querySelector('[data-action="add-product-header"]');
+  const dialog = overlay?.querySelector('.modal6-sale-dialog');
   const saleFieldInputs = overlay?.querySelectorAll('[data-sale-field]') ?? [];
 
   if (!(createSaleButton instanceof HTMLButtonElement)
@@ -837,7 +840,9 @@ export function initModal6() {
     || !(productList instanceof HTMLElement)
     || !(materialList instanceof HTMLElement)
     || !(addProductButton instanceof HTMLButtonElement)
-    || !(addMaterialButton instanceof HTMLButtonElement)) {
+    || !(addMaterialButton instanceof HTMLButtonElement)
+    || !(headerAddButton instanceof HTMLButtonElement)
+    || !(dialog instanceof HTMLElement)) {
     console.warn('[modal6.html] не найдены элементы для модального окна продаж');
     return;
   }
@@ -1389,12 +1394,15 @@ export function initModal6() {
   createSaleButton.addEventListener('click', openOverlay);
 
   overlay.addEventListener('click', (event) => {
-    if (!(event.target instanceof HTMLElement)) return;
-    if (!event.target.closest('.modal6-sale-dialog')) {
+    if (event.target === overlay) {
       closeOverlay();
     }
   });
+  dialog.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
   addProductButton.addEventListener('click', () => addRow('products'));
+  headerAddButton.addEventListener('click', () => addRow('products'));
   addMaterialButton.addEventListener('click', () => addRow('materials'));
 
   overlay.addEventListener('pointerdown', (event) => {
