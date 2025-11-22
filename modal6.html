@@ -408,7 +408,7 @@
       position: relative;
       width: 1680px;
       max-width: 90vw;
-      height: calc(100vh - 420px);
+      height: calc(100vh - 444px);
       padding: 28px 28px 34px;
       display: flex;
       flex-direction: column;
@@ -424,6 +424,17 @@
       border-bottom: 1px solid rgba(33, 33, 33, 0.14);
     }
 
+    #modal6-container .modal6-sale-header .modalRow {
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #modal6-container .modal6-sale-header .modal6-sale-add {
+      width: 110px;
+      margin-left: auto;
+    }
+
     #modal6-container .modal6-sale-title {
       margin: 0;
       font-size: 1.1em;
@@ -436,6 +447,7 @@
       flex-direction: column;
       gap: 24px;
       overflow: hidden;
+      padding-bottom: 40px;
     }
 
     #modal6-container .modal6-sale-fields {
@@ -686,7 +698,7 @@
       <header class="modal6-sale-header">
         <div class="modalRow">
           <h3 class="modal6-sale-title">создать реализацию</h3>
-          <button class="button-form modal6-sale-add" type="button" style="margin-top: -15px; right: 1px; width: 160px;" data-action="add-product-header">создать</button>
+          <button class="button-form modal6-sale-add" type="button" style="margin-top: -15px; right: 1px; width: 110px;" data-action="add-product-header">создать</button>
         </div>
       </header>
       <div class="modal6-sale-content">
@@ -702,14 +714,14 @@
               <h4 class="modal6-sale-section-title">изготовленная продукция</h4>
               <button class="button-form modal6-sale-add" type="button" data-action="add-product">добавить позицию</button>
             </div>
-            <div class="modal6-sale-list" data-list="products" style="min-height: 60px; max-height: 320px;"></div>
+            <div class="modal6-sale-list" data-list="products" style="min-height: 60px; max-height: 296px;"></div>
           </section>
           <section class="modal6-sale-section" data-section="materials">
             <div class="modal6-sale-section-header">
               <h4 class="modal6-sale-section-title">приобретенные товары (материалы)</h4>
               <button class="button-form modal6-sale-add" type="button" data-action="add-material">добавить позицию</button>
             </div>
-            <div class="modal6-sale-list" data-list="materials" style="min-height: 60px; max-height: 320px;"></div>
+            <div class="modal6-sale-list" data-list="materials" style="min-height: 60px; max-height: 296px;"></div>
           </section>
         </div>
       </div>
